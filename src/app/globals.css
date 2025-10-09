@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+  
+  /* Dark mode ready */
+  @media (prefers-color-scheme: dark) {
+    body {
+      @apply bg-dark-900 text-white;
+    }
+  }
+}
+
+/* Custom scrollbar turchese */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-primary-500 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary-600;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Gradient primary */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #4DB8AC 0%, #33cfbf 100%);
+}
+
+/* Button accent */
+.btn-accent {
+  @apply bg-accent-500 hover:bg-accent-600 text-white;
+}
+
+/* ⭐ FIX INPUT FIELDS - SFONDO BIANCO, TESTO SCURO ⭐ */
+@layer base {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="date"],
+  input[type="time"],
+  textarea,
+  select {
+    @apply text-gray-900 bg-white border-gray-300;
+  }
+  
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-gray-400;
+  }
+  
+  /* Focus state */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply ring-2 ring-primary-500 border-primary-500 outline-none;
+  }
+}
