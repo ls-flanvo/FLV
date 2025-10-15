@@ -37,21 +37,22 @@ export default function BookingCard({ booking }: BookingCardProps) {
     return variants[status] || 'default';
   };
 
-  // Mock data se non presente (da rimuovere quando API reale)
-  const driver = booking.driver || {
-    name: 'Marco Rossi',
-    phone: '+39 340 1234567',
-    vehicle: 'Mercedes Classe E Nera'
+  // ✅ Valori di default per campi non ancora nel DB
+  const driver = {
+    name: 'Da assegnare',
+    phone: '+39 340 0000000',
+    vehicle: 'In attesa di conferma'
   };
 
-  const pickupPoint = booking.pickupPoint || {
-    location: 'Terminal 1 - Uscita Arrivi',
+  const pickupPoint = {
+    location: 'Terminal - Uscita Arrivi',
     time: '15 minuti dopo l\'atterraggio',
     instructions: 'Cerca un cartello con il logo Flanvo'
   };
 
-  const passengers = booking.passengers || 1;
-  const luggage = booking.luggage || 1;
+  // ✅ Usa i campi reali del Booking
+  const passengers = 1; // Default, aggiornare quando campo disponibile
+  const luggage = booking.luggageCount || 1;
 
   const handleCancelBooking = async (refundEligible: boolean) => {
     try {
@@ -62,12 +63,11 @@ export default function BookingCard({ booking }: BookingCardProps) {
       });
 
       if (response.ok) {
-      setIsCancelModalOpen(false);
-      alert(refundEligible 
-        ? 'Cancellazione completata! Riceverai il rimborso entro 5-7 giorni.' 
-        : 'Prenotazione cancellata.');
-      // Redirect esplicito alla dashboard invece di reload
-      window.location.href = '/dashboard';
+        setIsCancelModalOpen(false);
+        alert(refundEligible 
+          ? 'Cancellazione completata! Riceverai il rimborso entro 5-7 giorni.' 
+          : 'Prenotazione cancellata.');
+        window.location.href = '/dashboard';
       }
     } catch (error) {
       console.error('Error cancelling booking:', error);
@@ -75,8 +75,15 @@ export default function BookingCard({ booking }: BookingCardProps) {
   };
 
   const handleFindNewRide = () => {
-    // Redirect alla ricerca volo con aeroporto di dirottamento
     window.location.href = '/flight-search';
+  };
+
+  // ✅ Mappa status corretto per CancellationModal
+  const getFlightStatus = (): 'scheduled' | 'cancelled' | 'diverted' | 'delayed' | 'normal' => {
+    const status = booking.status.toLowerCase();
+    if (status === 'cancelled') return 'cancelled';
+    if (status === 'confirmed') return 'scheduled';
+    return 'normal';
   };
 
   return (
@@ -85,15 +92,19 @@ export default function BookingCard({ booking }: BookingCardProps) {
         {/* Header con status */}
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-lg font-bold text-gray-900">Volo {booking.flight.code}</h3>
-            <p className="text-sm text-gray-500">{booking.flight.airline}</p>
+            <h3 className="text-lg font-bold text-gray-900">
+              Volo {booking.flightNumber || 'N/A'}
+            </h3>
+            <p className="text-sm text-gray-500">
+              {new Date(booking.flightDate).toLocaleDateString('it-IT')}
+            </p>
           </div>
           <Badge variant={getStatusVariant(booking.status)}>
             {booking.status.toUpperCase()}
           </Badge>
         </div>
 
-        {/* Pickup Point - NUOVA SEZIONE */}
+        {/* Pickup Point - solo se confermato */}
         {(booking.status === 'confirmed' || booking.status === 'paid') && (
           <div className="mb-4 p-3 bg-primary-50 border border-primary-200 rounded-lg">
             <div className="flex items-start space-x-2 mb-2">
@@ -107,11 +118,9 @@ export default function BookingCard({ booking }: BookingCardProps) {
               <Clock className="w-5 h-5 text-primary-600 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-xs text-gray-600">{pickupPoint.time}</p>
-                {pickupPoint.instructions && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    💡 {pickupPoint.instructions}
-                  </p>
-                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 {pickupPoint.instructions}
+                </p>
               </div>
             </div>
           </div>
@@ -122,8 +131,8 @@ export default function BookingCard({ booking }: BookingCardProps) {
           <div className="flex items-center space-x-3">
             <Plane className="w-5 h-5 text-gray-400" />
             <div className="flex-1">
-              <p className="text-sm text-gray-500">Aeroporto</p>
-              <p className="font-semibold text-gray-900">{booking.flight.arrivalAirport}</p>
+              <p className="text-sm text-gray-500">Volo</p>
+              <p className="font-semibold text-gray-900">{booking.flightNumber}</p>
             </div>
           </div>
 
@@ -131,43 +140,35 @@ export default function BookingCard({ booking }: BookingCardProps) {
             <MapPin className="w-5 h-5 text-gray-400" />
             <div className="flex-1">
               <p className="text-sm text-gray-500">Destinazione</p>
-              <p className="font-semibold text-gray-900">{booking.destination.address}</p>
+              <p className="font-semibold text-gray-900">
+                {booking.destinationAddress || 'Da specificare'}
+              </p>
             </div>
           </div>
 
           <div className="flex items-center space-x-4 text-sm">
             <div className="flex items-center space-x-2">
               <Users className="w-4 h-4 text-gray-400" />
-              <span className="text-gray-600">{passengers} {passengers === 1 ? 'pass.' : 'pass.'}</span>
+              <span className="text-gray-600">{passengers} pass.</span>
             </div>
             <div className="flex items-center space-x-2">
               <Luggage className="w-4 h-4 text-gray-400" />
-              <span className="text-gray-600">{luggage} {luggage === 1 ? 'bag.' : 'bag.'}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-3">
-            <DollarSign className="w-5 h-5 text-gray-400" />
-            <div className="flex-1">
-              <p className="text-sm text-gray-500">Prezzo</p>
-              <p className="font-semibold text-primary-600">€{booking.sharePrice}</p>
+              <span className="text-gray-600">{luggage} bag.</span>
             </div>
           </div>
         </div>
 
         {/* Driver info - solo se confermato */}
-        {(booking.status === 'confirmed' || booking.status === 'paid') && driver && (
+        {(booking.status === 'confirmed' || booking.status === 'paid') && (
           <div className="mb-4 p-3 bg-gray-50 rounded-lg">
             <p className="text-xs text-gray-500 mb-1">Il tuo autista</p>
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                {driver.name.split(' ').map(n => n[0]).join('')}
+                DA
               </div>
               <div className="flex-1">
                 <p className="text-sm font-semibold text-gray-900">{driver.name}</p>
-                {driver.vehicle && (
-                  <p className="text-xs text-gray-500">{driver.vehicle}</p>
-                )}
+                <p className="text-xs text-gray-500">{driver.vehicle}</p>
               </div>
             </div>
           </div>
@@ -177,10 +178,10 @@ export default function BookingCard({ booking }: BookingCardProps) {
         <div className="flex items-center justify-between py-3 border-t border-gray-200">
           <div className="flex items-center space-x-2">
             <DollarSign className="w-5 h-5 text-gray-400" />
-            <span className="text-sm text-gray-600">La tua quota</span>
+            <span className="text-sm text-gray-600">Prezzo stimato</span>
           </div>
           <span className="text-xl font-bold text-primary-600">
-            €{booking.sharePrice}
+            €{booking.estimatedPrice?.toFixed(2) || 'N/A'}
           </span>
         </div>
 
@@ -195,7 +196,6 @@ export default function BookingCard({ booking }: BookingCardProps) {
                 <Button className="w-full">Traccia corsa</Button>
               </Link>
 
-              {/* Pulsante Chat */}
               <button
                 onClick={() => setIsChatOpen(true)}
                 className="flex-1 bg-primary-500 text-white py-2 rounded-lg hover:bg-primary-600 transition-colors font-medium text-sm flex items-center justify-center space-x-2"
@@ -205,7 +205,6 @@ export default function BookingCard({ booking }: BookingCardProps) {
               </button>
             </div>
 
-            {/* Pulsante Cancella */}
             <button
               onClick={() => setIsCancelModalOpen(true)}
               className="w-full bg-red-50 text-red-600 border border-red-200 py-2 rounded-lg hover:bg-red-100 transition-colors font-medium text-sm flex items-center justify-center space-x-2"
@@ -231,8 +230,8 @@ export default function BookingCard({ booking }: BookingCardProps) {
         isOpen={isCancelModalOpen}
         onClose={() => setIsCancelModalOpen(false)}
         bookingId={booking.id}
-        flightStatus={booking.flight.status}
-        divertedTo={booking.flight.arrivalAirport} // In caso reale, passa l'aeroporto di dirottamento
+        flightStatus={getFlightStatus()}
+        divertedTo={undefined}
         onConfirmCancel={handleCancelBooking}
         onFindNewRide={handleFindNewRide}
       />

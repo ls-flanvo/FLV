@@ -10,14 +10,16 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "db:seed": "prisma db seed"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.17.0",
     "bcryptjs": "^3.0.2",
+    "jose": "^6.1.0",
     "lucide-react": "^0.263.1",
     "mapbox-gl": "^2.15.0",
     "next": "14.1.0",

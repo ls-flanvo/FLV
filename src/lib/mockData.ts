@@ -5,37 +5,32 @@ export const mockUsers: User[] = [
     id: '1',
     name: 'Marco Rossi',
     email: 'marco.rossi@email.com',
-    role: 'passenger',
-    phone: '+39 333 1234567',
+    role: 'PASSENGER',
   },
   {
     id: '2',
     name: 'Laura Bianchi',
     email: 'laura.bianchi@email.com',
-    role: 'passenger',
-    phone: '+39 333 2345678',
+    role: 'PASSENGER',
   },
   {
     id: '3',
     name: 'Giuseppe Verdi',
     email: 'giuseppe.verdi@email.com',
-    role: 'passenger',
-    phone: '+39 333 3456789',
+    role: 'PASSENGER',
   },
   {
     id: 'driver1',
     name: 'Antonio Esposito',
     email: 'antonio.driver@email.com',
-    role: 'driver',
-    phone: '+39 333 9876543',
+    role: 'DRIVER',  // ✅ MAIUSCOLO
   },
   {
-  id: 'admin1',
-  name: 'Admin Flanvo',
-  email: 'admin@flanvo.com',
-  role: 'admin',
-  phone: '+39 333 0000000',
-},
+    id: 'admin1',
+    name: 'Admin Flanvo',
+    email: 'admin@flanvo.com',
+    role: 'ADMIN',  // ✅ MAIUSCOLO
+  },
 ];
 
 export const mockFlights: Flight[] = [

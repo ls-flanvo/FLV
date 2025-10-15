@@ -34,12 +34,12 @@ export default function TrackingMap({ currentLocation, destination, route }: Tra
     }
   }, [currentLocation, destination]);
 
-  // Crea la linea del percorso per Mapbox
+  // ✅ FIX: GeoJSON con literal types 'as const'
   const routeGeoJSON = route && route.length > 1 ? {
-    type: 'Feature',
+    type: 'Feature' as const,
     properties: {},
     geometry: {
-      type: 'LineString',
+      type: 'LineString' as const,
       coordinates: route.map(point => [point.lng, point.lat])
     }
   } : null;

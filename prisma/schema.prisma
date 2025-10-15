@@ -1,225 +1,612 @@
+// ============================================
+// FLANVO - Airport Ride Sharing Platform
+// DBSCAN Clustering System
+// ============================================
+// 
+// CLUSTERING LOGIC:
+// - DBSCAN with haversine distance (eps=8.5km, min_samples=2)
+// - Pool size: min 2, max 7 passengers
+// - 2-pax pools only if: detour ≤10% AND extra time ≤6min
+// - Max tolerated detour: 20% or 10 minutes
+//
+// PRICING LOGIC:
+// - Tiered per km: 0.30€ (0-50km), 0.25€ (51-99km), 0.20€ (≥100km)
+// - Driver rate: 2.00€/km
+// - Per-passenger payment, captured at drop-off
+//
+// TIMELINE:
+// - T-60: Booking close
+// - T-40: Match + Supply check
+// - T-30: Notify passengers
+// ============================================
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-model User {
-  id        String    @id @default(cuid())
-  email     String    @unique
-  name      String
-  phone     String?
-  role      Role      @default(USER)
-  password  String
-  verified  Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  avatar    String?
-  bookings  Booking[]
-  driver    Driver?
+// ============================================
+// ENUMS
+// ============================================
 
-  @@map("users")
-}
-
-model Driver {
-  id               String       @id @default(cuid())
-  userId           String       @unique
-  surname          String
-  dateOfBirth      DateTime
-  taxCode          String       @unique
-  address          String
-  city             String
-  province         String
-  zipCode          String
-  licenseNumber    String
-  licenseExpiry    DateTime
-  cqcNumber        String
-  cqcExpiry        DateTime
-  vehicleBrand     String
-  vehicleModel     String
-  vehicleYear      Int
-  licensePlate     String       @unique
-  vehicleColor     String
-  seats            Int
-  insuranceCompany String
-  insuranceNumber  String
-  insuranceExpiry  DateTime
-  status           DriverStatus @default(PENDING)
-  approved         Boolean      @default(false)
-  approvedAt       DateTime?
-  rejectionReason  String?
-  availability     String       @default("fulltime")
-  rating           Float        @default(0)
-  totalRides       Int          @default(0)
-  completedRides   Int          @default(0)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rides            Ride[]
-
-  @@map("drivers")
-}
-
-model Booking {
-  id              String        @id @default(cuid())
-  bookingCode     String        @unique
-  userId          String
-  flightNumber    String?
-  flightDate      DateTime?
-  flightTime      String?
-  flightStatus    FlightStatus  @default(SCHEDULED)
-  pickupAddress   String
-  pickupAirport   String?
-  pickupLat       Float?
-  pickupLng       Float?
-  dropoffAddress  String
-  dropoffLat      Float?
-  dropoffLng      Float?
-  pickupTime      DateTime
-  passengers      Int           @default(1)
-  luggage         Int           @default(0)
-  notes           String?
-  basePrice       Float
-  platformFee     Float
-  totalPrice      Float
-  paymentStatus   PaymentStatus @default(PENDING)
-  paymentIntentId String?
-  status          BookingStatus @default(PENDING)
-  cancelled       Boolean       @default(false)
-  cancelledAt     DateTime?
-  cancelledBy     String?
-  refundEligible  Boolean       @default(false)
-  refundAmount    Float?
-  refundStatus    String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  user            User          @relation(fields: [userId], references: [id])
-  ride            Ride?
-
-  @@index([userId])
-  @@index([status])
-  @@index([flightDate])
-  @@map("bookings")
-}
-
-model Ride {
-  id                 String     @id @default(cuid())
-  bookingId          String     @unique
-  driverId           String
-  status             RideStatus @default(ASSIGNED)
-  driverLat          Float?
-  driverLng          Float?
-  lastLocationUpdate DateTime?
-  assignedAt         DateTime   @default(now())
-  acceptedAt         DateTime?
-  enRouteAt          DateTime?
-  arrivedAt          DateTime?
-  startedAt          DateTime?
-  completedAt        DateTime?
-  driverEarnings     Float
-  platformFee        Float
-  rating             Int?
-  review             String?
-  driverNotes        String?
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
-  booking            Booking    @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  driver             Driver     @relation(fields: [driverId], references: [id])
-
-  @@index([driverId])
-  @@index([status])
-  @@map("rides")
-}
-
-model SystemSettings {
-  id          String   @id @default(cuid())
-  key         String   @unique
-  value       String
-  description String?
-  updatedAt   DateTime @updatedAt
-
-  @@map("system_settings")
-}
-
-model AuditLog {
-  id         String   @id @default(cuid())
-  userId     String?
-  action     String
-  entityType String?
-  entityId   String?
-  details    Json?
-  ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime @default(now())
-
-  @@index([userId])
-  @@index([action])
-  @@index([createdAt])
-  @@map("audit_logs")
-}
-
-model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  type      String
-  title     String
-  message   String
-  read      Boolean  @default(false)
-  data      Json?
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-  @@index([read])
-  @@map("notifications")
-}
-
-enum Role {
-  USER
+enum UserRole {
+  PASSENGER
   DRIVER
   ADMIN
 }
 
-enum DriverStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  SUSPENDED
-}
-
 enum BookingStatus {
-  PENDING
-  CONFIRMED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-}
-
-enum PaymentStatus {
-  PENDING
-  PAID
-  FAILED
-  REFUNDED
+  PENDING           // Appena creato
+  CONFIRMED         // Pagamento confermato
+  IN_MATCHING       // In fase di matching DBSCAN
+  MATCHED           // Gruppo trovato
+  NO_MATCH          // Nessun match possibile
+  IN_PROGRESS       // Ride in corso
+  COMPLETED         // Completato
+  CANCELLED         // Cancellato
 }
 
 enum RideStatus {
-  ASSIGNED
-  ACCEPTED
-  EN_ROUTE
-  ARRIVED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
+  SCHEDULED         // Programmato
+  SUPPLY_CHECKED    // Fleet check passato
+  DRIVER_ASSIGNED   // Driver assegnato
+  DRIVER_EN_ROUTE   // Driver in viaggio verso pickup
+  PICKUP_ARRIVED    // Driver arrivato al pickup
+  IN_PROGRESS       // Passeggeri a bordo
+  COMPLETED         // Ride completato
+  CANCELLED         // Cancellato
 }
 
-enum FlightStatus {
-  SCHEDULED
-  ACTIVE
-  LANDED
-  CANCELLED
-  DIVERTED
-  DELAYED
+enum GroupStatus {
+  FORMING           // Gruppo in formazione (T-60 a T-40)
+  READY             // Matching completato (T-40)
+  CONFIRMED         // Supply check passato (T-40)
+  ASSIGNED          // Driver assegnato (T-30)
+  ACTIVE            // Ride in corso
+  COMPLETED         // Tutti i drop-off completati
+  CANCELLED         // Cancellato
+  NO_MATCH          // DBSCAN non ha trovato match validi
+}
+
+enum MemberStatus {
+  PENDING           // In attesa di matching
+  CONFIRMED         // Confermato nel gruppo
+  NO_SHOW           // Passeggero non si è presentato
+  COMPLETED         // Drop-off completato, pagamento catturato
+  CANCELLED         // Rimosso dal gruppo
+}
+
+enum RoutePointType {
+  AIRPORT           // Punto aeroporto (inizio/fine)
+  PICKUP            // Punto di pickup passeggero
+  DROPOFF           // Punto di drop-off passeggero
+}
+
+enum Direction {
+  TO_AIRPORT        // Verso l'aeroporto
+  FROM_AIRPORT      // Dall'aeroporto
+}
+
+enum VehicleType {
+  SEDAN             // 1-3 passeggeri
+  SUV               // 1-5 passeggeri
+  VAN               // 1-7 passeggeri
+  LUXURY            // 1-3 passeggeri premium
+}
+
+enum QualityTier {
+  EXCELLENT         // Detour <5%, extra time <3min
+  GOOD              // Detour 5-15%, extra time 3-6min
+  ACCEPTABLE        // Detour 15-20%, extra time 6-10min
+}
+
+enum PaymentStatus {
+  PENDING           // In attesa
+  AUTHORIZED        // Autorizzato (pre-auth)
+  CAPTURED          // Catturato (dopo drop-off)
+  FAILED            // Fallito
+  REFUNDED          // Rimborsato
+}
+
+enum ClusterMethod {
+  DBSCAN            // Density-Based Spatial Clustering
+  MANUAL            // Raggruppamento manuale
+  NONE              // Singola corsa
+}
+
+// ============================================
+// CORE ENTITIES
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  phone         String
+  role          UserRole  @default(PASSENGER)
+  avatar        String?
+  isVerified    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  bookings      Booking[]
+  driver        Driver?
+  microGroups   MicroGroup[]
+  
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model Driver {
+  id              String       @id @default(cuid())
+  userId          String       @unique
+  licenseNumber   String       @unique
+  vehicleType     VehicleType
+  vehiclePlate    String       @unique
+  vehicleModel    String
+  vehicleYear     Int
+  vehicleColor    String
+  rating          Float        @default(5.0)
+  totalRides      Int          @default(0)
+  isAvailable     Boolean      @default(true)
+  isVerified      Boolean      @default(false)
+  
+  // Earnings tracking
+  totalEarnings   Float        @default(0)
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rides           Ride[]
+  
+  @@index([isAvailable, vehicleType])
+  @@index([licenseNumber])
+  @@map("drivers")
+}
+
+model Booking {
+  id                  String         @id @default(cuid())
+  userId              String
+  
+  // Location
+  pickupLocation      String
+  pickupLat           Float
+  pickupLng           Float
+  dropoffLocation     String
+  dropoffLat          Float
+  dropoffLng          Float
+  pickupTime          DateTime
+
+  // Flight Info
+  flightNumber        String
+  flightDate          DateTime
+  flightTime          DateTime?
+  direction           Direction
+
+  // Destination (per DBSCAN matching)
+  destinationLat      Float?
+  destinationLng      Float?
+  destinationAddress  String?
+
+  // Passenger Details
+  passengerName       String?
+  passengers          Int            @default(1)
+  luggage             Int            @default(1)
+  luggageCount        Int?           @default(2)
+  specialRequests     String?
+
+  // Pricing (estimated before matching)
+  estimatedPrice      Float?
+  finalPrice          Float?
+  distanceDirect      Float?         // Distanza diretta in km
+
+  // MicroGroup Reference (2-3 persone insieme, indivisibili)
+  microGroupId        String?
+
+  // Pool/Group Info (per DBSCAN)
+  poolGroupId         String?
+  
+  // Campi per metriche pre-calcolate
+  poolMetrics         Json?
+  poolPricing         Json?
+
+  // Detour Constraints
+  maxDetourMinutes    Int            @default(10)    // Max 10 minuti extra
+  maxDetourPercent    Float          @default(20.0)  // Max 20% detour
+
+  // Status
+  status              BookingStatus  @default(PENDING)
+  isGroupRide         Boolean        @default(false)
+
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  // Relations
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  microGroup          MicroGroup?    @relation(fields: [microGroupId], references: [id], onDelete: SetNull)
+  groupMember         GroupMember?   // 1:1 relationship dopo matching
+
+  @@index([userId])
+  @@index([status])
+  @@index([flightNumber])
+  @@index([flightNumber, flightDate])  // Per DBSCAN matching
+  @@index([pickupTime])
+  @@index([isGroupRide])
+  @@index([microGroupId])
+  @@index([poolGroupId])               // Per pool groups
+  @@index([direction, flightNumber])   // Compound per DBSCAN matching
+  @@map("bookings")
+}
+
+model Ride {
+  id              String       @id @default(cuid())
+  
+  // Driver Assignment
+  driverId        String?
+  vehicleType     VehicleType
+  
+  // Group Reference (1 ride = 1 gruppo)
+  groupId         String       @unique
+  
+  // Status & Timing
+  status          RideStatus   @default(SCHEDULED)
+  scheduledTime   DateTime
+  startTime       DateTime?
+  endTime         DateTime?
+  
+  // Timeline Tracking
+  confirmedAt     DateTime?    // T-40: Supply check passato
+  passengerNotified DateTime?  // T-30: Passeggeri notificati
+  pickupWindowStart DateTime?  // Inizio finestra pickup
+  pickupWindowEnd DateTime?    // Fine finestra pickup
+  
+  // Pricing & Distance
+  totalDriverPay  Float        // Totale da pagare al driver (2.00€/km)
+  totalRevenue    Float        // Totale revenue Flanvo
+  totalDistance   Float        // Distanza totale percorsa
+  
+  // Notes
+  driverNotes     String?
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations
+  driver          Driver?      @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  rideGroup       RideGroup    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  
+  @@index([driverId])
+  @@index([status])
+  @@index([scheduledTime])
+  @@index([groupId])
+  @@map("rides")
+}
+
+// ============================================
+// DBSCAN CLUSTERING & GROUPING
+// ============================================
+
+model RideGroup {
+  id                String        @id @default(cuid())
+  
+  // Flight & Direction
+  flightNumber      String
+  direction         Direction
+  targetPickupTime  DateTime      // T-60: Booking close time
+  
+  // DBSCAN Parameters
+  clusterMethod     ClusterMethod @default(DBSCAN)
+  eps               Float         @default(8.5)    // km - haversine distance
+  minSamples        Int           @default(2)
+  
+  // Capacity
+  maxCapacity       Int           @default(7)
+  currentCapacity   Int           @default(0)      // Numero passeggeri
+  currentLuggage    Int           @default(0)
+  
+  // Route Optimization Results
+  totalRouteKm      Float?        // Km totali percorso ottimizzato
+  totalDuration     Int?          // Minuti totali stimati
+  detourPercentage  Float?        // % detour medio del gruppo
+  extraTimeMinutes  Int?          // Minuti extra medi vs direct
+  
+  // Quality Scoring
+  qualityScore      Float?        // 0-100 score
+  stabilityTier     QualityTier?  // EXCELLENT|GOOD|ACCEPTABLE
+  
+  // Status
+  status            GroupStatus   @default(FORMING)
+  
+  // Timeline Tracking
+  bookingCloseTime  DateTime?     // T-60
+  matchConfirmTime  DateTime?     // T-40
+  passengerNotifyTime DateTime?   // T-30
+  
+  // Mapbox Cache (per evitare ricalcoli)
+  matrixCacheId     String?       // ID della distance matrix cache
+  routeVersion      Int           @default(1)  // Version del route ottimizzato
+  
+  // Pricing
+  basePrice         Float
+  totalPrice        Float?        // Somma di tutti i finalPrice dei membri
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  members           GroupMember[]
+  routes            GroupRoute[]
+  ride              Ride?
+  supplyChecks      SupplyCheck[]
+  priceAuditLogs    PriceAuditLog[]
+  
+  @@index([status])
+  @@index([direction])
+  @@index([flightNumber])
+  @@index([targetPickupTime])
+  @@index([flightNumber, direction]) // Compound per matching
+  @@map("ride_groups")
+}
+
+model GroupMember {
+  id              String        @id @default(cuid())
+  
+  bookingId       String        @unique  // 1:1 con Booking
+  rideGroupId     String
+  
+  // Status
+  status          MemberStatus  @default(PENDING)
+  
+  // Route Position
+  pickupOrder     Int           // Ordine di pickup (1, 2, 3...)
+  dropoffOrder    Int           // Ordine di drop-off (1, 2, 3...)
+  
+  // Distance Tracking
+  kmOnboard       Float?        // Km con passeggero a bordo
+  kmDirect        Float?        // Km diretti (airport ↔ destination)
+  detourKm        Float?        // Km extra = kmOnboard - kmDirect
+  detourPercent   Float?        // % detour
+  extraMinutes    Int?          // Minuti extra vs direct
+  
+  // Pricing Breakdown (per questo passeggero)
+  baseFare        Float?        // Tariffa base (tiered per km)
+  driverShare     Float?        // Quota driver (2.00€/km * kmOnboard)
+  flanvoFeeRate   Float?        // % fee Flanvo (es. 15%)
+  flanvoFee       Float?        // Fee Flanvo in €
+  totalPrice      Float?        // Prezzo finale per questo passeggero
+  pennyAdjustment Float?        @default(0) // Aggiustamento centesimi per pareggio
+  
+  // Payment (captured at drop-off)
+  paymentIntentId String?       // Stripe PaymentIntent ID
+  paymentStatus   PaymentStatus @default(PENDING)
+  capturedAt      DateTime?
+  
+  // Timing
+  estimatedPickupTime   DateTime?
+  actualPickupTime      DateTime?
+  estimatedDropoffTime  DateTime?
+  actualDropoffTime     DateTime?
+  
+  // MicroGroup Tracking
+  microGroupId    String?       // Se parte di un micro-gruppo
+  
+  joinedAt        DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  booking         Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  rideGroup       RideGroup     @relation(fields: [rideGroupId], references: [id], onDelete: Cascade)
+  microGroup      MicroGroup?   @relation(fields: [microGroupId], references: [id], onDelete: SetNull)
+  
+  @@index([rideGroupId])
+  @@index([status])
+  @@index([pickupOrder])
+  @@index([dropoffOrder])
+  @@index([microGroupId])
+  @@map("group_members")
+}
+
+model GroupRoute {
+  id              String          @id @default(cuid())
+  
+  rideGroupId     String
+  sequence        Int             // Ordine del waypoint (0, 1, 2...)
+  type            RoutePointType
+  
+  // Location
+  address         String
+  latitude        Float
+  longitude       Float
+  
+  // Timing
+  estimatedArrival DateTime
+  actualArrival    DateTime?
+  
+  // Status
+  reached         Boolean        @default(false)
+  reachedAt       DateTime?
+  
+  // Distance from Previous Point
+  distanceFromPrev Float?        // Km dal waypoint precedente
+  durationFromPrev Int?          // Minuti dal waypoint precedente
+  
+  // Reference (per PICKUP/DROPOFF)
+  bookingId       String?        // Riferimento al booking
+  
+  createdAt       DateTime       @default(now())
+
+  // Relations
+  rideGroup       RideGroup      @relation(fields: [rideGroupId], references: [id], onDelete: Cascade)
+  
+  @@unique([rideGroupId, sequence])
+  @@index([rideGroupId])
+  @@index([type])
+  @@map("group_routes")
+}
+
+// ============================================
+// MICRO GROUPS (2-3 persone insieme)
+// ============================================
+
+model MicroGroup {
+  id                String    @id @default(cuid())
+  
+  // Lead User (chi ha fatto la prenotazione)
+  leadUserId        String
+  
+  // Constraint: MUST stay together
+  mustStayTogether  Boolean   @default(true)
+  
+  // Group Size
+  totalPassengers   Int       // 2 o 3
+  totalLuggage      Int
+  
+  // Status
+  isActive          Boolean   @default(true)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  leadUser          User          @relation(fields: [leadUserId], references: [id], onDelete: Cascade)
+  bookings          Booking[]     // 1 booking per persona nel micro-gruppo
+  groupMembers      GroupMember[] // Dopo matching, tutti nello stesso RideGroup
+  
+  @@index([leadUserId])
+  @@index([isActive])
+  @@map("micro_groups")
+}
+
+// ============================================
+// SUPPLY CHECK (T-40 hard check)
+// ============================================
+
+model SupplyCheck {
+  id                String    @id @default(cuid())
+  
+  rideGroupId       String
+  
+  // Check Timing
+  checkTime         DateTime  @default(now())  // T-40
+  
+  // Fleet Requirements
+  requiredVehicles  Int       // Numero veicoli necessari
+  requiredCapacity  Int       // Capacità totale richiesta
+  
+  // Availability
+  availableVehicles Int       // Veicoli disponibili al momento
+  availableDrivers  Int       // Driver disponibili
+  backupDrivers     Int       @default(0)  // Driver di backup
+  
+  // Check Result
+  checkPassed       Boolean
+  failureReason     String?   // Es: "Insufficient vehicles", "No drivers available"
+  
+  // Actions Taken
+  driverAssigned    Boolean   @default(false)
+  notificationSent  Boolean   @default(false)
+  
+  createdAt         DateTime  @default(now())
+
+  // Relations
+  rideGroup         RideGroup @relation(fields: [rideGroupId], references: [id], onDelete: Cascade)
+  
+  @@index([rideGroupId])
+  @@index([checkTime])
+  @@index([checkPassed])
+  @@map("supply_checks")
+}
+
+// ============================================
+// PRICE AUDIT LOG (compliance & debugging)
+// ============================================
+
+model PriceAuditLog {
+  id                String    @id @default(cuid())
+  
+  rideGroupId       String
+  bookingId         String?   // Opzionale: per audit per-passenger
+  
+  // Route Version (tracking changes)
+  routeVersion      Int
+  matrixCacheId     String?
+  
+  // Distance Breakdown
+  totalRouteKm      Float
+  directKm          Float?
+  detourKm          Float?
+  detourPercent     Float?
+  
+  // Pricing Components (per passenger)
+  baseFarePerKm     Float     // Tiered rate (0.30, 0.25, 0.20)
+  totalBaseFare     Float
+  driverRatePerKm   Float     @default(2.00)
+  totalDriverPay    Float
+  flanvoFeeRate     Float     // % fee
+  flanvoFee         Float
+  finalPrice        Float
+  
+  // Quality Metrics
+  matchScore        Float?    // DBSCAN cluster quality
+  qualityTier       QualityTier?
+  
+  // Constraints Applied
+  maxDetourPercent  Float
+  maxDetourMinutes  Int
+  constraintsMet    Boolean
+  
+  // Metadata
+  calculatedBy      String?   // User/system che ha fatto il calcolo
+  calculatedAt      DateTime  @default(now())
+  notes             String?
+
+  // Relations
+  rideGroup         RideGroup @relation(fields: [rideGroupId], references: [id], onDelete: Cascade)
+  
+  @@index([rideGroupId])
+  @@index([bookingId])
+  @@index([calculatedAt])
+  @@map("price_audit_logs")
+}
+
+// ============================================
+// AIRPORTS & CONFIG
+// ============================================
+
+model Airport {
+  id              String    @id @default(cuid())
+  code            String    @unique  // IATA code (FCO, JFK, etc)
+  name            String
+  city            String
+  country         String
+  latitude        Float
+  longitude       Float
+  timezone        String
+  isActive        Boolean   @default(true)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([code])
+  @@index([city])
+  @@map("airports")
+}
+
+model SystemConfig {
+  id              String    @id @default(cuid())
+  key             String    @unique
+  value           String
+  description     String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("system_config")
 }

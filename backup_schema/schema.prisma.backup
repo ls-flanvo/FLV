@@ -1,0 +1,300 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum Role {
+  USER
+  DRIVER
+  ADMIN
+}
+
+enum DriverStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum RideStatus {
+  ASSIGNED
+  ACCEPTED
+  EN_ROUTE
+  ARRIVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum FlightStatus {
+  SCHEDULED
+  ACTIVE
+  LANDED
+  CANCELLED
+  DIVERTED
+  DELAYED
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  phone     String?
+  avatar    String?
+  role      Role     @default(USER)
+  password  String
+  verified  Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  bookings  Booking[]
+  driver    Driver?
+  
+  @@map("users")
+}
+
+model Driver {
+  id              String       @id @default(cuid())
+  userId          String       @unique
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Personal Info
+  surname         String
+  dateOfBirth     DateTime
+  taxCode         String       @unique
+  
+  // Address
+  address         String
+  city            String
+  province        String
+  zipCode         String
+  
+  // Documents
+  licenseNumber   String
+  licenseExpiry   DateTime
+  cqcNumber       String
+  cqcExpiry       DateTime
+  
+  // Vehicle
+  vehicleBrand    String
+  vehicleModel    String
+  vehicleYear     Int
+  licensePlate    String       @unique
+  vehicleColor    String
+  seats           Int
+  
+  // Insurance
+  insuranceCompany String
+  insuranceNumber  String
+  insuranceExpiry  DateTime
+  
+  // Status
+  status          DriverStatus @default(PENDING)
+  approved        Boolean      @default(false)
+  approvedAt      DateTime?
+  rejectionReason String?
+  
+  // Availability
+  availability    String       @default("fulltime")
+  
+  // Stats
+  rating          Float        @default(0)
+  totalRides      Int          @default(0)
+  completedRides  Int          @default(0)
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  // Relations
+  rides           Ride[]
+  
+  @@map("drivers")
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  bookingCode     String        @unique
+  
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  
+  // Flight Info
+  flightNumber    String?
+  flightDate      DateTime?
+  flightTime      String?
+  flightStatus    FlightStatus  @default(SCHEDULED)
+  
+  // Pickup & Dropoff
+  pickupAddress   String
+  pickupAirport   String?
+  pickupLat       Float?
+  pickupLng       Float?
+  
+  dropoffAddress  String
+  dropoffLat      Float?
+  dropoffLng      Float?
+  
+  pickupTime      DateTime
+  
+  // Passengers
+  passengers      Int           @default(1)
+  luggage         Int           @default(0)
+  
+  // Notes
+  notes           String?
+  
+  // Pricing
+  basePrice       Float
+  platformFee     Float
+  totalPrice      Float
+  
+  // Payment
+  paymentStatus   PaymentStatus @default(PENDING)
+  paymentIntentId String?
+  
+  // Status
+  status          BookingStatus @default(PENDING)
+  
+  // Cancellation
+  cancelled       Boolean       @default(false)
+  cancelledAt     DateTime?
+  cancelledBy     String?
+  refundEligible  Boolean       @default(false)
+  refundAmount    Float?
+  refundStatus    String?
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  ride            Ride?
+  
+  @@index([userId])
+  @@index([status])
+  @@index([flightDate])
+  @@map("bookings")
+}
+
+model Ride {
+  id              String      @id @default(cuid())
+  bookingId       String      @unique
+  booking         Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  
+  driverId        String
+  driver          Driver      @relation(fields: [driverId], references: [id])
+  
+  status          RideStatus  @default(ASSIGNED)
+  
+  // Tracking
+  driverLat       Float?
+  driverLng       Float?
+  lastLocationUpdate DateTime?
+  
+  // Timestamps
+  assignedAt      DateTime    @default(now())
+  acceptedAt      DateTime?
+  enRouteAt       DateTime?
+  arrivedAt       DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  
+  // Financials
+  driverEarnings  Float
+  platformFee     Float
+  
+  // Rating
+  rating          Int?
+  review          String?
+  
+  // Notes
+  driverNotes     String?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@index([driverId])
+  @@index([status])
+  @@map("rides")
+}
+
+// ============================================
+// ADMIN & SYSTEM MODELS
+// ============================================
+
+model SystemSettings {
+  id                String   @id @default(cuid())
+  key               String   @unique
+  value             String
+  description       String?
+  
+  updatedAt         DateTime @updatedAt
+  
+  @@map("system_settings")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String
+  entityType  String?
+  entityId    String?
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  data      Json?
+  
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([read])
+  @@map("notifications")
+}

@@ -281,27 +281,29 @@ export default function DriverDashboardPage() {
                           </div>
                           <div>
                             <p className="text-sm font-medium text-gray-900">{passenger.name}</p>
+                            {/* ✅ FIX: Rimosso passenger.luggage che non esiste */}
                             <p className="text-xs text-gray-500">
                               <Luggage className="w-3 h-3 inline mr-1" />
-                              {passenger.luggage || 1} bagagli
+                              1 bagaglio
                             </p>
                           </div>
                         </div>
                         <div className="flex space-x-1">
-                          <a
-                            href={`tel:${passenger.phone}`}
-                            className="p-1 hover:bg-gray-200 rounded transition-colors"
-                            title="Chiama"
+                          {/* ✅ FIX: phone non disponibile, disabilitato */}
+                          <button
+                            onClick={() => alert('Numero non disponibile. Usa la chat per contattare il passeggero.')}
+                            className="p-1 hover:bg-gray-200 rounded transition-colors opacity-50"
+                            title="Telefono non disponibile"
                           >
-                            <Phone className="w-4 h-4 text-gray-600" />
-                          </a>
+                            <Phone className="w-4 h-4 text-gray-400" />
+                          </button>
                           <button
                             className="p-1 hover:bg-gray-200 rounded transition-colors"
                             title="Chat"
                             onClick={() => {
                               setSelectedPassenger({
                                 name: passenger.name,
-                                phone: passenger.phone || '+39 340 1234567'
+                                phone: '+39 340 0000000' // ✅ FIX: placeholder
                               });
                               setChatOpen(true);
                             }}

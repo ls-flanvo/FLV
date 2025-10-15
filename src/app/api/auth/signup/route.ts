@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       id: 'user-' + Date.now(),
       name,
       email,
-      role: 'passenger',
+      role: 'PASSENGER',  // ✅ CORRETTO (enum UserRole)
     };
 
     return NextResponse.json({

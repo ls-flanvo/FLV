@@ -1,0 +1,346 @@
+// Flanvo - Airport Ride Sharing Platform
+// Database: PostgreSQL
+// ORM: Prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  PASSENGER
+  DRIVER
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum RideStatus {
+  SCHEDULED
+  DRIVER_ASSIGNED
+  DRIVER_EN_ROUTE
+  PICKUP_ARRIVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum GroupStatus {
+  FORMING
+  READY
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum MemberStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum RoutePointType {
+  AIRPORT
+  PICKUP
+  DROPOFF
+}
+
+enum Direction {
+  TO_AIRPORT
+  FROM_AIRPORT
+}
+
+enum VehicleType {
+  SEDAN
+  SUV
+  VAN
+  LUXURY
+}
+
+// ============================================
+// CORE ENTITIES
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  phone         String
+  role          UserRole  @default(PASSENGER)
+  avatar        String?
+  isVerified    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  bookings      Booking[]
+  driver        Driver?
+  
+  @@index([email])
+  @@map("users")
+}
+
+model Driver {
+  id              String       @id @default(cuid())
+  userId          String       @unique
+  licenseNumber   String       @unique
+  vehicleType     VehicleType
+  vehiclePlate    String       @unique
+  vehicleModel    String
+  vehicleYear     Int
+  vehicleColor    String
+  rating          Float        @default(5.0)
+  totalRides      Int          @default(0)
+  isAvailable     Boolean      @default(true)
+  isVerified      Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rides           Ride[]
+  
+  @@index([isAvailable, vehicleType])
+  @@index([licenseNumber])
+  @@map("drivers")
+}
+
+model Booking {
+  id                String         @id @default(cuid())
+  userId            String
+  
+  pickupLocation    String
+  pickupLat         Float
+  pickupLng         Float
+  dropoffLocation   String
+  dropoffLat        Float
+  dropoffLng        Float
+  pickupTime        DateTime
+  
+  flightNumber      String?
+  flightTime        DateTime?
+  direction         Direction
+  
+  passengers        Int            @default(1)
+  luggage           Int            @default(1)
+  specialRequests   String?
+  
+  estimatedPrice    Float?
+  finalPrice        Float?
+  distance          Float?
+  
+  status            BookingStatus  @default(PENDING)
+  isGroupRide       Boolean        @default(false)
+  
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ride              Ride?
+  groupMemberships  GroupMember[]
+  priceBreakdowns   PriceBreakdown[]
+  
+  @@index([userId])
+  @@index([status])
+  @@index([flightNumber])
+  @@index([pickupTime])
+  @@index([isGroupRide])
+  @@map("bookings")
+}
+
+model Ride {
+  id              String       @id @default(cuid())
+  
+  driverId        String?
+  vehicleType     VehicleType
+  
+  bookingId       String?      @unique
+  rideGroupId     String?      @unique
+  
+  status          RideStatus   @default(SCHEDULED)
+  scheduledTime   DateTime
+  startTime       DateTime?
+  endTime         DateTime?
+  
+  totalPrice      Float
+  totalDistance   Float
+  
+  driverNotes     String?
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  driver          Driver?      @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  booking         Booking?     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  rideGroup       RideGroup?   @relation(fields: [rideGroupId], references: [id], onDelete: Cascade)
+  
+  @@index([driverId])
+  @@index([status])
+  @@index([scheduledTime])
+  @@index([bookingId])
+  @@index([rideGroupId])
+  @@map("rides")
+}
+
+model RideGroup {
+  id                String        @id @default(cuid())
+  
+  direction         Direction
+  status            GroupStatus   @default(FORMING)
+  
+  maxCapacity       Int           @default(7)
+  currentCapacity   Int           @default(0)
+  currentLuggage    Int           @default(0)
+  
+  targetPickupTime  DateTime
+  actualStartTime   DateTime?
+  actualEndTime     DateTime?
+  
+  basePrice         Float
+  totalPrice        Float?
+  
+  totalDistance     Float?
+  estimatedDuration Int?
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  members           GroupMember[]
+  routes            GroupRoute[]
+  ride              Ride?
+  priceBreakdowns   PriceBreakdown[]
+  
+  @@index([status])
+  @@index([direction])
+  @@index([targetPickupTime])
+  @@map("ride_groups")
+}
+
+model GroupMember {
+  id              String        @id @default(cuid())
+  
+  bookingId       String
+  rideGroupId     String
+  
+  status          MemberStatus  @default(PENDING)
+  memberOrder     Int
+  
+  estimatedPickupTime   DateTime?
+  actualPickupTime      DateTime?
+  estimatedDropoffTime  DateTime?
+  actualDropoffTime     DateTime?
+  
+  distanceInRoute Float?
+  
+  joinedAt        DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  booking         Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  rideGroup       RideGroup     @relation(fields: [rideGroupId], references: [id], onDelete: Cascade)
+  
+  @@unique([bookingId, rideGroupId])
+  @@index([rideGroupId])
+  @@index([status])
+  @@index([memberOrder])
+  @@map("group_members")
+}
+
+model GroupRoute {
+  id              String          @id @default(cuid())
+  
+  rideGroupId     String
+  sequence        Int
+  type            RoutePointType
+  
+  address         String
+  latitude        Float
+  longitude       Float
+  
+  estimatedTime   DateTime
+  actualTime      DateTime?
+  
+  bookingId       String?
+  
+  distanceFromPrevious Float?
+  
+  createdAt       DateTime        @default(now())
+
+  rideGroup       RideGroup       @relation(fields: [rideGroupId], references: [id], onDelete: Cascade)
+  
+  @@unique([rideGroupId, sequence])
+  @@index([rideGroupId])
+  @@map("group_routes")
+}
+
+model PriceBreakdown {
+  id              String    @id @default(cuid())
+  
+  bookingId       String
+  rideGroupId     String?
+  
+  basePrice       Float
+  distanceFee     Float
+  timeFee         Float     @default(0)
+  airportFee      Float     @default(0)
+  surcharges      Float     @default(0)
+  discount        Float     @default(0)
+  
+  sharePercentage Float?
+  savings         Float     @default(0)
+  
+  finalPrice      Float
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  booking         Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  rideGroup       RideGroup? @relation(fields: [rideGroupId], references: [id], onDelete: Cascade)
+  
+  @@index([bookingId])
+  @@index([rideGroupId])
+  @@map("price_breakdowns")
+}
+
+model Airport {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  name            String
+  city            String
+  country         String
+  latitude        Float
+  longitude       Float
+  timezone        String
+  isActive        Boolean   @default(true)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([code])
+  @@index([city])
+  @@map("airports")
+}
+
+model SystemConfig {
+  id              String    @id @default(cuid())
+  key             String    @unique
+  value           String
+  description     String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("system_config")
+}
