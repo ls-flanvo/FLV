@@ -31,7 +31,7 @@ export async function PATCH(
             microGroup: true
           }
         },
-        route: {
+        routes: {
           orderBy: { sequence: 'asc' }
         }
       }
@@ -66,8 +66,8 @@ export async function PATCH(
     
     // Valida il gruppo per la conferma
     const validation = validateGroupForConfirmation(
-      group.currentPax,
-      group.qualityScore,
+      group.currentCapacity,
+      group.qualityScore || 0,
       allMembersConfirmed
     );
     
@@ -81,7 +81,7 @@ export async function PATCH(
       );
     }
     
-    console.log(`[RideGroup] All validations passed. Confirming group with ${group.currentPax} passengers.`);
+    console.log(`[RideGroup] All validations passed. Confirming group with ${group.currentCapacity} passengers.`);
     
     // Conferma il gruppo in una transazione
     const confirmedGroup = await prisma.$transaction(async (tx) => {
@@ -90,7 +90,7 @@ export async function PATCH(
         where: { id: groupId },
         data: {
           status: 'CONFIRMED',
-          confirmedAt: new Date()
+          matchConfirmTime: new Date()
         },
         include: {
           members: {
@@ -99,7 +99,7 @@ export async function PATCH(
               microGroup: true
             }
           },
-          route: {
+          routes: {
             orderBy: { sequence: 'asc' }
           }
         }
@@ -118,7 +118,6 @@ export async function PATCH(
       
       // TODO: Trigger pre-auth payments
       // Questa logica sarà gestita da AGENT 4 (Payment Management)
-      // Per ora creiamo un placeholder per il tracking
       console.log(`[RideGroup] Payment pre-authorization needed for group ${groupId}`);
       
       return updated;
@@ -142,11 +141,12 @@ export async function PATCH(
         id: confirmedGroup.id,
         status: confirmedGroup.status,
         flightNumber: confirmedGroup.flightNumber,
-        currentPax: confirmedGroup.currentPax,
+        direction: confirmedGroup.direction,
+        currentCapacity: confirmedGroup.currentCapacity,
         totalRouteKm: confirmedGroup.totalRouteKm,
         qualityScore: confirmedGroup.qualityScore,
-        tier: confirmedGroup.tier,
-        vehicleCost: confirmedGroup.vehicleCost,
+        stabilityTier: confirmedGroup.stabilityTier,
+        basePrice: confirmedGroup.basePrice,
         
         members: confirmedGroup.members.map(member => ({
           id: member.id,
@@ -155,13 +155,12 @@ export async function PATCH(
           passenger: {
             userId: member.booking.userId,
             passengers: member.booking.passengers,
-            pickup: member.booking.pickupAddress,
-            dropoff: member.booking.destinationAddress
+            pickup: member.booking.pickupLocation,
+            dropoff: member.booking.dropoffLocation
           },
           microGroup: member.microGroup ? {
             id: member.microGroup.id,
-            name: member.microGroup.name,
-            totalPax: member.microGroup.totalPax
+            totalPassengers: member.microGroup.totalPassengers
           } : null,
           pricing: {
             driverShare: member.driverShare,
@@ -170,15 +169,15 @@ export async function PATCH(
           }
         })),
         
-        route: confirmedGroup.route.map(waypoint => ({
+        route: confirmedGroup.routes.map(waypoint => ({
           sequence: waypoint.sequence,
           type: waypoint.type,
-          lat: waypoint.lat,
-          lng: waypoint.lng,
+          latitude: waypoint.latitude,
+          longitude: waypoint.longitude,
           address: waypoint.address
         })),
         
-        confirmedAt: confirmedGroup.confirmedAt,
+        matchConfirmTime: confirmedGroup.matchConfirmTime,
         createdAt: confirmedGroup.createdAt
       },
       
@@ -235,8 +234,8 @@ export async function GET(
     );
     
     const validation = validateGroupForConfirmation(
-      group.currentPax,
-      group.qualityScore,
+      group.currentCapacity,
+      group.qualityScore || 0,
       allMembersConfirmed
     );
     
@@ -245,10 +244,10 @@ export async function GET(
       reason: validation.reason,
       checks: {
         status: group.status,
-        currentPax: group.currentPax,
-        minPaxMet: group.currentPax >= 2,
+        currentCapacity: group.currentCapacity,
+        minPaxMet: group.currentCapacity >= 2,
         qualityScore: group.qualityScore,
-        qualityScoreMet: group.currentPax > 2 || group.qualityScore >= 70,
+        qualityScoreMet: group.currentCapacity > 2 || (group.qualityScore || 0) >= 70,
         allMembersConfirmed,
         membersConfirmedCount: group.members.filter(m => m.status === 'CONFIRMED').length,
         totalMembers: group.members.length

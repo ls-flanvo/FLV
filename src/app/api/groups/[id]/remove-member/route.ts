@@ -80,7 +80,7 @@ export async function DELETE(
     }
     
     // Valida che il gruppo non sia confermato o in progress
-    if (group.status === 'CONFIRMED' || group.status === 'IN_PROGRESS') {
+    if (group.status === 'CONFIRMED' || group.status === 'ACTIVE') {
       return NextResponse.json(
         { error: 'Cannot remove members from a confirmed or in-progress group' },
         { status: 400 }
@@ -89,10 +89,13 @@ export async function DELETE(
     
     // Determina quanti passeggeri saranno rimossi
     const paxToRemove = memberToRemove.microGroup 
-      ? memberToRemove.microGroup.totalPax 
+      ? memberToRemove.microGroup.totalPassengers 
       : memberToRemove.booking.passengers;
     
-    const remainingPax = group.currentPax - paxToRemove;
+    const luggageToRemove = memberToRemove.booking.luggage || 0;
+    
+    const remainingPax = group.currentCapacity - paxToRemove;
+    const remainingLuggage = group.currentLuggage - luggageToRemove;
     
     console.log(`[RideGroup] Removing ${paxToRemove} passenger(s). Remaining: ${remainingPax}`);
     
@@ -110,7 +113,7 @@ export async function DELETE(
     
     // Se rimangono meno di 2 passeggeri, elimina il gruppo
     if (remainingPax < 2) {
-      console.log(`[RideGroup] Less than 2 passengers remaining. Deleting group.`);
+      console.log(`[RideGroup] Less than 2 passengers remaining. Marking group as NO_MATCH.`);
       
       await prisma.$transaction(async (tx) => {
         // Elimina i membri
@@ -120,15 +123,16 @@ export async function DELETE(
         
         // Elimina la rotta
         await tx.groupRoute.deleteMany({
-          where: { groupId }
+          where: { rideGroupId: groupId }
         });
         
-        // Segna il gruppo come NO_MATCH invece di eliminarlo (per tracking)
+        // Segna il gruppo come NO_MATCH
         await tx.rideGroup.update({
           where: { id: groupId },
           data: { 
             status: 'NO_MATCH',
-            currentPax: 0
+            currentCapacity: 0,
+            currentLuggage: 0
           }
         });
       });
@@ -147,8 +151,8 @@ export async function DELETE(
     
     // Ricalcola il pricing EQUO per i membri rimanenti
     const newPricing = calculateEquoPricing(
-      group.vehicleCost,
-      remainingMembers.map(m => ({ kmOnboard: m.kmOnboard }))
+      group.basePrice,
+      remainingMembers.map(m => ({ kmOnboard: m.kmOnboard || 0 }))
     );
     
     // Aggiorna il gruppo in una transazione
@@ -173,23 +177,24 @@ export async function DELETE(
       }
       
       // Calcola nuovo quality score
-      const totalKmOnboard = remainingMembers.reduce((sum, m) => sum + m.kmOnboard, 0);
+      const totalKmOnboard = remainingMembers.reduce((sum, m) => sum + (m.kmOnboard || 0), 0);
       const newQualityScore = calculateQualityScore(
         remainingPax,
-        group.totalRouteKm,
+        group.totalRouteKm || 0,
         totalKmOnboard
       );
       
-      const newTier = getGroupTier(newQualityScore);
+      const newStabilityTier = getGroupTier(newQualityScore);
       
       // Aggiorna il gruppo
       const updated = await tx.rideGroup.update({
         where: { id: groupId },
         data: {
-          currentPax: remainingPax,
+          currentCapacity: remainingPax,
+          currentLuggage: remainingLuggage,
           qualityScore: newQualityScore,
-          tier: newTier,
-          // Se solo 2 passeggeri rimangono con score basso, considera di marcare come NO_MATCH
+          stabilityTier: newStabilityTier,
+          // Se solo 2 passeggeri rimangono con score basso, marca come NO_MATCH
           status: (remainingPax === 2 && newQualityScore < 70) ? 'NO_MATCH' : group.status
         },
         include: {
@@ -199,7 +204,7 @@ export async function DELETE(
               microGroup: true
             }
           },
-          route: {
+          routes: {
             orderBy: { sequence: 'asc' }
           }
         }
@@ -225,9 +230,9 @@ export async function DELETE(
       success: true,
       group: {
         id: updatedGroup.id,
-        currentPax: updatedGroup.currentPax,
+        currentCapacity: updatedGroup.currentCapacity,
         qualityScore: updatedGroup.qualityScore,
-        tier: updatedGroup.tier,
+        stabilityTier: updatedGroup.stabilityTier,
         status: updatedGroup.status,
         members: updatedGroup.members.map(member => ({
           id: member.id,

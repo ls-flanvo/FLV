@@ -21,17 +21,25 @@ export async function GET(
     const microGroup = await prisma.microGroup.findUnique({
       where: { id },
       include: {
+        leadUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true
+          }
+        },
         bookings: {
           select: {
             id: true,
             userId: true,
             passengers: true,
-            pickupAddress: true,
+            pickupLocation: true,
             pickupLat: true,
             pickupLng: true,
-            destinationAddress: true,
-            destinationLat: true,
-            destinationLng: true,
+            dropoffLocation: true,
+            dropoffLat: true,
+            dropoffLng: true,
             flightNumber: true,
             flightDate: true,
             flightTime: true,
@@ -39,7 +47,6 @@ export async function GET(
             createdAt: true
           }
         },
-        // Include anche i membri del gruppo se sono stati assegnati a un RideGroup
         groupMembers: {
           include: {
             rideGroup: {
@@ -47,7 +54,7 @@ export async function GET(
                 id: true,
                 status: true,
                 totalRouteKm: true,
-                currentPax: true
+                currentCapacity: true
               }
             }
           }
@@ -65,17 +72,17 @@ export async function GET(
     // Formatta la risposta
     const response = {
       id: microGroup.id,
-      name: microGroup.name,
-      totalPax: microGroup.totalPax,
-      flightNumber: microGroup.flightNumber,
-      status: microGroup.status,
+      leadUser: microGroup.leadUser,
+      totalPassengers: microGroup.totalPassengers,
+      totalLuggage: microGroup.totalLuggage,
+      mustStayTogether: microGroup.mustStayTogether,
+      isActive: microGroup.isActive,
       bookings: microGroup.bookings,
-      // Informazioni sul RideGroup se assegnato
       rideGroup: microGroup.groupMembers.length > 0 
         ? {
             id: microGroup.groupMembers[0].rideGroup.id,
             status: microGroup.groupMembers[0].rideGroup.status,
-            currentPax: microGroup.groupMembers[0].rideGroup.currentPax,
+            currentCapacity: microGroup.groupMembers[0].rideGroup.currentCapacity,
             totalRouteKm: microGroup.groupMembers[0].rideGroup.totalRouteKm
           }
         : null,
@@ -83,7 +90,7 @@ export async function GET(
       updatedAt: microGroup.updatedAt
     };
     
-    console.log(`[MicroGroup] Found micro-group with ${microGroup.totalPax} passengers`);
+    console.log(`[MicroGroup] Found micro-group with ${microGroup.totalPassengers} passengers`);
     
     return NextResponse.json(response);
     
@@ -134,7 +141,7 @@ export async function DELETE(
     
     // Valida che il micro-group non sia in un gruppo confermato
     const inConfirmedGroup = microGroup.groupMembers.some(
-      member => member.rideGroup.status === 'CONFIRMED' || member.rideGroup.status === 'IN_PROGRESS'
+      member => member.rideGroup.status === 'CONFIRMED' || member.rideGroup.status === 'ACTIVE'
     );
     
     if (inConfirmedGroup) {

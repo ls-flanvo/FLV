@@ -2,14 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
-import { validateSameFlightBookings } from '@/lib/group-helpers';
 
 const prisma = new PrismaClient();
 
 // Schema di validazione per la creazione di un micro-group
 const CreateMicroGroupSchema = z.object({
   bookingIds: z.array(z.string()).min(2).max(3, 'Micro-groups can have maximum 3 people'),
-  name: z.string().optional()
+  leadUserId: z.string()
 });
 
 /**
@@ -32,7 +31,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const { bookingIds, name } = validationResult.data;
+    const { bookingIds, leadUserId } = validationResult.data;
     
     console.log(`[MicroGroup] Creating micro-group for bookings: ${bookingIds.join(', ')}`);
     
@@ -69,12 +68,13 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Calcola il totale passeggeri
-    const totalPax = bookings.reduce((sum, booking) => sum + booking.passengers, 0);
+    // Calcola il totale passeggeri e bagagli
+    const totalPassengers = bookings.reduce((sum, booking) => sum + booking.passengers, 0);
+    const totalLuggage = bookings.reduce((sum, booking) => sum + (booking.luggage || 0), 0);
     
-    if (totalPax > 3) {
+    if (totalPassengers > 3) {
       return NextResponse.json(
-        { error: `Total passengers (${totalPax}) exceeds micro-group limit of 3` },
+        { error: `Total passengers (${totalPassengers}) exceeds micro-group limit of 3` },
         { status: 400 }
       );
     }
@@ -84,10 +84,11 @@ export async function POST(request: NextRequest) {
       // Crea il micro-group
       const newMicroGroup = await tx.microGroup.create({
         data: {
-          name: name || `Group of ${bookings.length}`,
-          totalPax,
-          flightNumber: bookings[0].flightNumber,
-          status: 'ACTIVE'
+          leadUserId,
+          totalPassengers,
+          totalLuggage,
+          mustStayTogether: true,
+          isActive: true
         }
       });
       
@@ -110,8 +111,8 @@ export async function POST(request: NextRequest) {
               id: true,
               userId: true,
               passengers: true,
-              pickupAddress: true,
-              destinationAddress: true,
+              pickupLocation: true,
+              dropoffLocation: true,
               flightNumber: true
             }
           }
@@ -119,15 +120,15 @@ export async function POST(request: NextRequest) {
       });
     });
     
-    console.log(`[MicroGroup] Created micro-group ${microGroup?.id} with ${totalPax} passengers`);
+    console.log(`[MicroGroup] Created micro-group ${microGroup?.id} with ${totalPassengers} passengers`);
     
     return NextResponse.json({
       success: true,
       microGroup: {
         id: microGroup?.id,
-        name: microGroup?.name,
-        totalPax: microGroup?.totalPax,
-        flightNumber: microGroup?.flightNumber,
+        leadUserId: microGroup?.leadUserId,
+        totalPassengers: microGroup?.totalPassengers,
+        totalLuggage: microGroup?.totalLuggage,
         bookings: microGroup?.bookings,
         createdAt: microGroup?.createdAt
       }

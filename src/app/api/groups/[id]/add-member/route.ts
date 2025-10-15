@@ -69,7 +69,7 @@ export async function POST(
     }
     
     // Valida che il gruppo non sia già confermato
-    if (group.status === 'CONFIRMED' || group.status === 'IN_PROGRESS' || group.status === 'COMPLETED') {
+    if (group.status === 'CONFIRMED' || group.status === 'ACTIVE' || group.status === 'COMPLETED') {
       return NextResponse.json(
         { error: 'Cannot add members to a confirmed or completed group' },
         { status: 400 }
@@ -111,15 +111,15 @@ export async function POST(
     
     // Calcola i nuovi passeggeri totali
     const newPaxCount = newBooking.microGroup 
-      ? newBooking.microGroup.totalPax 
+      ? newBooking.microGroup.totalPassengers 
       : newBooking.passengers;
     
-    const totalPaxAfterAdd = group.currentPax + newPaxCount;
+    const totalPaxAfterAdd = group.currentCapacity + newPaxCount;
     
     // Valida capacity
     if (totalPaxAfterAdd > 7) {
       return NextResponse.json(
-        { error: `Cannot add ${newPaxCount} passengers. Would exceed maximum capacity of 7 (current: ${group.currentPax})` },
+        { error: `Cannot add ${newPaxCount} passengers. Would exceed maximum capacity of 7 (current: ${group.currentCapacity})` },
         { status: 400 }
       );
     }
@@ -128,11 +128,15 @@ export async function POST(
     
     // Ricalcola il pricing EQUO per TUTTI i membri
     const allMembers = [
-      ...group.members.map(m => ({ kmOnboard: m.kmOnboard })),
+      ...group.members.map(m => ({ kmOnboard: m.kmOnboard || 0 })),
       { kmOnboard }
     ];
     
-    const newPricing = calculateEquoPricing(group.vehicleCost, allMembers);
+    const newPricing = calculateEquoPricing(group.basePrice, allMembers);
+    
+    // Calcola nuovo bagagli totale
+    const newLuggage = (newBooking.luggage || 0);
+    const totalLuggageAfter = group.currentLuggage + newLuggage;
     
     // Aggiorna il gruppo in una transazione
     const updatedGroup = await prisma.$transaction(async (tx) => {
@@ -168,19 +172,20 @@ export async function POST(
       const totalKmOnboard = allMembers.reduce((sum, m) => sum + m.kmOnboard, 0);
       const newQualityScore = calculateQualityScore(
         totalPaxAfterAdd,
-        group.totalRouteKm,
+        group.totalRouteKm || 0,
         totalKmOnboard
       );
       
-      const newTier = getGroupTier(newQualityScore);
+      const newStabilityTier = getGroupTier(newQualityScore);
       
       // Aggiorna il gruppo
       const updated = await tx.rideGroup.update({
         where: { id: groupId },
         data: {
-          currentPax: totalPaxAfterAdd,
+          currentCapacity: totalPaxAfterAdd,
+          currentLuggage: totalLuggageAfter,
           qualityScore: newQualityScore,
-          tier: newTier
+          stabilityTier: newStabilityTier
         },
         include: {
           members: {
@@ -189,7 +194,7 @@ export async function POST(
               microGroup: true
             }
           },
-          route: {
+          routes: {
             orderBy: { sequence: 'asc' }
           }
         }
@@ -215,9 +220,9 @@ export async function POST(
       success: true,
       group: {
         id: updatedGroup.id,
-        currentPax: updatedGroup.currentPax,
+        currentCapacity: updatedGroup.currentCapacity,
         qualityScore: updatedGroup.qualityScore,
-        tier: updatedGroup.tier,
+        stabilityTier: updatedGroup.stabilityTier,
         members: updatedGroup.members.map(member => ({
           id: member.id,
           bookingId: member.bookingId,

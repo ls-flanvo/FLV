@@ -28,12 +28,12 @@ export async function GET(
                 id: true,
                 userId: true,
                 passengers: true,
-                pickupAddress: true,
+                pickupLocation: true,
                 pickupLat: true,
                 pickupLng: true,
-                destinationAddress: true,
-                destinationLat: true,
-                destinationLng: true,
+                dropoffLocation: true,
+                dropoffLat: true,
+                dropoffLng: true,
                 flightNumber: true,
                 flightDate: true,
                 flightTime: true,
@@ -43,14 +43,13 @@ export async function GET(
             microGroup: {
               select: {
                 id: true,
-                name: true,
-                totalPax: true
+                totalPassengers: true
               }
             }
           },
           orderBy: { pickupOrder: 'asc' }
         },
-        route: {
+        routes: {
           orderBy: { sequence: 'asc' }
         }
       }
@@ -66,15 +65,17 @@ export async function GET(
     // Formatta la risposta con breakdown dettagliato del pricing
     const response = {
       id: rideGroup.id,
-      clusterId: rideGroup.clusterId,
       flightNumber: rideGroup.flightNumber,
+      direction: rideGroup.direction,
       status: rideGroup.status,
-      currentPax: rideGroup.currentPax,
-      maxPax: rideGroup.maxPax,
+      currentCapacity: rideGroup.currentCapacity,
+      maxCapacity: rideGroup.maxCapacity,
+      currentLuggage: rideGroup.currentLuggage,
       totalRouteKm: rideGroup.totalRouteKm,
+      totalDuration: rideGroup.totalDuration,
       qualityScore: rideGroup.qualityScore,
-      tier: rideGroup.tier,
-      vehicleCost: rideGroup.vehicleCost,
+      stabilityTier: rideGroup.stabilityTier,
+      basePrice: rideGroup.basePrice,
       
       // Membri con pricing breakdown
       members: rideGroup.members.map(member => ({
@@ -87,15 +88,15 @@ export async function GET(
           userId: member.booking.userId,
           passengers: member.booking.passengers,
           pickup: {
-            address: member.booking.pickupAddress,
-            lat: member.booking.pickupLat,
-            lng: member.booking.pickupLng,
+            address: member.booking.pickupLocation,
+            latitude: member.booking.pickupLat,
+            longitude: member.booking.pickupLng,
             order: member.pickupOrder
           },
           dropoff: {
-            address: member.booking.destinationAddress,
-            lat: member.booking.destinationLat,
-            lng: member.booking.destinationLng,
+            address: member.booking.dropoffLocation,
+            latitude: member.booking.dropoffLat,
+            longitude: member.booking.dropoffLng,
             order: member.dropoffOrder
           }
         },
@@ -103,12 +104,14 @@ export async function GET(
         // MicroGroup info se presente
         microGroup: member.microGroup ? {
           id: member.microGroup.id,
-          name: member.microGroup.name,
-          totalPax: member.microGroup.totalPax
+          totalPassengers: member.microGroup.totalPassengers
         } : null,
         
         // Distance info
         kmOnboard: member.kmOnboard,
+        kmDirect: member.kmDirect,
+        detourKm: member.detourKm,
+        detourPercent: member.detourPercent,
         
         // Pricing breakdown EQUO
         pricing: {
@@ -116,8 +119,8 @@ export async function GET(
           flanvoFee: member.flanvoFee,
           totalPrice: member.totalPrice,
           breakdown: {
-            vehicleCostSplit: `€${member.driverShare} (split equally among ${rideGroup.currentPax} passengers)`,
-            flanvoFee: `€${member.flanvoFee} (€${(member.flanvoFee / member.kmOnboard).toFixed(2)}/km × ${member.kmOnboard}km)`
+            vehicleCostSplit: `€${member.driverShare} (split equally among ${rideGroup.currentCapacity} passengers)`,
+            flanvoFee: `€${member.flanvoFee} (€${member.kmOnboard ? (member.flanvoFee / member.kmOnboard).toFixed(2) : '0.00'}/km × ${member.kmOnboard || 0}km)`
           }
         },
         
@@ -125,27 +128,28 @@ export async function GET(
       })),
       
       // Rotta ottimizzata
-      route: rideGroup.route.map(waypoint => ({
+      route: rideGroup.routes.map(waypoint => ({
         sequence: waypoint.sequence,
         type: waypoint.type,
         location: {
-          lat: waypoint.lat,
-          lng: waypoint.lng,
+          latitude: waypoint.latitude,
+          longitude: waypoint.longitude,
           address: waypoint.address
         },
-        memberId: waypoint.memberId,
-        estimatedTime: waypoint.estimatedTime
+        bookingId: waypoint.bookingId,
+        estimatedArrival: waypoint.estimatedArrival,
+        reached: waypoint.reached
       })),
       
       // Summary
       summary: {
-        totalVehicleCost: rideGroup.vehicleCost,
-        costPerPassenger: rideGroup.vehicleCost / rideGroup.currentPax,
+        basePrice: rideGroup.basePrice,
+        costPerPassenger: rideGroup.basePrice / rideGroup.currentCapacity,
         totalDistance: rideGroup.totalRouteKm,
-        estimatedDuration: rideGroup.estimatedDuration,
+        estimatedDuration: rideGroup.totalDuration,
         quality: {
           score: rideGroup.qualityScore,
-          tier: rideGroup.tier
+          tier: rideGroup.stabilityTier
         }
       },
       
@@ -153,7 +157,7 @@ export async function GET(
       updatedAt: rideGroup.updatedAt
     };
     
-    console.log(`[RideGroup] Found group with ${rideGroup.currentPax} passengers`);
+    console.log(`[RideGroup] Found group with ${rideGroup.currentCapacity} passengers`);
     
     return NextResponse.json(response);
     

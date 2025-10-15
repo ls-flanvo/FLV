@@ -28,21 +28,21 @@ export function calculateEquoPricing(
   totalVehicleCost: number,
   members: MemberWithKm[]
 ): MemberPricing[] {
-  const totalPax = members.length;
+  const totalPassengers = members.length;
   
-  if (totalPax === 0) {
+  if (totalPassengers === 0) {
     return [];
   }
   
   // Driver cost diviso equamente tra tutti
-  const driverSharePerPax = totalVehicleCost / totalPax;
+  const driverSharePerPax = totalVehicleCost / totalPassengers;
   
   return members.map(member => {
     const flanvoRate = getFlanvoRate(member.kmOnboard);
     const flanvoFee = member.kmOnboard * flanvoRate;
     
     return {
-      driverShare: Math.round(driverSharePerPax * 100) / 100, // Arrotonda a 2 decimali
+      driverShare: Math.round(driverSharePerPax * 100) / 100,
       flanvoFee: Math.round(flanvoFee * 100) / 100,
       totalPrice: Math.round((driverSharePerPax + flanvoFee) * 100) / 100
     };
@@ -68,12 +68,12 @@ export function getFlanvoRate(kmOnboard: number): number {
  * - Distribuzione geografica dei pickup/dropoff
  */
 export function calculateQualityScore(
-  totalPax: number,
+  totalPassengers: number,
   totalRouteKm: number,
   directKmSum: number
 ): number {
   // Base score per numero passeggeri (più pax = meglio)
-  const paxScore = Math.min(100, (totalPax / 7) * 50);
+  const paxScore = Math.min(100, (totalPassengers / 7) * 50);
   
   // Efficiency score (meno deviazione = meglio)
   const efficiency = directKmSum > 0 ? (directKmSum / totalRouteKm) : 0;
@@ -85,17 +85,17 @@ export function calculateQualityScore(
 /**
  * Determina il tier del gruppo basato sul quality score
  */
-export function getGroupTier(qualityScore: number): 'GOLD' | 'SILVER' | 'BRONZE' {
-  if (qualityScore >= 85) return 'GOLD';
-  if (qualityScore >= 70) return 'SILVER';
-  return 'BRONZE';
+export function getGroupTier(qualityScore: number): 'EXCELLENT' | 'GOOD' | 'ACCEPTABLE' {
+  if (qualityScore >= 85) return 'EXCELLENT';
+  if (qualityScore >= 70) return 'GOOD';
+  return 'ACCEPTABLE';
 }
 
 /**
  * Valida che un gruppo possa essere confermato
  */
 export function validateGroupForConfirmation(
-  totalPax: number,
+  totalPassengers: number,
   qualityScore: number,
   allMembersConfirmed: boolean
 ): { valid: boolean; reason?: string } {
@@ -103,12 +103,12 @@ export function validateGroupForConfirmation(
     return { valid: false, reason: 'Not all members have confirmed' };
   }
   
-  if (totalPax < 2) {
+  if (totalPassengers < 2) {
     return { valid: false, reason: 'Minimum 2 passengers required' };
   }
   
   // Se sono solo 2 passeggeri, richiediamo quality score più alto
-  if (totalPax === 2 && qualityScore < 70) {
+  if (totalPassengers === 2 && qualityScore < 70) {
     return { valid: false, reason: 'Quality score too low for 2-passenger group (min: 70)' };
   }
   
@@ -137,29 +137,31 @@ export async function recalculateGroupRoute(groupId: string) {
     }
     
     // Prepara i waypoints per l'ottimizzazione
+    // NOTA: Lo schema non ha campi airportLat/airportLng nel Booking
+    // Dobbiamo usare i campi pickup/dropoff in base alla direction
     const waypoints = [
       {
         type: 'AIRPORT' as const,
-        lat: group.members[0].booking.airportLat,
-        lng: group.members[0].booking.airportLng,
+        latitude: group.members[0].booking.pickupLat,
+        longitude: group.members[0].booking.pickupLng,
         address: 'Airport',
         sequence: 0
       },
       ...group.members.flatMap((member, idx) => [
         {
           type: 'PICKUP' as const,
-          lat: member.booking.pickupLat,
-          lng: member.booking.pickupLng,
-          address: member.booking.pickupAddress,
-          memberId: member.id,
+          latitude: member.booking.pickupLat,
+          longitude: member.booking.pickupLng,
+          address: member.booking.pickupLocation,
+          bookingId: member.bookingId,
           sequence: idx + 1
         },
         {
           type: 'DROPOFF' as const,
-          lat: member.booking.destinationLat,
-          lng: member.booking.destinationLng,
-          address: member.booking.destinationAddress,
-          memberId: member.id,
+          latitude: member.booking.dropoffLat,
+          longitude: member.booking.dropoffLng,
+          address: member.booking.dropoffLocation,
+          bookingId: member.bookingId,
           sequence: group.members.length + idx + 1
         }
       ])
@@ -167,23 +169,23 @@ export async function recalculateGroupRoute(groupId: string) {
     
     // TODO: Implementare chiamata a Mapbox Optimization API
     // Per ora restituiamo i waypoints ordinati come sono
-    // In produzione: chiamare Mapbox per ottimizzare l'ordine
     
     // Elimina i waypoints esistenti
     await prisma.groupRoute.deleteMany({
-      where: { groupId }
+      where: { rideGroupId: groupId }
     });
     
     // Crea i nuovi waypoints ottimizzati
     await prisma.groupRoute.createMany({
       data: waypoints.map((wp, idx) => ({
-        groupId,
+        rideGroupId: groupId,
         sequence: idx,
         type: wp.type,
-        lat: wp.lat,
-        lng: wp.lng,
+        latitude: wp.latitude,
+        longitude: wp.longitude,
         address: wp.address,
-        memberId: wp.memberId || null
+        bookingId: wp.bookingId || null,
+        estimatedArrival: new Date() // TODO: calcolare timing reali
       }))
     });
     
@@ -235,7 +237,6 @@ export async function notifyGroupMembers(
     console.log(`Created ${notifications.length} notifications of type ${type}`);
   } catch (error) {
     console.error('Error notifying group members:', error);
-    // Non lanciare l'errore - le notifiche sono non-critiche
   }
 }
 
@@ -251,10 +252,10 @@ function getNotificationTitle(type: string): string {
 
 function getNotificationMessage(type: string, group: any): string {
   const messages = {
-    MEMBER_ADDED: `A new passenger joined your ride group. Current: ${group.currentPax} passengers`,
-    MEMBER_REMOVED: `A passenger left your ride group. Current: ${group.currentPax} passengers`,
+    MEMBER_ADDED: `A new passenger joined your ride group. Current: ${group.currentCapacity} passengers`,
+    MEMBER_REMOVED: `A passenger left your ride group. Current: ${group.currentCapacity} passengers`,
     PRICE_CHANGED: `Your ride price has been updated to €${group.members[0]?.totalPrice || 0}`,
-    GROUP_CONFIRMED: `Your shared ride is confirmed! ${group.currentPax} passengers total`
+    GROUP_CONFIRMED: `Your shared ride is confirmed! ${group.currentCapacity} passengers total`
   };
   return messages[type as keyof typeof messages] || 'Your ride group has been updated';
 }
@@ -285,7 +286,7 @@ export async function calculateTotalPaxWithMicroGroups(
 ): Promise<number> {
   let total = existingMembers.reduce((sum, member) => {
     // Se il membro fa parte di un micro-group, conta i pax del micro-group
-    return sum + (member.microGroup?.totalPax || 1);
+    return sum + (member.microGroup?.totalPassengers || 1);
   }, 0);
   
   if (newBookingId) {
@@ -295,7 +296,7 @@ export async function calculateTotalPaxWithMicroGroups(
     });
     
     if (booking?.microGroup) {
-      total += booking.microGroup.totalPax;
+      total += booking.microGroup.totalPassengers;
     } else {
       total += (booking?.passengers || 1);
     }

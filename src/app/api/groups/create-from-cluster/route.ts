@@ -22,21 +22,22 @@ const MemberSchema = z.object({
 
 const RouteWaypointSchema = z.object({
   type: z.enum(['AIRPORT', 'PICKUP', 'DROPOFF']),
-  lat: z.number(),
-  lng: z.number(),
+  latitude: z.number(),
+  longitude: z.number(),
   address: z.string(),
   sequence: z.number().int().min(0),
-  memberId: z.string().optional()
+  bookingId: z.string().optional()
 });
 
 const CreateGroupSchema = z.object({
-  clusterId: z.string(),
   flightNumber: z.string(),
+  direction: z.enum(['TO_AIRPORT', 'FROM_AIRPORT']),
+  targetPickupTime: z.string().datetime(),
   clusterData: z.object({
-    totalPax: z.number().int().min(2).max(7),
+    totalPassengers: z.number().int().min(2).max(7),
     totalKm: z.number().positive(),
     members: z.array(MemberSchema).min(2).max(7),
-    route: z.array(RouteWaypointSchema).min(3) // Almeno AIRPORT + 1 PICKUP + 1 DROPOFF
+    route: z.array(RouteWaypointSchema).min(3)
   })
 });
 
@@ -60,9 +61,9 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const { clusterId, flightNumber, clusterData } = validationResult.data;
+    const { flightNumber, direction, targetPickupTime, clusterData } = validationResult.data;
     
-    console.log(`[RideGroup] Creating group from cluster ${clusterId} for flight ${flightNumber}`);
+    console.log(`[RideGroup] Creating group for flight ${flightNumber}`);
     
     // Valida che i bookings esistano
     const bookingIds = clusterData.members.map(m => m.bookingId);
@@ -83,44 +84,50 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Calcola il costo totale del veicolo (esempio: €100 base + €0.50/km)
+    // Calcola il costo base del veicolo (esempio: €100 base + €0.50/km)
     // TODO: Implementare logica reale di pricing del veicolo
     const baseCost = 100;
     const costPerKm = 0.50;
-    const totalVehicleCost = baseCost + (clusterData.totalKm * costPerKm);
+    const basePrice = baseCost + (clusterData.totalKm * costPerKm);
     
     // Calcola pricing EQUO per tutti i membri
     const pricingData = calculateEquoPricing(
-      totalVehicleCost,
+      basePrice,
       clusterData.members
     );
     
     // Calcola quality score
     const directKmSum = clusterData.members.reduce((sum, m) => sum + m.kmOnboard, 0);
     const qualityScore = calculateQualityScore(
-      clusterData.totalPax,
+      clusterData.totalPassengers,
       clusterData.totalKm,
       directKmSum
     );
     
-    const tier = getGroupTier(qualityScore);
+    const stabilityTier = getGroupTier(qualityScore);
     
-    console.log(`[RideGroup] Calculated pricing - Vehicle cost: €${totalVehicleCost}, Quality: ${qualityScore} (${tier})`);
+    // Calcola totale bagagli
+    const totalLuggage = bookings.reduce((sum, b) => sum + (b.luggage || 0), 0);
+    
+    console.log(`[RideGroup] Calculated pricing - Base price: €${basePrice}, Quality: ${qualityScore} (${stabilityTier})`);
     
     // Crea il RideGroup in una transazione
     const rideGroup = await prisma.$transaction(async (tx) => {
       // Crea il RideGroup
       const group = await tx.rideGroup.create({
         data: {
-          clusterId,
           flightNumber,
+          direction,
+          targetPickupTime: new Date(targetPickupTime),
+          clusterMethod: 'DBSCAN',
+          maxCapacity: 7,
+          currentCapacity: clusterData.totalPassengers,
+          currentLuggage: totalLuggage,
           totalRouteKm: clusterData.totalKm,
-          currentPax: clusterData.totalPax,
-          maxPax: 7,
-          status: 'FORMING',
           qualityScore,
-          tier,
-          vehicleCost: totalVehicleCost,
+          stabilityTier,
+          basePrice,
+          status: 'FORMING',
           // Crea i membri
           members: {
             create: clusterData.members.map((member, idx) => ({
@@ -136,14 +143,15 @@ export async function POST(request: NextRequest) {
             }))
           },
           // Crea la rotta
-          route: {
+          routes: {
             create: clusterData.route.map(waypoint => ({
               sequence: waypoint.sequence,
               type: waypoint.type,
-              lat: waypoint.lat,
-              lng: waypoint.lng,
+              latitude: waypoint.latitude,
+              longitude: waypoint.longitude,
               address: waypoint.address,
-              memberId: waypoint.memberId || null
+              bookingId: waypoint.bookingId || null,
+              estimatedArrival: new Date() // TODO: calcolare timing reali
             }))
           }
         },
@@ -155,20 +163,19 @@ export async function POST(request: NextRequest) {
                   id: true,
                   userId: true,
                   passengers: true,
-                  pickupAddress: true,
-                  destinationAddress: true
+                  pickupLocation: true,
+                  dropoffLocation: true
                 }
               },
               microGroup: {
                 select: {
                   id: true,
-                  name: true,
-                  totalPax: true
+                  totalPassengers: true
                 }
               }
             }
           },
-          route: {
+          routes: {
             orderBy: { sequence: 'asc' }
           }
         }
@@ -177,7 +184,7 @@ export async function POST(request: NextRequest) {
       return group;
     });
     
-    console.log(`[RideGroup] Created group ${rideGroup.id} with ${rideGroup.currentPax} passengers`);
+    console.log(`[RideGroup] Created group ${rideGroup.id} with ${rideGroup.currentCapacity} passengers`);
     
     // Formatta la risposta
     const response = {
@@ -185,13 +192,14 @@ export async function POST(request: NextRequest) {
       group: {
         id: rideGroup.id,
         flightNumber: rideGroup.flightNumber,
+        direction: rideGroup.direction,
         status: rideGroup.status,
-        currentPax: rideGroup.currentPax,
-        maxPax: rideGroup.maxPax,
+        currentCapacity: rideGroup.currentCapacity,
+        maxCapacity: rideGroup.maxCapacity,
         totalRouteKm: rideGroup.totalRouteKm,
         qualityScore: rideGroup.qualityScore,
-        tier: rideGroup.tier,
-        vehicleCost: rideGroup.vehicleCost,
+        stabilityTier: rideGroup.stabilityTier,
+        basePrice: rideGroup.basePrice,
         members: rideGroup.members.map(member => ({
           id: member.id,
           bookingId: member.bookingId,
@@ -207,7 +215,7 @@ export async function POST(request: NextRequest) {
           status: member.status,
           booking: member.booking
         })),
-        route: rideGroup.route,
+        route: rideGroup.routes,
         createdAt: rideGroup.createdAt
       }
     };
