@@ -79,14 +79,8 @@ export async function DELETE(
       );
     }
     
-    // Valida che il gruppo non sia in fase di pagamento, confermato o in progress
-    if (group.status === 'READY') {
-      return NextResponse.json(
-        { error: 'Cannot remove members: group is in payment phase (READY status). Contact Agent 4 for payment intent cancellation.' },
-        { status: 400 }
-      );
-    }
-    
+    // Valida che il gruppo non sia confermato o in progress
+    // READY è permesso: Agent 4 può espellere chi non autorizza il pagamento
     if (group.status === 'CONFIRMED' || group.status === 'ACTIVE') {
       return NextResponse.json(
         { error: 'Cannot remove members from a confirmed or in-progress group' },

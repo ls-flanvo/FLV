@@ -144,30 +144,38 @@ model User {
 }
 
 model Driver {
-  id              String       @id @default(cuid())
-  userId          String       @unique
-  licenseNumber   String       @unique
-  vehicleType     VehicleType
-  vehiclePlate    String       @unique
-  vehicleModel    String
-  vehicleYear     Int
-  vehicleColor    String
-  rating          Float        @default(5.0)
-  totalRides      Int          @default(0)
-  isAvailable     Boolean      @default(true)
-  isVerified      Boolean      @default(false)
+  id                        String       @id @default(cuid())
+  userId                    String       @unique
+  licenseNumber             String       @unique
+  vehicleType               VehicleType
+  vehiclePlate              String       @unique
+  vehicleModel              String
+  vehicleYear               Int
+  vehicleColor              String
+  rating                    Float        @default(5.0)
+  totalRides                Int          @default(0)
+  isAvailable               Boolean      @default(true)
+  isVerified                Boolean      @default(false)
   
   // Earnings tracking
-  totalEarnings   Float        @default(0)
+  totalEarnings             Float        @default(0)
   
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  // Stripe Connected Account (per Agent 4 - Payments)
+  stripeConnectedAccountId  String?
+  stripeAccountStatus       String?
+  stripeOnboardingComplete  Boolean      @default(false)
+  stripePayoutsEnabled      Boolean      @default(false)
+  stripeDetailsSubmitted    Boolean      @default(false)
+  
+  createdAt                 DateTime     @default(now())
+  updatedAt                 DateTime     @updatedAt
 
-  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rides           Ride[]
+  user                      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rides                     Ride[]
   
   @@index([isAvailable, vehicleType])
   @@index([licenseNumber])
+  @@index([stripeConnectedAccountId])
   @@map("drivers")
 }
 
