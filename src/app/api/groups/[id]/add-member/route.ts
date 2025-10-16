@@ -68,7 +68,14 @@ export async function POST(
       );
     }
     
-    // Valida che il gruppo non sia già confermato
+    // Valida che il gruppo non sia già in fase di pagamento o confermato
+    if (group.status === 'READY') {
+      return NextResponse.json(
+        { error: 'Cannot add members: group is in payment phase (READY status). Payment intents already created.' },
+        { status: 400 }
+      );
+    }
+    
     if (group.status === 'CONFIRMED' || group.status === 'ACTIVE' || group.status === 'COMPLETED') {
       return NextResponse.json(
         { error: 'Cannot add members to a confirmed or completed group' },
