@@ -84,11 +84,9 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Calcola il costo base del veicolo (esempio: €100 base + €0.50/km)
-    // TODO: Implementare logica reale di pricing del veicolo
-    const baseCost = 100;
-    const costPerKm = 0.50;
-    const basePrice = baseCost + (clusterData.totalKm * costPerKm);
+    // Calcola il costo base del veicolo: driver pagato €2.00/km (nessun costo fisso)
+    const driverRatePerKm = 2.00;
+    const basePrice = clusterData.totalKm * driverRatePerKm;
     
     // Calcola pricing EQUO per tutti i membri
     const pricingData = calculateEquoPricing(
