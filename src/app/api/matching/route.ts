@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
     const matches: RideMatch[] = [
       {
         id: 'match-1',
+        memberId: 'cmgv2sk100006tqvgvegd0e6v', // ← AGGIUNGI QUESTO
         flightId,
         passengers: [mockUsers[1], mockUsers[2]],
         destinations: [destination, mockDestinations[1]],
@@ -25,6 +26,7 @@ export async function POST(request: NextRequest) {
       },
       {
         id: 'match-2',
+        memberId: 'cmgv2sk100006tqvgvegd0e6v', // ← AGGIUNGI QUESTO
         flightId,
         passengers: [mockUsers[1]],
         destinations: [destination, mockDestinations[0]],
@@ -39,6 +41,7 @@ export async function POST(request: NextRequest) {
       },
       {
         id: 'match-3',
+        memberId: 'cmgv2sk100006tqvgvegd0e6v', // ← AGGIUNGI QUESTO
         flightId,
         passengers: [mockUsers[2]],
         destinations: [destination, mockDestinations[3]],

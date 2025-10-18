@@ -3,15 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore, useBookingStore } from '@/store';
-import { Card, Button, Input } from '@/components/ui';
-import { CreditCard, Lock, Check, Users, MapPin, DollarSign } from 'lucide-react';
+import { Card, Button } from '@/components/ui';
+import { Check, Users, MapPin, AlertCircle } from 'lucide-react';
+import { StripeProvider } from '@/components/providers/stripe-provider';
+import { PaymentForm } from '@/components/checkout/payment-form';
 
 export default function CheckoutPage({ params }: { params: { id: string } }) {
-  const [paymentMethod, setPaymentMethod] = useState('card');
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvc, setCardCvc] = useState('');
-  const [processing, setProcessing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [memberId, setMemberId] = useState<string | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [success, setSuccess] = useState(false);
 
   const { user, isAuthenticated } = useAuthStore();
@@ -26,26 +28,63 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
 
     if (!selectedMatch || !currentFlight) {
       router.push('/flight-search');
+      return;
     }
-  }, [isAuthenticated, selectedMatch, currentFlight, router]);
 
-  const handlePayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setProcessing(true);
+    createPaymentIntent();
+  }, [isAuthenticated, selectedMatch, currentFlight]);
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
+  const createPaymentIntent = async () => {
+    try {
+      setLoading(true);
+      
+      const memberIdFromMatch = selectedMatch?.memberId;
+      
+      if (!memberIdFromMatch) {
+        setError('Member ID mancante. Torna al matching e riprova.');
+        return;
+      }
+      
+      console.log('🎯 Usando memberId dal match:', memberIdFromMatch);
+      
+      const response = await fetch('/api/payments/create-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId: memberIdFromMatch }),
+      });
 
+      const data = await response.json();
+
+      if (data.success) {
+        setClientSecret(data.clientSecret);
+        setMemberId(memberIdFromMatch);
+        setPaymentAmount(data.amount);
+      } else {
+        setError(data.error || 'Failed to initialize payment');
+      }
+    } catch (err) {
+      setError('An error occurred');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePaymentSuccess = async () => {
     try {
       const destinationStr = localStorage.getItem('flanvo_destination');
       const destination = destinationStr ? JSON.parse(destinationStr) : null;
 
       const bookingData = {
-        rideGroupId: selectedMatch?.id,
+        rideGroupId: selectedMatch?.id || 'mock-group-id',
         userId: user?.id,
-        sharePrice: selectedMatch?.pricePerPerson,
+        sharePrice: selectedMatch?.pricePerPerson || paymentAmount,
         destination,
         flight: currentFlight,
+        paymentIntentId: clientSecret?.split('_secret_')[0],
       };
+
+      console.log('📦 Creando booking:', bookingData);
 
       const response = await fetch('/api/bookings', {
         method: 'POST',
@@ -54,6 +93,7 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
       });
 
       const data = await response.json();
+      console.log('📦 Risposta booking:', data);
 
       if (data.booking) {
         addBooking(data.booking);
@@ -62,12 +102,17 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
         setTimeout(() => {
           router.push('/dashboard');
         }, 2000);
+      } else {
+        setError('Errore nella creazione del booking');
       }
     } catch (error) {
-      console.error('Booking error:', error);
-    } finally {
-      setProcessing(false);
+      console.error('❌ Booking error:', error);
+      setError('Si è verificato un errore');
     }
+  };
+
+  const handlePaymentError = (errorMessage: string) => {
+    setError(errorMessage);
   };
 
   if (!isAuthenticated || !selectedMatch || !currentFlight) {
@@ -81,11 +126,37 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-6">
             <Check className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Prenotazione confermata!</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Pagamento autorizzato!</h2>
           <p className="text-gray-600 mb-6">
-            La tua corsa è stata prenotata con successo.
+            La tua prenotazione è stata confermata con successo.
           </p>
           <p className="text-sm text-gray-500">Reindirizzamento alla dashboard...</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-12">
+        <Card className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Preparazione pagamento...</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-12">
+        <Card className="text-center py-12">
+          <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Errore</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <Button onClick={() => router.push('/flight-search')}>
+            Torna alla ricerca
+          </Button>
         </Card>
       </div>
     );
@@ -95,7 +166,7 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
     <div className="max-w-5xl mx-auto px-4 py-12">
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">Completa la prenotazione</h1>
-        <p className="text-gray-600">Inserisci i dati di pagamento per confermare</p>
+        <p className="text-gray-600">Autorizza il pagamento per confermare il tuo posto</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -103,84 +174,16 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
           <Card>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Metodo di pagamento</h2>
 
-            <form onSubmit={handlePayment} className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('card')}
-                  className={`p-4 border-2 rounded-lg flex items-center justify-center space-x-2 transition-all ${
-                    paymentMethod === 'card'
-                      ? 'border-primary-600 bg-primary-50 text-primary-700'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                  }`}
-                >
-                  <CreditCard className="w-5 h-5" />
-                  <span className="font-medium">Carta</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('paypal')}
-                  className={`p-4 border-2 rounded-lg flex items-center justify-center space-x-2 transition-all ${
-                    paymentMethod === 'paypal'
-                      ? 'border-primary-600 bg-primary-50 text-primary-700'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                  }`}
-                >
-                  <DollarSign className="w-5 h-5" />
-                  <span className="font-medium">PayPal</span>
-                </button>
-              </div>
-
-              {paymentMethod === 'card' && (
-                <div className="space-y-4">
-                  <Input
-                    type="text"
-                    label="Numero carta"
-                    placeholder="1234 5678 9012 3456"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value)}
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input
-                      type="text"
-                      label="Scadenza"
-                      placeholder="MM/YY"
-                      value={cardExpiry}
-                      onChange={(e) => setCardExpiry(e.target.value)}
-                    />
-                    <Input
-                      type="text"
-                      label="CVC"
-                      placeholder="123"
-                      value={cardCvc}
-                      onChange={(e) => setCardCvc(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-start space-x-2">
-                  <Lock className="w-5 h-5 text-blue-600 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-blue-900">Pagamento sicuro (Mock)</p>
-                    <p className="text-xs text-blue-700 mt-1">
-                      Nessun pagamento reale verrà effettuato.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={processing}
-                size="lg"
-                className="w-full"
-              >
-                {processing ? 'Elaborazione...' : `Paga €${selectedMatch.pricePerPerson}`}
-              </Button>
-            </form>
+            {clientSecret && (
+              <StripeProvider>
+                <PaymentForm
+                  clientSecret={clientSecret}
+                  amount={paymentAmount}
+                  onSuccess={handlePaymentSuccess}
+                  onError={handlePaymentError}
+                />
+              </StripeProvider>
+            )}
           </Card>
         </div>
 
@@ -202,7 +205,7 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
                 <div className="flex-1">
                   <p className="text-sm text-gray-500">Compagni</p>
                   <p className="font-semibold text-gray-900">
-                    {selectedMatch.passengers.length} passeggeri
+                    {selectedMatch.passengers.length} {selectedMatch.passengers.length === 1 ? 'passeggero' : 'passeggeri'}
                   </p>
                 </div>
               </div>
@@ -210,18 +213,26 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
 
             <div className="border-t border-gray-200 pt-4 space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Costo totale</span>
-                <span className="font-medium text-gray-900">€{selectedMatch.totalPrice}</span>
+                <span className="text-gray-600">Driver share</span>
+                <span className="font-medium text-gray-900">€{(paymentAmount - 11.50).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Flanvo fee</span>
+                <span className="font-medium text-gray-900">€10.50</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Protection fee</span>
+                <span className="font-medium text-gray-900">€1.00</span>
               </div>
               <div className="flex justify-between text-lg font-bold pt-3 border-t border-gray-200">
-                <span className="text-gray-900">La tua quota</span>
-                <span className="text-primary-600">€{selectedMatch.pricePerPerson}</span>
+                <span className="text-gray-900">Totale</span>
+                <span className="text-primary-600">€{paymentAmount.toFixed(2)}</span>
               </div>
             </div>
 
-            <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-3">
-              <p className="text-sm font-medium text-green-900">
-                Risparmi €{(selectedMatch.totalPrice * 0.4).toFixed(2)}
+            <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-xs font-medium text-yellow-900">
+                ⚠️ Il pagamento sarà addebitato solo al drop-off effettivo
               </p>
             </div>
           </Card>

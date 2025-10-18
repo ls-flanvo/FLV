@@ -13,7 +13,7 @@ export default function MatchingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const { isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const { currentFlight, setSelectedMatch } = useBookingStore();
   const router = useRouter();
 
@@ -44,18 +44,27 @@ export default function MatchingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           flightId: currentFlight?.id,
+          flightCode: currentFlight?.code,
+          userId: user?.id,
           destination,
         }),
       });
 
+      if (!response.ok) {
+        throw new Error('Errore nella risposta del server');
+      }
+
       const data = await response.json();
 
+      // FORZA i match anche se vuoti
       if (data.matches) {
         setMatches(data.matches);
       } else {
-        setError('Nessun match trovato');
+        // Se non ci sono match, imposta un errore
+        setError('Nessun match disponibile');
       }
     } catch (err) {
+      console.error('Errore:', err);
       setError('Errore nella ricerca di match');
     } finally {
       setLoading(false);
@@ -98,6 +107,18 @@ export default function MatchingPage() {
             <div>
               <h3 className="font-semibold text-red-900 mb-1">Nessun risultato</h3>
               <p className="text-red-700">{error}</p>
+            </div>
+          </div>
+        </Card>
+      ) : matches.length === 0 ? (
+        <Card className="bg-yellow-50 border-yellow-200">
+          <div className="flex items-center space-x-3">
+            <div className="text-yellow-600">
+              <Search className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-yellow-900 mb-1">Nessun match trovato</h3>
+              <p className="text-yellow-700">Non ci sono opzioni disponibili al momento</p>
             </div>
           </div>
         </Card>

@@ -126,6 +126,7 @@ enum ClusterMethod {
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
+  password      String    // ✅ AGGIUNGI QUESTO
   name          String
   phone         String
   role          UserRole  @default(PASSENGER)
@@ -617,4 +618,22 @@ model SystemConfig {
   updatedAt       DateTime  @updatedAt
 
   @@map("system_config")
+}
+
+model InsurancePool {
+  id              String   @id @default(cuid())
+  month           DateTime @unique
+  
+  collected       Float    @default(0)
+  used            Float    @default(0)
+  balance         Float    @default(0)
+  
+  driverCompensation Float @default(0)
+  refundLosses    Float    @default(0)
+  operational     Float    @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("insurance_pool")
 }
