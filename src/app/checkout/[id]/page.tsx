@@ -16,108 +16,71 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [success, setSuccess] = useState(false);
 
-  const { user, isAuthenticated } = useAuthStore();
-  const { selectedMatch, currentFlight, addBooking } = useBookingStore();
+  const { user, token, setToken } = useAuthStore();
+  const { selectedMatch, currentFlight } = useBookingStore();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    // ✅ Controlla token da localStorage
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('flanvo_token') : null;
+    
+    if (!storedToken) {
       router.push('/login');
       return;
     }
 
-    if (!selectedMatch || !currentFlight) {
-      router.push('/flight-search');
-      return;
+    // Setta token nello store se manca
+    if (!token) {
+      setToken(storedToken);
     }
 
-    createPaymentIntent();
-  }, [isAuthenticated, selectedMatch, currentFlight]);
+    // Usa memberId dall'URL
+    const memberIdFromUrl = params.id;
+    setMemberId(memberIdFromUrl);
+    createPaymentIntent(memberIdFromUrl, storedToken);
+  }, [params.id]);
 
-  const createPaymentIntent = async () => {
+  const createPaymentIntent = async (memberIdToUse: string, authToken: string) => {
     try {
       setLoading(true);
-      
-      const memberIdFromMatch = selectedMatch?.memberId;
-      
-      if (!memberIdFromMatch) {
-        setError('Member ID mancante. Torna al matching e riprova.');
-        return;
-      }
-      
-      console.log('🎯 Usando memberId dal match:', memberIdFromMatch);
+      console.log('🎯 Creando payment intent per memberId:', memberIdToUse);
       
       const response = await fetch('/api/payments/create-intent', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memberId: memberIdFromMatch }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ memberId: memberIdToUse }),
       });
 
       const data = await response.json();
+      console.log('💳 Payment intent response:', data);
 
       if (data.success) {
         setClientSecret(data.clientSecret);
-        setMemberId(memberIdFromMatch);
         setPaymentAmount(data.amount);
       } else {
         setError(data.error || 'Failed to initialize payment');
       }
     } catch (err) {
+      console.error('❌ Payment intent error:', err);
       setError('An error occurred');
-      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
   const handlePaymentSuccess = async () => {
-    try {
-      const destinationStr = localStorage.getItem('flanvo_destination');
-      const destination = destinationStr ? JSON.parse(destinationStr) : null;
-
-      const bookingData = {
-        rideGroupId: selectedMatch?.id || 'mock-group-id',
-        userId: user?.id,
-        sharePrice: selectedMatch?.pricePerPerson || paymentAmount,
-        destination,
-        flight: currentFlight,
-        paymentIntentId: clientSecret?.split('_secret_')[0],
-      };
-
-      console.log('📦 Creando booking:', bookingData);
-
-      const response = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bookingData),
-      });
-
-      const data = await response.json();
-      console.log('📦 Risposta booking:', data);
-
-      if (data.booking) {
-        addBooking(data.booking);
-        setSuccess(true);
-
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 2000);
-      } else {
-        setError('Errore nella creazione del booking');
-      }
-    } catch (error) {
-      console.error('❌ Booking error:', error);
-      setError('Si è verificato un errore');
-    }
+    setSuccess(true);
+    setTimeout(() => {
+      router.push('/dashboard');
+    }, 2000);
   };
 
   const handlePaymentError = (errorMessage: string) => {
     setError(errorMessage);
   };
-
-  if (!isAuthenticated || !selectedMatch || !currentFlight) {
-    return null;
-  }
 
   if (success) {
     return (
@@ -196,29 +159,29 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
                 <MapPin className="w-5 h-5 text-gray-400 mt-1" />
                 <div className="flex-1">
                   <p className="text-sm text-gray-500">Volo</p>
-                  <p className="font-semibold text-gray-900">{currentFlight.code}</p>
+                  <p className="font-semibold text-gray-900">{currentFlight?.code || 'N/A'}</p>
                 </div>
               </div>
 
-              <div className="flex items-start space-x-3">
-                <Users className="w-5 h-5 text-gray-400 mt-1" />
-                <div className="flex-1">
-                  <p className="text-sm text-gray-500">Compagni</p>
-                  <p className="font-semibold text-gray-900">
-                    {selectedMatch.passengers.length} {selectedMatch.passengers.length === 1 ? 'passeggero' : 'passeggeri'}
-                  </p>
+              {selectedMatch && (
+                <div className="flex items-start space-x-3">
+                  <Users className="w-5 h-5 text-gray-400 mt-1" />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-500">Compagni</p>
+                    <p className="font-semibold text-gray-900">
+                      {selectedMatch.passengers?.length || 0} passeggeri
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="border-t border-gray-200 pt-4 space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Driver share</span>
-                <span className="font-medium text-gray-900">€{(paymentAmount - 11.50).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Flanvo fee</span>
-                <span className="font-medium text-gray-900">€10.50</span>
+                <span className="text-gray-600">Tariffa corsa</span>
+                <span className="font-medium text-gray-900">
+                  €{paymentAmount > 0 ? (paymentAmount - 1).toFixed(2) : '0.00'}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Protection fee</span>

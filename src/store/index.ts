@@ -3,13 +3,15 @@ import { User, Flight, RideMatch, Booking } from '@/lib/types';
 
 interface AuthState {
   user: User | null;
+  token: string | null; // ✅ AGGIUNTO
   isAuthenticated: boolean;
-  login: (user: User) => void; // Cambiato per accettare User direttamente
-  loginWithCredentials: (email: string, password: string, role?: string) => Promise<User>; // Aggiunto ruolo
-  signup: (name: string, email: string, password: string, role?: string) => Promise<User>; // Aggiunto ruolo
+  login: (user: User) => void;
+  loginWithCredentials: (email: string, password: string, role?: string) => Promise<User>;
+  signup: (name: string, email: string, password: string, role?: string) => Promise<User>;
   logout: () => void;
   setUser: (user: User | null) => void;
-  isRole: (role: 'user' | 'driver' | 'admin') => boolean; // Nuovo helper
+  setToken: (token: string | null) => void; // ✅ AGGIUNTO
+  isRole: (role: 'user' | 'driver' | 'admin') => boolean;
 }
 
 interface BookingState {
@@ -24,9 +26,9 @@ interface BookingState {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
+  token: null, // ✅ AGGIUNTO
   isAuthenticated: false,
 
-  // Funzione per login diretto (usata dai componenti con demo)
   login: (user: User) => {
     set({ user, isAuthenticated: true });
     if (typeof window !== 'undefined') {
@@ -34,7 +36,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  // Funzione per login con credenziali e ruolo
+  // ✅ FIXED: Salva anche il token
   loginWithCredentials: async (email: string, password: string, role?: string) => {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
@@ -43,16 +45,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
     const data = await response.json();
     
-    if (data.user) {
-      set({ user: data.user, isAuthenticated: true });
+    if (data.user && data.token) { // ✅ Controlla anche token
+      set({ 
+        user: data.user, 
+        token: data.token, // ✅ SALVA TOKEN
+        isAuthenticated: true 
+      });
       if (typeof window !== 'undefined') {
         localStorage.setItem('flanvo_user', JSON.stringify(data.user));
+        localStorage.setItem('flanvo_token', data.token); // ✅ SALVA TOKEN
       }
     }
     return data.user;
   },
 
-  // Funzione per signup con ruolo
+  // ✅ FIXED: Salva anche il token
   signup: async (name: string, email: string, password: string, role: string = 'user') => {
     const response = await fetch('/api/auth/signup', {
       method: 'POST',
@@ -61,29 +68,35 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
     const data = await response.json();
     
-    if (data.user) {
-      set({ user: data.user, isAuthenticated: true });
+    if (data.user && data.token) { // ✅ Controlla anche token
+      set({ 
+        user: data.user, 
+        token: data.token, // ✅ SALVA TOKEN
+        isAuthenticated: true 
+      });
       if (typeof window !== 'undefined') {
         localStorage.setItem('flanvo_user', JSON.stringify(data.user));
+        localStorage.setItem('flanvo_token', data.token); // ✅ SALVA TOKEN
       }
     }
     return data.user;
   },
 
-  // Logout
+  // ✅ FIXED: Rimuovi anche il token
   logout: () => {
-    set({ user: null, isAuthenticated: false });
+    set({ user: null, token: null, isAuthenticated: false });
     if (typeof window !== 'undefined') {
       localStorage.removeItem('flanvo_user');
+      localStorage.removeItem('flanvo_token'); // ✅ RIMUOVI TOKEN
       localStorage.removeItem('flanvo_destination');
       localStorage.removeItem('flanvo_booking_info');
     }
   },
 
-  // Imposta utente
   setUser: (user) => set({ user, isAuthenticated: !!user }),
+  
+  setToken: (token) => set({ token }), // ✅ NUOVO
 
-  // Helper per verificare il ruolo
   isRole: (role: 'user' | 'driver' | 'admin') => {
     const state = get();
     return state.user?.role === role;
