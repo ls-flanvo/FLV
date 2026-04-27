@@ -59,7 +59,7 @@ export default function DriverNavigationPage({ params }: { params: { id: string 
   const router = useRouter();
   const mapRef = useRef<any>(null);
 
-  const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || 'pk.eyJ1IjoibHMtZmxhbnZvIiwiYSI6ImNtZzI1cTVxbzBwaGEycXF3bWV5dHozZTYifQ.c1Vys9aYtGHK6UW4LkHK4A';
+  const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
   // Mock data - sostituire con dati reali dall'API
   useEffect(() => {

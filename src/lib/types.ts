@@ -58,13 +58,45 @@ export interface RideGroup {
 
 export interface Booking {
   id: string;
-  rideGroupId: string;
   userId: string;
-  sharePrice: number;
-  status: 'pending' | 'confirmed' | 'paid' | 'completed' | 'cancelled';
-  destination: Destination;
+  // Location
+  pickupLocation: string;
+  pickupLat: number;
+  pickupLng: number;
+  dropoffLocation: string;
+  dropoffLat: number;
+  dropoffLng: number;
+  pickupTime: string;
+  // Flight
+  flightNumber: string;
+  flightDate: string;
+  direction: 'TO_AIRPORT' | 'FROM_AIRPORT';
+  // Passengers
+  passengers: number;
+  luggage: number;
+  luggageCount?: number;
+  passengerName?: string;
+  // Pricing
+  estimatedPrice?: number | null;
+  finalPrice?: number | null;
+  // Status
+  status: 'PENDING' | 'CONFIRMED' | 'IN_MATCHING' | 'MATCHED' | 'NO_MATCH' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   createdAt: string;
-  flight: Flight;
+  updatedAt?: string;
+  // Relations (optional, from API includes)
+  groupMember?: {
+    id: string;
+    rideGroupId: string;
+    totalPrice?: number | null;
+    paymentStatus?: string;
+    paymentIntentId?: string | null;
+    rideGroup?: { id: string; status: string; qualityScore?: number | null };
+  } | null;
+  // Legacy compat
+  sharePrice?: number;
+  rideGroupId?: string;
+  destination?: Destination;
+  flight?: Flight;
   rideGroup?: RideGroup;
 }
 

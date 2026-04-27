@@ -4,7 +4,7 @@ import { SignJWT, jwtVerify } from 'jose';
 export interface JWTPayload {
   userId: string;
   email: string;
-  role: 'USER' | 'DRIVER' | 'ADMIN';
+  role: 'user' | 'driver' | 'admin';
 }
 
 // Ottieni la chiave segreta dal .env
@@ -49,7 +49,7 @@ export async function verifyToken(token: string): Promise<JWTPayload> {
     return {
       userId: payload.userId as string,
       email: payload.email as string,
-      role: payload.role as 'USER' | 'DRIVER' | 'ADMIN',
+      role: payload.role as 'user' | 'driver' | 'admin',
     };
   } catch (error) {
     console.error('Error verifying token:', error);

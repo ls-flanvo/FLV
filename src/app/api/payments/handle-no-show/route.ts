@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
       where: { id: memberId },
       data: {
         status: 'NO_SHOW',
-        paymentStatus: 'PAID',
+        paymentStatus: 'CAPTURED',
         capturedAt: new Date()
       }
     });

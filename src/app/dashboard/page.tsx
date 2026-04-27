@@ -25,11 +25,11 @@ export default function DashboardPage() {
       return;
     }
 
-    const completed = bookings.filter((b) => b.status === 'completed').length;
-    const upcoming = bookings.filter((b) => 
-      b.status === 'paid' || b.status === 'confirmed'
+    const completed = bookings.filter((b) => b.status === 'COMPLETED').length;
+    const upcoming = bookings.filter((b) =>
+      b.status === 'IN_PROGRESS' || b.status === 'CONFIRMED' || b.status === 'MATCHED'
     ).length;
-    const savings = bookings.reduce((sum, b) => sum + (b.sharePrice * 0.4), 0);
+    const savings = bookings.reduce((sum, b) => sum + ((b.estimatedPrice ?? b.sharePrice ?? 0) * 0.4), 0);
 
     setStats({
       totalRides: completed,

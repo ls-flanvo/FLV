@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
           membersCancelled++;
 
           console.log(`Force majeure: cancelled intent ${member.paymentIntentId} - €${member.totalPrice}`);
-        } else if (member.paymentStatus === 'PAID') {
+        } else if (member.paymentStatus === 'CAPTURED') {
           // Already captured (rare), create refund
           const refund = await stripe.refunds.create({
             payment_intent: member.paymentIntentId,

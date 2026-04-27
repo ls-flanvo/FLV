@@ -162,7 +162,7 @@ async function handlePaymentIntentCanceled(intent: Stripe.PaymentIntent) {
       await prisma.groupMember.update({
         where: { id: member.id },
         data: {
-          paymentStatus: 'CANCELLED'
+          paymentStatus: 'FAILED'
         }
       });
     }
@@ -241,9 +241,4 @@ async function handleRefundCreated(refund: Stripe.Refund) {
   }
 }
 
-// Disable body parsing (Stripe needs raw body)
-export const config = {
-  api: {
-    bodyParser: false
-  }
-};
+// Next.js App Router legge il body raw automaticamente nelle route handlers

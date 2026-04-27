@@ -120,7 +120,7 @@ export async function GET(
           totalPrice: member.totalPrice,
           breakdown: {
             vehicleCostSplit: `€${member.driverShare} (split equally among ${rideGroup.currentCapacity} passengers)`,
-            flanvoFee: `€${member.flanvoFee} (€${member.kmOnboard ? (member.flanvoFee / member.kmOnboard).toFixed(2) : '0.00'}/km × ${member.kmOnboard || 0}km)`
+            flanvoFee: `€${member.flanvoFee ?? 0} (€${member.kmOnboard && member.flanvoFee ? ((member.flanvoFee ?? 0) / member.kmOnboard).toFixed(2) : '0.00'}/km × ${member.kmOnboard || 0}km)`
           }
         },
         

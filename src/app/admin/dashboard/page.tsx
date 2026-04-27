@@ -49,7 +49,7 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'drivers' | 'rides'>('overview');
 
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, token } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -57,61 +57,34 @@ export default function AdminDashboardPage() {
       router.push('/admin/login');
       return;
     }
-
     if (user?.role !== 'admin') {
       router.push('/login');
       return;
     }
-
     fetchAdminData();
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user, router]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchAdminData = async () => {
     try {
-      // Mock data - sostituire con chiamate API reali
-      setStats({
-        totalUsers: 1247,
-        totalDrivers: 89,
-        activeRides: 34,
-        totalRevenue: 45890,
-        todayRides: 142,
-        pendingApprovals: 7,
+      const authToken = token || localStorage.getItem('flanvo_token');
+      const res = await fetch('/api/admin/stats', {
+        headers: { Authorization: `Bearer ${authToken}` },
       });
+      const data = await res.json();
 
-      setActivities([
-        {
-          id: '1',
-          type: 'booking',
-          user: 'Marco Rossi',
-          description: 'Nuova prenotazione per volo AZ1234',
-          timestamp: new Date().toISOString(),
-          status: 'success'
-        },
-        {
-          id: '2',
-          type: 'driver_signup',
-          user: 'Laura Bianchi',
-          description: 'Richiesta registrazione autista',
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          status: 'pending'
-        },
-        {
-          id: '3',
-          type: 'ride_completed',
-          user: 'Giovanni Verdi',
-          description: 'Corsa completata - €45',
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-          status: 'success'
-        },
-        {
-          id: '4',
-          type: 'cancellation',
-          user: 'Anna Neri',
-          description: 'Cancellazione prenotazione',
-          timestamp: new Date(Date.now() - 10800000).toISOString(),
-          status: 'warning'
-        },
-      ]);
+      if (data.stats) {
+        setStats(data.stats);
+        setActivities(
+          (data.activity || []).map((a: { id: string; type: string; description: string; status: string; timestamp: string }) => ({
+            id: a.id,
+            type: a.type,
+            user: '',
+            description: a.description,
+            timestamp: a.timestamp,
+            status: a.status === 'pending' ? 'pending' : a.status === 'cancelled' ? 'warning' : 'success',
+          }))
+        );
+      }
     } catch (error) {
       console.error('Error fetching admin data:', error);
     } finally {

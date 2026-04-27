@@ -50,9 +50,8 @@ export default function BookingCard({ booking }: BookingCardProps) {
     instructions: 'Cerca un cartello con il logo Flanvo'
   };
 
-  // ✅ Usa i campi reali del Booking
-  const passengers = 1; // Default, aggiornare quando campo disponibile
-  const luggage = booking.luggageCount || 1;
+  const passengers = booking.passengers ?? 1;
+  const luggage = booking.luggage ?? booking.luggageCount ?? 1;
 
   const handleCancelBooking = async (refundEligible: boolean) => {
     try {
@@ -105,7 +104,7 @@ export default function BookingCard({ booking }: BookingCardProps) {
         </div>
 
         {/* Pickup Point - solo se confermato */}
-        {(booking.status === 'confirmed' || booking.status === 'paid') && (
+        {(booking.status === 'CONFIRMED' || booking.status === 'MATCHED' || booking.status === 'IN_PROGRESS') && (
           <div className="mb-4 p-3 bg-primary-50 border border-primary-200 rounded-lg">
             <div className="flex items-start space-x-2 mb-2">
               <Navigation className="w-5 h-5 text-primary-600 flex-shrink-0 mt-0.5" />
@@ -141,7 +140,7 @@ export default function BookingCard({ booking }: BookingCardProps) {
             <div className="flex-1">
               <p className="text-sm text-gray-500">Destinazione</p>
               <p className="font-semibold text-gray-900">
-                {booking.destinationAddress || 'Da specificare'}
+                {booking.dropoffLocation || booking.destination?.address || 'Da specificare'}
               </p>
             </div>
           </div>
@@ -159,7 +158,7 @@ export default function BookingCard({ booking }: BookingCardProps) {
         </div>
 
         {/* Driver info - solo se confermato */}
-        {(booking.status === 'confirmed' || booking.status === 'paid') && (
+        {(booking.status === 'CONFIRMED' || booking.status === 'MATCHED' || booking.status === 'IN_PROGRESS') && (
           <div className="mb-4 p-3 bg-gray-50 rounded-lg">
             <p className="text-xs text-gray-500 mb-1">Il tuo autista</p>
             <div className="flex items-center space-x-2">
@@ -186,7 +185,7 @@ export default function BookingCard({ booking }: BookingCardProps) {
         </div>
 
         {/* Azioni */}
-        {booking.status === 'paid' && (
+        {booking.status === 'IN_PROGRESS' || booking.status === 'MATCHED' && (
           <div className="space-y-2">
             <div className="flex gap-2">
               <Link 

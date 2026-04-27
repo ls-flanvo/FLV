@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { generateToken } from '@/lib/jwt';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+function mapRole(prismaRole: string): 'user' | 'driver' | 'admin' {
+  if (prismaRole === 'DRIVER') return 'driver';
+  if (prismaRole === 'ADMIN') return 'admin';
+  return 'user';
+}
 
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();
 
-    // Validazione input
     if (!email || !password) {
       return NextResponse.json(
         { error: 'Email e password sono obbligatori' },
@@ -17,7 +20,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cerca utente nel database
     const user = await prisma.user.findUnique({
       where: { email },
       select: {
@@ -26,47 +28,52 @@ export async function POST(request: NextRequest) {
         password: true,
         name: true,
         role: true,
-      }
+        driver: { select: { isVerified: true } },
+      },
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'Credenziali non valide' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Credenziali non valide' }, { status: 401 });
     }
 
-    // Verifica password
     const isPasswordValid = await bcrypt.compare(password, user.password);
-
     if (!isPasswordValid) {
+      return NextResponse.json({ error: 'Credenziali non valide' }, { status: 401 });
+    }
+
+    if (user.role === 'DRIVER' && user.driver && !user.driver.isVerified) {
       return NextResponse.json(
-        { error: 'Credenziali non valide' },
-        { status: 401 }
+        { error: 'Account in attesa di approvazione admin' },
+        { status: 403 }
       );
     }
 
-    // Genera JWT token
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const role = mapRole(user.role);
+    const token = await generateToken({ userId: user.id, email: user.email, role });
 
-    // Rimuovi password dalla risposta
-    const { password: _, ...userWithoutPassword } = user;
+    const responseUser = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role,
+    };
 
-    return NextResponse.json({
-      user: userWithoutPassword,
+    const response = NextResponse.json({
+      user: responseUser,
       token,
-      message: 'Login effettuato con successo'
+      message: 'Login effettuato con successo',
     });
 
+    response.cookies.set('flanvo_token', token, {
+      httpOnly: true,
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error('Login error:', error);
-    return NextResponse.json(
-      { error: 'Errore durante il login' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Errore durante il login' }, { status: 500 });
   }
 }

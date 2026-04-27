@@ -86,7 +86,7 @@ export async function GET(
       
       // Payment Details
       payment: {
-        capturedAmount: member.paymentStatus === 'PAID' ? member.totalPrice : null,
+        capturedAmount: member.paymentStatus === 'CAPTURED' ? member.totalPrice : null,
         capturedAt: member.capturedAt,
         refundedAmount: member.paymentStatus === 'REFUNDED' 
           ? (member.totalPrice! - (member.driverShare || 0)) // flanvo fee + protection refunded

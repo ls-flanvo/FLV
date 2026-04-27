@@ -135,10 +135,12 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  isActive      Boolean   @default(true)
+
   bookings      Booking[]
   driver        Driver?
   microGroups   MicroGroup[]
-  
+
   @@index([email])
   @@index([role])
   @@map("users")
@@ -161,6 +163,8 @@ model Driver {
   // Earnings tracking
   totalEarnings             Float        @default(0)
   
+  rejectionReason           String?
+
   // Stripe Connected Account (per Agent 4 - Payments)
   stripeConnectedAccountId  String?
   stripeAccountStatus       String?

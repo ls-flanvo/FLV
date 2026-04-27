@@ -35,7 +35,7 @@ export default function DriverDashboardPage() {
     totalTrips: 42,
   });
 
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, token } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -43,27 +43,28 @@ export default function DriverDashboardPage() {
       router.push('/driver/login');
       return;
     }
-
     if (user?.role !== 'driver') {
       router.push('/dashboard');
       return;
     }
-
     fetchRides();
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user, router]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchRides = async () => {
     try {
-      const response = await fetch('/api/driver/rides');
+      const authToken = token || localStorage.getItem('flanvo_token');
+      const response = await fetch('/api/driver/rides', {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
       const data = await response.json();
 
       if (data.rides) {
         setRides(data.rides);
         setStats({
           todayRides: data.rides.filter((r: DriverRide) => r.status === 'accepted').length,
-          earnings: data.rides.reduce((sum: number, r: DriverRide) => sum + r.totalPrice, 0),
-          rating: 4.8,
-          totalTrips: 42,
+          earnings: data.driverStats?.totalEarnings ?? 0,
+          rating: data.driverStats?.rating ?? 5.0,
+          totalTrips: data.driverStats?.totalRides ?? 0,
         });
       }
     } catch (error) {
@@ -75,15 +76,15 @@ export default function DriverDashboardPage() {
 
   const handleAcceptRide = async (rideId: string) => {
     try {
-      await fetch('/api/driver/rides', {
+      const authToken = token || localStorage.getItem('flanvo_token');
+      const res = await fetch('/api/driver/rides', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
         body: JSON.stringify({ rideId, status: 'accepted' }),
       });
-
-      setRides(rides.map(r => 
-        r.id === rideId ? { ...r, status: 'accepted' as const } : r
-      ));
+      if (res.ok) {
+        setRides(rides.map(r => r.id === rideId ? { ...r, status: 'accepted' as const } : r));
+      }
     } catch (error) {
       console.error('Error accepting ride:', error);
     }
@@ -91,13 +92,15 @@ export default function DriverDashboardPage() {
 
   const handleRejectRide = async (rideId: string) => {
     try {
-      await fetch('/api/driver/rides', {
+      const authToken = token || localStorage.getItem('flanvo_token');
+      const res = await fetch('/api/driver/rides', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
         body: JSON.stringify({ rideId, status: 'rejected' }),
       });
-
-      setRides(rides.filter(r => r.id !== rideId));
+      if (res.ok) {
+        setRides(rides.filter(r => r.id !== rideId));
+      }
     } catch (error) {
       console.error('Error rejecting ride:', error);
     }
@@ -176,7 +179,7 @@ export default function DriverDashboardPage() {
         <div className="flex flex-wrap gap-4">
           <Button 
             size="lg"
-            onClick={() => alert('Funzionalità mappa in arrivo!')}
+            onClick={() => console.info('Mappa corse in sviluppo')}
           >
             <MapPin className="w-5 h-5 mr-2" />
             Visualizza mappa corse
@@ -184,7 +187,7 @@ export default function DriverDashboardPage() {
           <Button 
             size="lg" 
             variant="secondary"
-            onClick={() => alert('Storico corse in arrivo!')}
+            onClick={() => console.info('Storico corse in sviluppo')}
           >
             <Clock className="w-5 h-5 mr-2" />
             Storico corse
@@ -291,7 +294,7 @@ export default function DriverDashboardPage() {
                         <div className="flex space-x-1">
                           {/* ✅ FIX: phone non disponibile, disabilitato */}
                           <button
-                            onClick={() => alert('Numero non disponibile. Usa la chat per contattare il passeggero.')}
+                            onClick={() => console.info('Telefono non disponibile')}
                             className="p-1 hover:bg-gray-200 rounded transition-colors opacity-50"
                             title="Telefono non disponibile"
                           >
@@ -398,7 +401,7 @@ export default function DriverDashboardPage() {
                     <Button 
                       variant="secondary" 
                       className="flex-1"
-                      onClick={() => alert('Chat di gruppo con i passeggeri in arrivo!')}
+                      onClick={() => console.info('Chat di gruppo in sviluppo')}
                     >
                       <MessageCircle className="w-5 h-5 mr-2" />
                       Contatta passeggeri

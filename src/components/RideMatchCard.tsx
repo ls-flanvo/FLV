@@ -5,9 +5,10 @@ import { Users, DollarSign, Clock, TrendingUp, Car } from 'lucide-react';
 interface RideMatchCardProps {
   match: RideMatch;
   onSelect: (match: RideMatch) => void;
+  disabled?: boolean;
 }
 
-export default function RideMatchCard({ match, onSelect }: RideMatchCardProps) {
+export default function RideMatchCard({ match, onSelect, disabled = false }: RideMatchCardProps) {
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'text-green-600';
     if (score >= 80) return 'text-blue-600';
@@ -95,7 +96,7 @@ export default function RideMatchCard({ match, onSelect }: RideMatchCardProps) {
           })}
         </p>
 
-        <Button onClick={() => onSelect(match)} className="w-full">
+        <Button onClick={() => onSelect(match)} className="w-full" disabled={disabled}>
           Seleziona questa corsa
         </Button>
       </div>

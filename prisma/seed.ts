@@ -57,6 +57,7 @@ async function main() {
       phone: '+39 320 1234567',
       role: 'PASSENGER',
       isVerified: true,
+      password: '$2a$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu0u2',
     },
   });
 
@@ -67,6 +68,7 @@ async function main() {
       phone: '+39 331 2345678',
       role: 'PASSENGER',
       isVerified: true,
+      password: '$2a$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu0u2',
     },
   });
 
@@ -77,6 +79,7 @@ async function main() {
       phone: '+39 340 3456789',
       role: 'PASSENGER',
       isVerified: true,
+      password: '$2a$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu0u2',
     },
   });
 
@@ -87,6 +90,7 @@ async function main() {
       phone: '+39 345 4567890',
       role: 'PASSENGER',
       isVerified: true,
+      password: '$2a$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu0u2',
     },
   });
 
@@ -97,6 +101,7 @@ async function main() {
       phone: '+39 348 5678901',
       role: 'PASSENGER',
       isVerified: true,
+      password: '$2a$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu0u2',
     },
   });
 
@@ -112,6 +117,7 @@ async function main() {
       phone: '+39 350 1111111',
       role: 'DRIVER',
       isVerified: true,
+      password: '$2a$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu0u2',
     },
   });
 
@@ -138,6 +144,7 @@ async function main() {
       phone: '+39 351 2222222',
       role: 'DRIVER',
       isVerified: true,
+      password: '$2a$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu0u2',
     },
   });
 

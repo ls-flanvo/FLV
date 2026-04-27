@@ -34,7 +34,7 @@ export default function AddressAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || 'pk.eyJ1IjoibHMtZmxhbnZvIiwiYSI6ImNtZzI1cTVxbzBwaGEycXF3bWV5dHozZTYifQ.c1Vys9aYtGHK6UW4LkHK4A';
+  const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
   // Debounce per la ricerca
   useEffect(() => {

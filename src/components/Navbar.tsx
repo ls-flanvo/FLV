@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store';
 import { User, LogOut, Menu, X } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import LanguageCurrencySelector from './LanguageCurrencySelector';
 
 export default function Navbar() {
@@ -17,24 +17,16 @@ export default function Navbar() {
     router.push('/');
   };
 
-  // DEBUG - Rimuovi dopo aver verificato
-  useEffect(() => {
-    console.log('🔍 DEBUG Navbar:');
-    console.log('isAuthenticated:', isAuthenticated);
-    console.log('user:', user);
-    console.log('user?.role:', user?.role);
-  }, [isAuthenticated, user]);
-
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <svg width="32" height="32" viewBox="0 0 100 100" fill="none">
-              <path d="M20 30 Q30 20 40 30 L50 50 Q55 60 45 70 L35 80 Q25 75 20 65 Z" fill="#4DB8AC"/>
+            <svg width="28" height="36" viewBox="0 0 56 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 0 L48 0 L30 30 L48 30 L8 72 L22 40 L4 40 Z" fill="#00C2B5"/>
             </svg>
-            <span className="text-2xl font-bold text-gray-900">flanvo</span>
+            <span className="text-2xl font-bold text-gray-900" style={{ fontWeight: 700, letterSpacing: '-0.02em' }}>flanvo</span>
           </Link>
 
           {/* Desktop Menu */}

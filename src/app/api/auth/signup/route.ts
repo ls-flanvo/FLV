@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+import { generateToken } from '@/lib/jwt';
 
 export async function POST(request: NextRequest) {
   try {
     const { name, email, password } = await request.json();
 
-    // Validazione input
     if (!email || !password) {
       return NextResponse.json(
         { error: 'Email e password sono obbligatori' },
@@ -17,57 +14,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Controlla se utente esiste già
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
-
-    if (existingUser) {
+    if (password.length < 6) {
       return NextResponse.json(
-        { error: 'Email già registrata' },
-        { status: 409 }
+        { error: 'La password deve essere di almeno 6 caratteri' },
+        { status: 400 }
       );
     }
 
-    // Hash password
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return NextResponse.json({ error: 'Email già registrata' }, { status: 409 });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Crea utente nel database
     const user = await prisma.user.create({
       data: {
         name: name || '',
         email,
         password: hashedPassword,
-        phone: '', // Default vuoto
+        phone: '',
         role: 'PASSENGER',
       },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true,
-      }
+      select: { id: true, email: true, name: true, role: true },
     });
 
-    // Genera JWT token
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const token = await generateToken({ userId: user.id, email: user.email, role: 'user' });
 
-    return NextResponse.json({
-      user,
+    const responseUser = { id: user.id, email: user.email, name: user.name, role: 'user' as const };
+
+    const response = NextResponse.json({
+      user: responseUser,
       token,
-      message: 'Registrazione completata con successo'
+      message: 'Registrazione completata con successo',
     });
 
+    response.cookies.set('flanvo_token', token, {
+      httpOnly: true,
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error('Signup error:', error);
-    return NextResponse.json(
-      { error: 'Errore durante la registrazione' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Errore durante la registrazione' }, { status: 500 });
   }
 }

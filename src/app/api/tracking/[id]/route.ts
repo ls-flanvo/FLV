@@ -1,41 +1,103 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mockVehicles, mockDestinations } from '@/lib/mockData';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    const trackingData = {
-      bookingId: params.id,
-      vehicle: mockVehicles[0],
-      currentLocation: {
-        lat: 45.5500,
-        lng: 9.0000,
+    // params.id può essere bookingId o groupMemberId
+    const member = await prisma.groupMember.findFirst({
+      where: {
+        OR: [{ id: params.id }, { bookingId: params.id }],
       },
-      destination: mockDestinations[0],
-      estimatedArrival: new Date(Date.now() + 1800000).toISOString(),
-      status: 'in_progress',
-      driver: {
-        name: 'Antonio Esposito',
-        phone: '+39 333 9876543',
-        rating: 4.8,
+      include: {
+        booking: {
+          select: {
+            dropoffLocation: true,
+            dropoffLat: true,
+            dropoffLng: true,
+          },
+        },
+        rideGroup: {
+          include: {
+            ride: {
+              include: {
+                driver: {
+                  include: {
+                    user: { select: { name: true, phone: true } },
+                  },
+                },
+              },
+            },
+            routes: {
+              orderBy: { sequence: 'asc' },
+            },
+          },
+        },
       },
-      route: [
-        { lat: 45.6301, lng: 8.7233 },
-        { lat: 45.5800, lng: 8.8500 },
-        { lat: 45.5500, lng: 9.0000 },
-        { lat: 45.4777, lng: 9.2060 },
-      ],
-    };
+    });
 
-    return NextResponse.json({ tracking: trackingData });
+    if (!member) {
+      return NextResponse.json({ error: 'Prenotazione non trovata' }, { status: 404 });
+    }
+
+    const ride = member.rideGroup.ride;
+    const driver = ride?.driver;
+
+    if (!ride || ride.status === 'SCHEDULED' || ride.status === 'SUPPLY_CHECKED') {
+      return NextResponse.json({
+        tracking: {
+          status: 'not_started',
+          message: 'La corsa non è ancora iniziata',
+          destination: {
+            address: member.booking.dropoffLocation,
+            lat: member.booking.dropoffLat,
+            lng: member.booking.dropoffLng,
+          },
+        },
+      });
+    }
+
+    const routes = member.rideGroup.routes;
+    const currentLocation = routes.length > 0
+      ? { lat: routes[routes.length - 1].latitude, lng: routes[routes.length - 1].longitude }
+      : { lat: member.booking.dropoffLat, lng: member.booking.dropoffLng };
+
+    const remainingRoute = routes
+      .filter((r) => !r.reached)
+      .map((r) => ({ lat: r.latitude, lng: r.longitude }));
+
+    const estimatedArrival = ride.endTime
+      ? ride.endTime.toISOString()
+      : new Date(Date.now() + 25 * 60 * 1000).toISOString();
+
+    return NextResponse.json({
+      tracking: {
+        bookingId: params.id,
+        status: ride.status.toLowerCase(),
+        vehicle: {
+          brand: driver?.vehicleModel?.split(' ')[0] ?? 'Veicolo',
+          model: driver?.vehicleModel ?? 'In arrivo',
+          plate: driver?.vehiclePlate ?? '---',
+        },
+        currentLocation,
+        destination: {
+          address: member.booking.dropoffLocation,
+          lat: member.booking.dropoffLat,
+          lng: member.booking.dropoffLng,
+        },
+        route: remainingRoute,
+        estimatedArrival,
+        driver: {
+          name: driver?.user?.name ?? 'Autista assegnato',
+          phone: driver?.user?.phone ?? '',
+          rating: driver?.rating ?? 5.0,
+        },
+      },
+    });
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Errore nel tracking' },
-      { status: 500 }
-    );
+    console.error('Tracking error:', error);
+    return NextResponse.json({ error: 'Errore nel tracking' }, { status: 500 });
   }
 }

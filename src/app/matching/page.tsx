@@ -40,13 +40,15 @@ export default function MatchingPage() {
       const destinationStr = localStorage.getItem('flanvo_destination');
       const destination = destinationStr ? JSON.parse(destinationStr) : null;
 
+      const authToken = token || localStorage.getItem('flanvo_token');
       const response = await fetch('/api/matching', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
         body: JSON.stringify({
-          flightId: currentFlight?.id,
           flightCode: currentFlight?.code,
-          userId: user?.id,
           destination,
         }),
       });
@@ -87,26 +89,33 @@ export default function MatchingPage() {
         return;
       }
 
-      // ✅ Crea il booking nel database
+      const authToken = token || localStorage.getItem('flanvo_token');
+      if (!authToken) {
+        setError('Sessione scaduta. Effettua di nuovo il login.');
+        setCreatingBooking(false);
+        return;
+      }
+
       const response = await fetch('/api/bookings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`, // ✅ JWT token!
+          'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify({
           pickupLocation: destination.address,
           pickupLat: destination.lat,
           pickupLng: destination.lng,
-          dropoffLocation: 'Aeroporto Fiumicino', // O usa currentFlight.airport
+          dropoffLocation: 'Aeroporto Fiumicino',
           dropoffLat: 41.8003,
           dropoffLng: 12.2389,
-          pickupTime: currentFlight?.departure || new Date().toISOString(),
+          pickupTime: currentFlight?.scheduledTime || new Date().toISOString(),
           flightNumber: currentFlight?.code || 'UNKNOWN',
-          flightDate: currentFlight?.departure || new Date().toISOString(),
-          direction: 'TO_AIRPORT', // O 'FROM_AIRPORT' a seconda del flow
+          flightDate: currentFlight?.scheduledTime || new Date().toISOString(),
+          direction: 'TO_AIRPORT',
           passengers: 1,
           luggage: 2,
+          rideGroupId: match.id, // Unisciti al gruppo selezionato
         }),
       });
 

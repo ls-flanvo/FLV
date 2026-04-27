@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { loginWithCredentials } = useAuthStore();
+  const { loginWithCredentials, setToken } = useAuthStore();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,8 +49,8 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center space-x-2 mb-4">
-            <svg width="48" height="48" viewBox="0 0 100 100" fill="none">
-              <path d="M20 30 Q30 20 40 30 L50 50 Q55 60 45 70 L35 80 Q25 75 20 65 Z" fill="#4DB8AC"/>
+            <svg width="36" height="48" viewBox="0 0 56 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 0 L48 0 L30 30 L48 30 L8 72 L22 40 L4 40 Z" fill="#00C2B5"/>
             </svg>
             <span className="text-3xl font-bold text-gray-900">flanvo</span>
           </div>
@@ -59,13 +59,6 @@ export default function LoginPage() {
         </div>
 
         <Card>
-          {/* Info Demo */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-blue-800">
-              <strong>🚀 Demo:</strong> Usa qualsiasi email (es: mario@test.com) con password qualsiasi
-            </p>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-5">
             <Input
               type="email"

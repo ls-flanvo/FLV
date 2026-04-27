@@ -22,6 +22,7 @@ interface BookingState {
   setSelectedMatch: (match: RideMatch | null) => void;
   addBooking: (booking: Booking) => void;
   setBookings: (bookings: Booking[]) => void;
+  fetchBookings: (token: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -82,14 +83,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return data.user;
   },
 
-  // ✅ FIXED: Rimuovi anche il token
   logout: () => {
     set({ user: null, token: null, isAuthenticated: false });
     if (typeof window !== 'undefined') {
       localStorage.removeItem('flanvo_user');
-      localStorage.removeItem('flanvo_token'); // ✅ RIMUOVI TOKEN
+      localStorage.removeItem('flanvo_token');
       localStorage.removeItem('flanvo_destination');
       localStorage.removeItem('flanvo_booking_info');
+      fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     }
   },
 
@@ -111,4 +112,15 @@ export const useBookingStore = create<BookingState>((set) => ({
   setSelectedMatch: (match) => set({ selectedMatch: match }),
   addBooking: (booking) => set((state) => ({ bookings: [...state.bookings, booking] })),
   setBookings: (bookings) => set({ bookings }),
+  fetchBookings: async (token: string) => {
+    try {
+      const res = await fetch('/api/bookings', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.bookings) set({ bookings: data.bookings });
+    } catch {
+      // silently fail — user sees empty list
+    }
+  },
 }));

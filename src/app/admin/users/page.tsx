@@ -46,10 +46,34 @@ export default function AdminUsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/admin/users');
+      const token = localStorage.getItem('flanvo_token');
+      const params = new URLSearchParams();
+      if (searchTerm) params.set('search', searchTerm);
+      if (roleFilter !== 'all') params.set('role', roleFilter);
+
+      const response = await fetch(`/api/admin/users?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = await response.json();
-      
-      // Mock data per demo
+
+      if (data.users) {
+        setUsers(
+          data.users.map((u: { id: string; name: string; email: string; phone: string; role: string; isVerified: boolean; createdAt: string; _count: { bookings: number } }) => ({
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            phone: u.phone || '',
+            role: u.role,
+            status: u.isVerified ? 'active' : 'pending',
+            createdAt: new Date(u.createdAt).toISOString().split('T')[0],
+            totalBookings: u._count?.bookings ?? 0,
+          }))
+        );
+        setLoading(false);
+        return;
+      }
+
+      // Fallback mock
       const mockUsers: User[] = [
         {
           id: '1',
@@ -116,44 +140,36 @@ export default function AdminUsersPage() {
     }
   };
 
+  const patchUser = async (userId: string, action: string) => {
+    const token = localStorage.getItem('flanvo_token');
+    const res = await fetch('/api/admin/users', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ userId, action }),
+    });
+    return res.ok;
+  };
+
   const handleSuspendUser = async (userId: string) => {
     if (!confirm('Sei sicuro di voler sospendere questo utente?')) return;
-    
-    try {
-      await fetch(`/api/admin/users/${userId}/suspend`, { method: 'POST' });
-      setUsers(users.map(u => 
-        u.id === userId ? { ...u, status: 'suspended' as const } : u
-      ));
+    if (await patchUser(userId, 'suspend')) {
+      setUsers(users.map(u => u.id === userId ? { ...u, status: 'suspended' as const } : u));
       setShowActionMenu(null);
-      alert('Utente sospeso con successo');
-    } catch (error) {
-      alert('Errore durante la sospensione');
     }
   };
 
   const handleActivateUser = async (userId: string) => {
-    try {
-      await fetch(`/api/admin/users/${userId}/activate`, { method: 'POST' });
-      setUsers(users.map(u => 
-        u.id === userId ? { ...u, status: 'active' as const } : u
-      ));
+    if (await patchUser(userId, 'activate')) {
+      setUsers(users.map(u => u.id === userId ? { ...u, status: 'active' as const } : u));
       setShowActionMenu(null);
-      alert('Utente attivato con successo');
-    } catch (error) {
-      alert('Errore durante l\'attivazione');
     }
   };
 
   const handleDeleteUser = async (userId: string) => {
     if (!confirm('Sei sicuro di voler eliminare questo utente? Questa azione è irreversibile.')) return;
-    
-    try {
-      await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
+    if (await patchUser(userId, 'delete')) {
       setUsers(users.filter(u => u.id !== userId));
       setShowActionMenu(null);
-      alert('Utente eliminato con successo');
-    } catch (error) {
-      alert('Errore durante l\'eliminazione');
     }
   };
 

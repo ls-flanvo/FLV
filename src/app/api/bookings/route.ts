@@ -1,126 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import jwt from 'jsonwebtoken';
+import { requireAuth, authErrorResponse } from '@/lib/api-auth';
+import { sendBookingConfirmation } from '@/lib/email';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-
-interface JWTPayload {
-  userId: string;
-  email: string;
-}
-
-// GET - Lista bookings
 export async function GET(request: NextRequest) {
   try {
-    // Verifica JWT token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Token mancante' },
-        { status: 401 }
-      );
-    }
+    const payload = await requireAuth(request);
 
-    const token = authHeader.substring(7);
-    let decoded: JWTPayload;
-    
-    try {
-      decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch (error) {
-      return NextResponse.json(
-        { error: 'Token non valido' },
-        { status: 401 }
-      );
-    }
-
-    // Recupera bookings dell'utente
     const bookings = await prisma.booking.findMany({
-      where: { userId: decoded.userId },
+      where: { userId: payload.userId },
       orderBy: { createdAt: 'desc' },
       include: {
-        groupMember: true,
-      }
+        groupMember: {
+          include: {
+            rideGroup: {
+              select: { id: true, status: true, qualityScore: true, totalPrice: true },
+            },
+          },
+        },
+      },
     });
 
     return NextResponse.json({ bookings });
-
   } catch (error) {
-    console.error('❌ Errore recupero bookings:', error);
-    return NextResponse.json(
-      { error: 'Errore nel recupero delle prenotazioni' },
-      { status: 500 }
-    );
+    return authErrorResponse(error);
   }
 }
 
-// POST - Crea nuovo booking
 export async function POST(request: NextRequest) {
   try {
-    // 1. Verifica JWT token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Token mancante o non valido' },
-        { status: 401 }
-      );
-    }
+    const payload = await requireAuth(request);
 
-    const token = authHeader.substring(7);
-    let decoded: JWTPayload;
-    
-    try {
-      decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch (error) {
-      return NextResponse.json(
-        { error: 'Token non valido o scaduto' },
-        { status: 401 }
-      );
-    }
-
-    // 2. Verifica che l'utente esista
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId }
-    });
-
+    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
     if (!user) {
-      return NextResponse.json(
-        { error: 'Utente non trovato' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Utente non trovato' }, { status: 404 });
     }
 
-    // 3. Estrai i dati del booking
     const body = await request.json();
-    console.log('📦 Ricevuta richiesta booking:', body);
 
-    // 4. Validazione campi obbligatori
     const required = [
       'pickupLocation', 'pickupLat', 'pickupLng',
       'dropoffLocation', 'dropoffLat', 'dropoffLng',
-      'pickupTime', 'flightNumber', 'flightDate', 'direction'
+      'pickupTime', 'flightNumber', 'flightDate', 'direction',
     ];
-
     for (const field of required) {
-      if (!body[field]) {
-        return NextResponse.json(
-          { error: `Campo obbligatorio mancante: ${field}` },
-          { status: 400 }
-        );
+      if (body[field] === undefined || body[field] === null || body[field] === '') {
+        return NextResponse.json({ error: `Campo obbligatorio mancante: ${field}` }, { status: 400 });
       }
     }
 
-    // 5. Crea il booking nel database
+    // Crea il booking
     const booking = await prisma.booking.create({
       data: {
         userId: user.id,
         pickupLocation: body.pickupLocation,
-        pickupLat: body.pickupLat,
-        pickupLng: body.pickupLng,
+        pickupLat: parseFloat(body.pickupLat),
+        pickupLng: parseFloat(body.pickupLng),
         dropoffLocation: body.dropoffLocation,
-        dropoffLat: body.dropoffLat,
-        dropoffLng: body.dropoffLng,
+        dropoffLat: parseFloat(body.dropoffLat),
+        dropoffLng: parseFloat(body.dropoffLng),
         pickupTime: new Date(body.pickupTime),
-        flightNumber: body.flightNumber,
+        flightNumber: body.flightNumber.toUpperCase(),
         flightDate: new Date(body.flightDate),
         flightTime: body.flightTime ? new Date(body.flightTime) : null,
         direction: body.direction,
@@ -129,95 +69,112 @@ export async function POST(request: NextRequest) {
         luggageCount: body.luggageCount || 2,
         passengerName: body.passengerName || user.name,
         specialRequests: body.specialRequests || null,
-        estimatedPrice: body.estimatedPrice || body.sharePrice || null,
-        finalPrice: body.finalPrice || body.sharePrice || null,
-        distanceDirect: body.distanceDirect || null,
+        estimatedPrice: body.estimatedPrice || null,
         status: 'PENDING',
-        isGroupRide: body.isGroupRide || false,
+        isGroupRide: true,
         maxDetourMinutes: body.maxDetourMinutes || 10,
         maxDetourPercent: body.maxDetourPercent || 20,
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          }
-        }
+    });
+
+    let rideGroup;
+    let memberOrder: number;
+
+    if (body.rideGroupId) {
+      // Unisciti a un gruppo esistente
+      rideGroup = await prisma.rideGroup.findUnique({
+        where: { id: body.rideGroupId },
+        include: { members: true },
+      });
+
+      if (!rideGroup || rideGroup.status !== 'FORMING') {
+        // Gruppo non disponibile: crea nuovo
+        rideGroup = await prisma.rideGroup.create({
+          data: {
+            flightNumber: booking.flightNumber,
+            direction: booking.direction,
+            targetPickupTime: booking.pickupTime,
+            basePrice: 0,
+            status: 'FORMING',
+            currentCapacity: booking.passengers,
+            currentLuggage: booking.luggage,
+          },
+          include: { members: true },
+        });
+        memberOrder = 1;
+      } else {
+        // Aggiorna capacità del gruppo esistente
+        memberOrder = rideGroup.members.length + 1;
+        await prisma.rideGroup.update({
+          where: { id: rideGroup.id },
+          data: {
+            currentCapacity: { increment: booking.passengers },
+            currentLuggage: { increment: booking.luggage },
+          },
+        });
       }
-    });
+    } else {
+      // Crea nuovo gruppo
+      rideGroup = await prisma.rideGroup.create({
+        data: {
+          flightNumber: booking.flightNumber,
+          direction: booking.direction,
+          targetPickupTime: booking.pickupTime,
+          basePrice: 0,
+          status: 'FORMING',
+          currentCapacity: booking.passengers,
+          currentLuggage: booking.luggage,
+        },
+        include: { members: true },
+      });
+      memberOrder = 1;
+    }
 
-    console.log('✅ Booking creato nel database:', booking.id);
-
-    // 6. Crea RideGroup temporaneo per questo booking
-    const rideGroup = await prisma.rideGroup.create({
-      data: {
-        flightNumber: booking.flightNumber,
-        direction: booking.direction,
-        targetPickupTime: booking.pickupTime,
-        basePrice: booking.estimatedPrice || 0,
-        status: 'FORMING',
-        currentCapacity: booking.passengers,
-        currentLuggage: booking.luggage,
-      },
-    });
-
-    console.log('✅ RideGroup creato:', rideGroup.id);
-
-    // 7. Crea GroupMember per questo booking
     const groupMember = await prisma.groupMember.create({
       data: {
         bookingId: booking.id,
         rideGroupId: rideGroup.id,
         status: 'PENDING',
-        pickupOrder: 0,
-        dropoffOrder: 0,
-        paymentIntentId: body.paymentIntentId || null,
-        paymentStatus: body.paymentIntentId ? 'AUTHORIZED' : 'PENDING',
+        pickupOrder: memberOrder,
+        dropoffOrder: memberOrder,
+        paymentStatus: 'PENDING',
       },
     });
 
-    console.log('✅ GroupMember creato:', groupMember.id);
+    // Email di conferma (non bloccante)
+    sendBookingConfirmation(user.email, {
+      flightNumber: booking.flightNumber,
+      pickupTime: booking.pickupTime.toISOString(),
+      estimatedPrice: booking.estimatedPrice,
+    }).catch(() => {});
 
-    // 8. Ritorna il booking
-    return NextResponse.json({
-      success: true,
-      booking: {
-        id: booking.id,
-        userId: booking.userId,
-        pickupLocation: booking.pickupLocation,
-        dropoffLocation: booking.dropoffLocation,
-        pickupTime: booking.pickupTime,
-        flightNumber: booking.flightNumber,
-        direction: booking.direction,
-        passengers: booking.passengers,
-        luggage: booking.luggage,
-        estimatedPrice: booking.estimatedPrice,
-        finalPrice: booking.finalPrice,
-        status: booking.status,
-        isGroupRide: booking.isGroupRide,
-        createdAt: booking.createdAt,
-      },
-      rideGroup: {
-        id: rideGroup.id,
-        status: rideGroup.status,
-      },
-      groupMember: {
-        id: groupMember.id,
-        status: groupMember.status,
-        paymentStatus: groupMember.paymentStatus,
-      },
-      message: 'Booking creato con successo'
-    }, { status: 201 });
-
-  } catch (error) {
-    console.error('❌ Errore creazione booking:', error);
     return NextResponse.json(
-      { 
-        error: 'Errore nella creazione della prenotazione',
-        details: error instanceof Error ? error.message : 'Unknown error'
+      {
+        success: true,
+        booking: {
+          id: booking.id,
+          userId: booking.userId,
+          pickupLocation: booking.pickupLocation,
+          dropoffLocation: booking.dropoffLocation,
+          pickupTime: booking.pickupTime,
+          flightNumber: booking.flightNumber,
+          direction: booking.direction,
+          passengers: booking.passengers,
+          luggage: booking.luggage,
+          estimatedPrice: booking.estimatedPrice,
+          status: booking.status,
+          createdAt: booking.createdAt,
+        },
+        rideGroup: { id: rideGroup.id, status: rideGroup.status },
+        groupMember: { id: groupMember.id, status: groupMember.status, paymentStatus: groupMember.paymentStatus },
+        message: 'Booking creato con successo',
       },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error('Errore creazione booking:', error);
+    return NextResponse.json(
+      { error: 'Errore nella creazione della prenotazione', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

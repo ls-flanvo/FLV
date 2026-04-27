@@ -1,23 +1,28 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useAuthStore } from '@/store';
+import { useAuthStore, useBookingStore } from '@/store';
 
 export default function ClientProvider({ children }: { children: React.ReactNode }) {
-  const { setUser } = useAuthStore();
+  const { setUser, setToken } = useAuthStore();
+  const { fetchBookings } = useBookingStore();
 
   useEffect(() => {
     const storedUser = localStorage.getItem('flanvo_user');
-    if (storedUser) {
+    const storedToken = localStorage.getItem('flanvo_token');
+
+    if (storedUser && storedToken) {
       try {
         const user = JSON.parse(storedUser);
         setUser(user);
-      } catch (error) {
-        console.error('Error parsing stored user:', error);
+        setToken(storedToken);
+        fetchBookings(storedToken);
+      } catch {
         localStorage.removeItem('flanvo_user');
+        localStorage.removeItem('flanvo_token');
       }
     }
-  }, [setUser]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <>{children}</>;
 }

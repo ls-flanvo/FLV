@@ -7,12 +7,12 @@ export default function LandingPage() {
   <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
     <div className="text-center">
       <h1 className="text-5xl md:text-6xl font-extrabold text-white mb-6">
-        Condividi il tuo viaggio
-        <span className="block text-primary-500 mt-2">Risparmia sui trasferimenti aeroportuali</span>
+        Your next move, faster.
+        <span className="block text-primary-400 mt-2">Shared airport transfers made seamless.</span>
       </h1>
       <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-        Connettiti con passeggeri dello stesso volo e condividi corse NCC/taxi dall'aeroporto. 
-        Risparmia denaro, riduci l'impatto ambientale e viaggia in sicurezza.
+        Flanvo raggruppa i passeggeri dello stesso volo verso destinazioni simili.
+        Price-lock garantito, risparmio fino al 78% rispetto a taxi e NCC privati.
       </p>
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <Link
@@ -32,16 +32,16 @@ export default function LandingPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20">
           <div className="bg-white rounded-xl p-6 shadow-md text-center">
-            <div className="text-4xl font-bold text-primary-600 mb-2">60%</div>
-            <p className="text-gray-600">Risparmio medio</p>
+            <div className="text-4xl font-bold text-primary-600 mb-2">40–78%</div>
+            <p className="text-gray-600">Risparmio vs taxi privato</p>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-md text-center">
-            <div className="text-4xl font-bold text-primary-600 mb-2">10k+</div>
-            <p className="text-gray-600">Corse completate</p>
+            <div className="text-4xl font-bold text-primary-600 mb-2">€0.22</div>
+            <p className="text-gray-600">Fee media per km/passeggero</p>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-md text-center">
-            <div className="text-4xl font-bold text-primary-600 mb-2">4.8★</div>
-            <p className="text-gray-600">Valutazione media</p>
+            <div className="text-4xl font-bold text-primary-600 mb-2">Price-lock</div>
+            <p className="text-gray-600">Prezzo garantito al match</p>
           </div>
         </div>
       </section>

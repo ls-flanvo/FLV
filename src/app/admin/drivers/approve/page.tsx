@@ -62,7 +62,49 @@ export default function AdminApproveDriversPage() {
 
   const fetchPendingDrivers = async () => {
     try {
-      // Mock data per demo
+      const token = localStorage.getItem('flanvo_token');
+      const res = await fetch('/api/admin/drivers?status=pending', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+
+      if (data.drivers) {
+        setDrivers(
+          data.drivers.map((d: { id: string; user: { name: string; email: string; phone: string }; licenseNumber: string; vehiclePlate: string; vehicleModel: string; vehicleYear: number; vehicleColor: string; vehicleType: string; createdAt: string }) => ({
+            id: d.id,
+            name: d.user.name.split(' ')[0] || d.user.name,
+            surname: d.user.name.split(' ').slice(1).join(' ') || '',
+            email: d.user.email,
+            phone: d.user.phone || '',
+            dateOfBirth: '',
+            taxCode: '',
+            address: '',
+            city: '',
+            province: '',
+            zipCode: '',
+            driverLicense: d.licenseNumber,
+            licenseExpiry: '',
+            cqcNumber: '',
+            cqcExpiry: '',
+            vehicleBrand: d.vehicleModel?.split(' ')[0] || '',
+            vehicleModel: d.vehicleModel || '',
+            vehicleYear: String(d.vehicleYear),
+            licensePlate: d.vehiclePlate,
+            vehicleColor: d.vehicleColor || '',
+            seats: '',
+            insuranceCompany: '',
+            insuranceNumber: '',
+            insuranceExpiry: '',
+            availability: '',
+            submittedAt: d.createdAt,
+            status: 'pending' as const,
+          }))
+        );
+        setLoading(false);
+        return;
+      }
+
+      // Fallback mock se API non disponibile
       const mockDrivers: PendingDriver[] = [
         {
           id: '1',
@@ -163,36 +205,39 @@ export default function AdminApproveDriversPage() {
 
   const handleApprove = async (driverId: string) => {
     if (!confirm('Sei sicuro di voler approvare questo autista?')) return;
-
     try {
-      await fetch(`/api/admin/drivers/${driverId}/approve`, { method: 'POST' });
-      setDrivers(drivers.filter(d => d.id !== driverId));
-      setShowDetailModal(false);
-      alert('Autista approvato! Riceverà una email di conferma.');
+      const token = localStorage.getItem('flanvo_token');
+      const res = await fetch('/api/admin/drivers', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ driverId, action: 'approve' }),
+      });
+      if (res.ok) {
+        setDrivers(drivers.filter(d => d.id !== driverId));
+        setShowDetailModal(false);
+      }
     } catch (error) {
-      alert('Errore durante l\'approvazione');
+      console.error('Errore durante l\'approvazione:', error);
     }
   };
 
   const handleReject = async (driverId: string) => {
-    if (!rejectionReason.trim()) {
-      alert('Inserisci un motivo per il rifiuto');
-      return;
-    }
-
+    if (!rejectionReason.trim()) return;
     try {
-      await fetch(`/api/admin/drivers/${driverId}/reject`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: rejectionReason })
+      const token = localStorage.getItem('flanvo_token');
+      const res = await fetch('/api/admin/drivers', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ driverId, action: 'reject', reason: rejectionReason }),
       });
-      setDrivers(drivers.filter(d => d.id !== driverId));
-      setShowDetailModal(false);
-      setShowRejectionModal(false);
-      setRejectionReason('');
-      alert('Candidatura rifiutata. L\'autista riceverà una notifica.');
+      if (res.ok) {
+        setDrivers(drivers.filter(d => d.id !== driverId));
+        setShowDetailModal(false);
+        setShowRejectionModal(false);
+        setRejectionReason('');
+      }
     } catch (error) {
-      alert('Errore durante il rifiuto');
+      console.error('Errore durante il rifiuto:', error);
     }
   };
 

@@ -291,10 +291,15 @@ export default function FlightSearchPage() {
       )}
 
       <Card className="mt-8 bg-gradient-to-br from-accent-50 to-primary-50 border-accent-200">
-        <h3 className="font-semibold text-gray-900 mb-3">💡 Voli Demo</h3>
+        <h3 className="font-semibold text-gray-900 mb-3">Aeroporti MVP — Corridoi attivi</h3>
         <div className="space-y-2 text-sm text-gray-600">
-          <p>Prova questi codici volo: <strong>AZ1234</strong>, <strong>FR5678</strong>, <strong>BA9012</strong></p>
-          <p className="text-xs">L'autocomplete cercherà indirizzi reali in Italia tramite Mapbox</p>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div><strong>FR9901</strong> — LGW → CTA (Catania)</div>
+            <div><strong>VY6134</strong> — BCN → PMO (Palermo)</div>
+            <div><strong>W63301</strong> — MXP → CAG (Cagliari)</div>
+            <div><strong>AZ1580</strong> — FCO → CTA (Catania)</div>
+          </div>
+          <p className="text-xs text-gray-400 mt-2">Inserisci qualsiasi codice volo per testare il matching</p>
         </div>
       </Card>
     </div>

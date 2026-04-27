@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (member.paymentStatus === 'PAID') {
+    if (member.paymentStatus === 'CAPTURED') {
       return NextResponse.json(
         { error: 'Payment already captured' },
         { status: 400 }
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
     await prisma.groupMember.update({
       where: { id: memberId },
       data: {
-        paymentStatus: 'PAID',
+        paymentStatus: 'CAPTURED',
         capturedAt: new Date(),
         status: 'COMPLETED',
         actualDropoffTime: new Date()

@@ -102,7 +102,7 @@ export function PaymentForm({ clientSecret, amount, onSuccess, onError }: Paymen
       </Button>
 
       <p className="text-xs text-gray-500 text-center">
-        Per test usa: 4242 4242 4242 4242 | Qualsiasi data futura | Qualsiasi CVC
+        Il pagamento sarà addebitato solo al completamento della corsa
       </p>
     </form>
   );

@@ -184,7 +184,7 @@ export async function recalculateGroupRoute(groupId: string) {
         latitude: wp.latitude,
         longitude: wp.longitude,
         address: wp.address,
-        bookingId: wp.bookingId || null,
+        bookingId: 'bookingId' in wp ? wp.bookingId : null,
         estimatedArrival: new Date() // TODO: calcolare timing reali
       }))
     });
