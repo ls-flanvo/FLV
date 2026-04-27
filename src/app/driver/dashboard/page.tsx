@@ -28,6 +28,7 @@ export default function DriverDashboardPage() {
   const [activeTab, setActiveTab] = useState<'pending' | 'accepted' | 'completed'>('pending');
   const [chatOpen, setChatOpen] = useState(false);
   const [selectedPassenger, setSelectedPassenger] = useState<{ name: string; phone: string } | null>(null);
+  const [stripeStatus, setStripeStatus] = useState<'loading' | 'not_started' | 'incomplete' | 'pending_verification' | 'active'>('loading');
   const [stats, setStats] = useState({
     todayRides: 0,
     earnings: 0,
@@ -48,7 +49,37 @@ export default function DriverDashboardPage() {
       return;
     }
     fetchRides();
+    fetchStripeStatus();
   }, [isAuthenticated, user, router]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchStripeStatus = async () => {
+    try {
+      const authToken = token || localStorage.getItem('flanvo_token');
+      const res = await fetch('/api/stripe-connect/status', {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setStripeStatus(data.status);
+      }
+    } catch {
+      setStripeStatus('not_started');
+    }
+  };
+
+  const handleStripeOnboard = async () => {
+    try {
+      const authToken = token || localStorage.getItem('flanvo_token');
+      const res = await fetch('/api/stripe-connect/onboard', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch {
+      console.error('Errore Stripe Connect');
+    }
+  };
 
   const fetchRides = async () => {
     try {
@@ -114,12 +145,42 @@ export default function DriverDashboardPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
+      {/* Banner Stripe Connect */}
+      {stripeStatus !== 'active' && stripeStatus !== 'loading' && (
+        <div className={`mb-6 p-4 rounded-xl border flex items-center justify-between gap-4 ${
+          stripeStatus === 'pending_verification'
+            ? 'bg-yellow-50 border-yellow-200'
+            : 'bg-red-50 border-red-200'
+        }`}>
+          <div>
+            <p className="font-semibold text-gray-900">
+              {stripeStatus === 'pending_verification'
+                ? 'Verifica identità in corso'
+                : 'Configura i pagamenti per ricevere i guadagni'}
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              {stripeStatus === 'pending_verification'
+                ? 'Stripe sta verificando i tuoi documenti. Riceverai una email quando sarà completato.'
+                : 'Collega il tuo conto bancario per ricevere i pagamenti dalle corse.'}
+            </p>
+          </div>
+          {stripeStatus !== 'pending_verification' && (
+            <button
+              onClick={handleStripeOnboard}
+              className="whitespace-nowrap bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors text-sm font-semibold"
+            >
+              Configura ora
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">
           Dashboard Autista
         </h1>
-        <p className="text-gray-600">Benvenuto, {user?.name}! 🚗</p>
+        <p className="text-gray-600">Benvenuto, {user?.name}!</p>
       </div>
 
       {/* Stats Grid */}

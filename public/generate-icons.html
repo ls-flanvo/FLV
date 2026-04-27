@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head><title>Flanvo Icon Generator</title></head>
+<body style="background:#111;display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px;font-family:sans-serif;color:white;">
+  <h2>Flanvo PWA Icon Generator</h2>
+  <p>Clicca ogni pulsante per scaricare l'icona</p>
+
+  <canvas id="c512" width="512" height="512" style="border-radius:20%;display:none"></canvas>
+  <canvas id="c192" width="192" height="192" style="border-radius:20%;display:none"></canvas>
+
+  <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center">
+    <div style="text-align:center">
+      <canvas id="preview512" width="512" height="512" style="width:200px;height:200px;border-radius:20%;display:block"></canvas>
+      <button onclick="download('preview512','icon-512x512.png')" style="margin-top:10px;padding:10px 20px;background:#00C2B5;border:none;color:white;border-radius:8px;cursor:pointer;font-size:16px">
+        Scarica 512x512
+      </button>
+    </div>
+    <div style="text-align:center">
+      <canvas id="preview192" width="192" height="192" style="width:192px;height:192px;border-radius:20%;display:block"></canvas>
+      <button onclick="download('preview192','icon-192x192.png')" style="margin-top:10px;padding:10px 20px;background:#00C2B5;border:none;color:white;border-radius:8px;cursor:pointer;font-size:16px">
+        Scarica 192x192
+      </button>
+    </div>
+  </div>
+
+  <script>
+    function drawIcon(canvas, size) {
+      const ctx = canvas.getContext('2d');
+      const s = size;
+
+      // Background
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, s, s);
+
+      // Logo F/lightning bolt - proportional to size
+      const scale = s / 512;
+      ctx.save();
+      ctx.scale(scale, scale);
+
+      ctx.fillStyle = '#00C2B5';
+      ctx.beginPath();
+      // F bolt shape: top-left to top-right, down-left, right, down-left to bottom
+      const p = [
+        [120, 80],   // top-left
+        [390, 80],   // top-right
+        [270, 260],  // mid-right
+        [390, 260],  // right bump
+        [120, 430],  // bottom-left
+        [230, 260],  // mid-left
+        [100, 260],  // left bump
+      ];
+      ctx.moveTo(p[0][0], p[0][1]);
+      for (let i = 1; i < p.length; i++) ctx.lineTo(p[i][0], p[i][1]);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    drawIcon(document.getElementById('preview512'), 512);
+    drawIcon(document.getElementById('preview192'), 192);
+
+    function download(canvasId, filename) {
+      const canvas = document.getElementById(canvasId);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+  </script>
+</body>
+</html>
