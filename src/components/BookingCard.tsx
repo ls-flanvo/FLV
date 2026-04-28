@@ -17,6 +17,7 @@ import {
   Users,
   XCircle,
   Star,
+  Share2,
 } from 'lucide-react';
 
 interface BookingCardProps {
@@ -31,6 +32,35 @@ export default function BookingCard({ booking }: BookingCardProps) {
   const [ratingComment, setRatingComment] = useState('');
   const [ratingSubmitted, setRatingSubmitted] = useState(!!booking.userRating);
   const [ratingLoading, setRatingLoading] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+
+  const handleShare = async () => {
+    setShareLoading(true);
+    try {
+      const token = localStorage.getItem('flanvo_token');
+      const res = await fetch(`/api/bookings/${booking.id}/share`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const data = await res.json();
+      if (data.url) {
+        if (navigator.share) {
+          await navigator.share({
+            title: `Flanvo — Volo ${booking.flightNumber}`,
+            text: 'Segui la mia corsa in tempo reale!',
+            url: data.url,
+          });
+        } else {
+          await navigator.clipboard.writeText(data.url);
+          alert('Link copiato negli appunti!');
+        }
+      }
+    } catch {
+      // silent
+    } finally {
+      setShareLoading(false);
+    }
+  };
 
   const groupId =
     booking.groupMember?.rideGroupId ?? booking.rideGroupId ?? '';
@@ -233,6 +263,14 @@ export default function BookingCard({ booking }: BookingCardProps) {
                 </button>
               )}
             </div>
+            <button
+              onClick={handleShare}
+              disabled={shareLoading}
+              className="w-full bg-green-50 text-green-700 border border-green-200 py-2 rounded-lg hover:bg-green-100 transition-colors font-medium text-sm flex items-center justify-center space-x-2 disabled:opacity-50"
+            >
+              <Share2 className="w-4 h-4" />
+              <span>{shareLoading ? 'Generando link...' : 'Condividi posizione (WhatsApp)'}</span>
+            </button>
 
             <button
               onClick={() => setIsCancelModalOpen(true)}

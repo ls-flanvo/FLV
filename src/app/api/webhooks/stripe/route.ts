@@ -35,6 +35,12 @@ export async function POST(req: NextRequest) {
 
     console.log(`Webhook received: ${event.type}`);
 
+    // payment_intent.requires_capture: utente ha completato il form Stripe (pre-auth OK)
+    if ((event.type as string) === 'payment_intent.requires_capture') {
+      await handlePaymentRequiresCapture(event.data.object as Stripe.PaymentIntent);
+      return NextResponse.json({ received: true }, { status: 200 });
+    }
+
     // Handle different event types
     switch (event.type) {
       case 'payment_intent.succeeded':
@@ -68,6 +74,50 @@ export async function POST(req: NextRequest) {
     console.error('Webhook processing error:', error);
     // Still return 200 to avoid Stripe retries
     return NextResponse.json({ received: true }, { status: 200 });
+  }
+}
+
+// Handler: payment_intent.requires_capture
+// Scatta quando l'utente completa il form Stripe (pre-auth = fondi bloccati)
+async function handlePaymentRequiresCapture(intent: Stripe.PaymentIntent) {
+  try {
+    const member = await prisma.groupMember.findFirst({
+      where: { paymentIntentId: intent.id },
+      include: {
+        booking: { include: { user: { select: { email: true, name: true } } } },
+        rideGroup: { select: { flightNumber: true, targetPickupTime: true } },
+      },
+    });
+
+    if (!member) {
+      console.error(`GroupMember not found for intent ${intent.id}`);
+      return;
+    }
+
+    // Aggiorna GroupMember: pre-auth autorizzata
+    await prisma.groupMember.update({
+      where: { id: member.id },
+      data: { paymentStatus: 'AUTHORIZED', status: 'CONFIRMED' },
+    });
+
+    // Aggiorna Booking: da PENDING a CONFIRMED
+    await prisma.booking.update({
+      where: { id: member.bookingId },
+      data: { status: 'CONFIRMED' },
+    });
+
+    console.log(`Pre-auth OK → Booking CONFIRMED: ${member.bookingId} | €${intent.amount / 100}`);
+
+    // Email conferma prenotazione
+    const { sendBookingConfirmation } = await import('@/lib/email');
+    sendBookingConfirmation(member.booking.user.email, {
+      flightNumber: member.rideGroup.flightNumber,
+      pickupTime: member.rideGroup.targetPickupTime.toISOString(),
+      estimatedPrice: intent.amount / 100,
+    }).catch(() => {});
+
+  } catch (error) {
+    console.error('Error handling payment_intent.requires_capture:', error);
   }
 }
 

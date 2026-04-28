@@ -206,3 +206,37 @@ export async function sendCancellationPenalty(
     </div>`
   );
 }
+
+export async function sendPickupReminder(
+  to: string,
+  params: {
+    userName: string;
+    flightNumber: string;
+    pickupTime: string;
+    driverName: string;
+    dropoffAddress: string;
+  }
+) {
+  await send(
+    to,
+    `Pickup tra 30 minuti — Volo ${params.flightNumber}`,
+    `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+      <h1 style="color:#0a0a0a">Il tuo van arriva tra 30 minuti!</h1>
+      <p>Ciao ${params.userName}, preparati — il pickup è alle <strong>${params.pickupTime}</strong>.</p>
+      <div style="background:#f0fdf4;border:1px solid #86efac;padding:16px;border-radius:8px;margin:16px 0">
+        <p style="margin:4px 0"><strong>Volo:</strong> ${params.flightNumber}</p>
+        <p style="margin:4px 0"><strong>Pickup:</strong> ${params.pickupTime}</p>
+        <p style="margin:4px 0"><strong>Autista:</strong> ${params.driverName}</p>
+        <p style="margin:4px 0"><strong>Destinazione:</strong> ${params.dropoffAddress}</p>
+      </div>
+      <p style="background:#fef9c3;border:1px solid #fde047;padding:12px;border-radius:8px;font-size:14px">
+        📍 Dirigiti verso l'uscita Arrivi del terminal. Cerca il cartello con il logo Flanvo.
+      </p>
+      <a href="${APP_URL}/dashboard"
+         style="display:inline-block;background:#00C2B5;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0">
+        Apri Tracking Live
+      </a>
+      ${footer}
+    </div>`
+  );
+}
