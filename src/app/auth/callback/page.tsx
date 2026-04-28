@@ -1,11 +1,12 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store';
 import { Loader2 } from 'lucide-react';
 
-export default function AuthCallbackPage() {
+function CallbackContent() {
   const { login, setToken } = useAuthStore();
   const router = useRouter();
   const params = useSearchParams();
@@ -15,7 +16,6 @@ export default function AuthCallbackPage() {
     const role = params.get('role');
     if (!token) { router.push('/login?error=oauth-failed'); return; }
 
-    // Decodifica il payload dal JWT (solo la parte pubblica)
     try {
       const parts = token.split('.');
       const payload = JSON.parse(atob(parts[1]));
@@ -37,5 +37,17 @@ export default function AuthCallbackPage() {
         <p className="text-ink-secondary text-sm">Accesso in corso...</p>
       </div>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-primary-400 animate-spin" />
+      </div>
+    }>
+      <CallbackContent />
+    </Suspense>
   );
 }
