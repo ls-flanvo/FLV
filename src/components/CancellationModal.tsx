@@ -130,15 +130,15 @@ export default function CancellationModal({
                 )}
 
                 {!isRefundEligible && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                     <div className="flex items-start space-x-3">
-                      <Info className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
                       <div>
-                        <h3 className="font-semibold text-blue-900 mb-1">
-                          Cancellazione Volontaria
+                        <h3 className="font-semibold text-red-900 mb-1">
+                          Cancellazione post-match — Nessun rimborso
                         </h3>
-                        <p className="text-sm text-blue-700">
-                          Le cancellazioni volontarie non prevedono rimborso secondo i nostri termini di servizio.
+                        <p className="text-sm text-red-700">
+                          Hai già confermato e sei parte di un gruppo. Cancellando, <strong>l'importo verrà addebitato immediatamente</strong> sulla tua carta. Non è previsto alcun rimborso (Policy Flanvo §5.1).
                         </p>
                       </div>
                     </div>
@@ -172,7 +172,7 @@ export default function CancellationModal({
                       className="mt-1 w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
                     />
                     <label htmlFor="no-refund" className="text-sm text-gray-700">
-                      Comprendo che questa cancellazione <strong>non prevede alcun rimborso</strong> e accetto di perdere l'intero importo pagato.
+                      Comprendo che cancellando il pagamento verrà <strong>addebitato immediatamente</strong> e non è previsto alcun rimborso. Accetto le condizioni Flanvo.
                     </label>
                   </div>
                 )}
@@ -305,11 +305,14 @@ export default function CancellationModal({
                   <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                     <h4 className="font-semibold text-red-900 mb-2 flex items-center">
                       <AlertTriangle className="w-5 h-5 mr-2" />
-                      Attenzione
+                      Addebito immediato
                     </h4>
-                    <p className="text-sm text-red-800">
-                      Procedendo con la cancellazione perderai l'intero importo pagato. Questa azione non può essere annullata.
-                    </p>
+                    <div className="text-sm text-red-800 space-y-1">
+                      <p>• Il pagamento verrà <strong>catturato adesso</strong> sulla tua carta</p>
+                      <p>• Nessun rimborso sarà erogato (Policy §5.1)</p>
+                      <p>• Riceverai ricevuta via email dell'addebito</p>
+                      <p>• Questa azione non può essere annullata</p>
+                    </div>
                   </div>
                 )}
 

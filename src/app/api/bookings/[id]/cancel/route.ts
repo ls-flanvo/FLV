@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth, authErrorResponse } from '@/lib/api-auth';
-import { sendCancellationConfirmed } from '@/lib/email';
+import { sendCancellationConfirmed, sendCancellationPenalty } from '@/lib/email';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -91,9 +91,26 @@ export async function POST(
         } catch (stripeError) {
           console.error('Stripe cancel error:', stripeError);
         }
+      } else {
+        // POST-MATCH: cattura immediata dell'intero importo come penale (opzione A)
+        // L'utente ha confermato post-match — nessun rimborso per policy Flanvo §5.1
+        try {
+          await stripe.paymentIntents.capture(member.paymentIntentId, {
+            amount_to_capture: Math.round((member.totalPrice ?? 0) * 100),
+          });
+          // Aggiorna stato pagamento a CAPTURED (penale trattenuta da Flanvo)
+          await prisma.groupMember.update({
+            where: { id: member.id },
+            data: { paymentStatus: 'CAPTURED', capturedAt: new Date() },
+          });
+        } catch (stripeError) {
+          console.error('Stripe capture penalty error:', stripeError);
+          // Se la cattura fallisce, rilascia comunque (non bloccare la cancellazione)
+          try {
+            await stripe.paymentIntents.cancel(member.paymentIntentId);
+          } catch {}
+        }
       }
-      // POST-MATCH: nessun rimborso — il pagamento resta conteggiato nel totale corsa
-      // La pre-auth rimarrà attiva per il totale corsa (§3.7 know-how doc)
     }
 
     await prisma.$transaction(async (tx) => {
@@ -125,12 +142,26 @@ export async function POST(
       }
     });
 
-    const userRecord = await prisma.user.findUnique({ where: { id: payload.userId }, select: { email: true } });
+    const userRecord = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { email: true, name: true },
+    });
     if (userRecord) {
-      sendCancellationConfirmed(userRecord.email, {
-        flightNumber: booking.flightNumber,
-        refunded,
-      }).catch(() => {});
+      if (!isPreMatch && member?.totalPrice) {
+        // Post-match: email addebito penale
+        const receiptId = `FLV-PEN-${Date.now()}`;
+        sendCancellationPenalty(userRecord.email, {
+          userName: userRecord.name ?? 'Utente',
+          flightNumber: booking.flightNumber,
+          amount: member.totalPrice,
+          receiptId,
+        }).catch(() => {});
+      } else {
+        sendCancellationConfirmed(userRecord.email, {
+          flightNumber: booking.flightNumber,
+          refunded,
+        }).catch(() => {});
+      }
     }
 
     return NextResponse.json({

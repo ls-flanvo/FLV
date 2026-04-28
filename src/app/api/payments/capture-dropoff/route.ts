@@ -139,8 +139,22 @@ export async function POST(req: NextRequest) {
     // STEP 5: Generate receipt
     const receipt = generateReceipt(member, captured);
 
-    // TODO: Send receipt email
-    // await sendReceiptEmail(member.booking.user.email, receipt);
+    // Invia ricevuta email al passeggero
+    const { sendRideReceipt } = await import('@/lib/email');
+    const receiptId = `FLV-${member.rideGroupId.slice(-6).toUpperCase()}-${memberId.slice(-4).toUpperCase()}`;
+    sendRideReceipt(member.booking.user.email, {
+      userName: member.booking.user.name ?? 'Passeggero',
+      flightNumber: member.rideGroup.flightNumber,
+      pickupTime: member.rideGroup.targetPickupTime.toISOString(),
+      dropoffAddress: member.booking.dropoffLocation,
+      driverName: driver.user.name,
+      vehicleModel: driver.vehicleModel,
+      vehiclePlate: driver.vehiclePlate,
+      driverShare: member.driverShare ?? 0,
+      flanvoFee: member.flanvoFee ?? 0,
+      totalPrice: member.totalPrice ?? 0,
+      receiptId,
+    }).catch(() => {});
 
     // STEP 6: Audit log
     await prisma.priceAuditLog.create({
