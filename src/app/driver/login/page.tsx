@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store';
-import { Card } from '@/components/ui';
+import { Input, Button } from '@/components/ui';
 import { Car, Lock, Mail, AlertCircle, Clock } from 'lucide-react';
 
 export default function DriverLoginPage() {
@@ -22,32 +22,20 @@ export default function DriverLoginPage() {
     setError('');
     setPendingApproval(false);
     setLoading(true);
-
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-
       const data = await response.json();
-
-      if (response.status === 403) {
-        setPendingApproval(true);
-        return;
-      }
-
+      if (response.status === 403) { setPendingApproval(true); setLoading(false); return; }
       if (data.user && data.token) {
-        if (data.user.role !== 'driver') {
-          setError('Questo account non è registrato come autista');
-          return;
-        }
+        if (data.user.role !== 'driver') { setError('Account non registrato come autista'); setLoading(false); return; }
         login(data.user);
         setToken(data.token);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('flanvo_user', JSON.stringify(data.user));
-          localStorage.setItem('flanvo_token', data.token);
-        }
+        localStorage.setItem('flanvo_user', JSON.stringify(data.user));
+        localStorage.setItem('flanvo_token', data.token);
         router.push('/driver/dashboard');
       } else {
         setError(data.error || 'Credenziali non valide');
@@ -60,112 +48,72 @@ export default function DriverLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50 flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl mb-4 shadow-lg">
-            <Car className="w-8 h-8 text-white" />
+    <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center px-4 py-12 bg-hero-gradient">
+      <div className="w-full max-w-md animate-fade-up">
+        <div className="text-center mb-10">
+          <Link href="/" className="inline-flex items-center gap-2.5 mb-6">
+            <svg width="28" height="36" viewBox="0 0 56 72" fill="none">
+              <path d="M8 0 L48 0 L30 30 L48 30 L8 72 L22 40 L4 40 Z" fill="#00D1B2"/>
+            </svg>
+            <span className="text-3xl font-bold tracking-tight text-white">flanvo</span>
+          </Link>
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-primary-500/10 border border-primary-500/20 rounded-2xl mb-4">
+            <Car className="w-7 h-7 text-primary-400" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Area Autisti</h1>
-          <p className="text-gray-600">Accedi per gestire le tue corse</p>
+          <h1 className="text-2xl font-bold text-white">Area Autisti</h1>
+          <p className="text-ink-secondary text-sm mt-1">Accedi per gestire le tue corse</p>
         </div>
 
-        <Card>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="autista@esempio.com"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
-                  required
-                />
-              </div>
+        <div className="bg-surface-1 border border-surface-4 rounded-2xl p-8 shadow-surface bg-card-gradient">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="relative">
+              <Mail className="absolute left-4 top-[2.6rem] w-4 h-4 text-ink-muted pointer-events-none" />
+              <Input type="email" label="Email" placeholder="autista@esempio.com"
+                value={email} onChange={(e) => setEmail(e.target.value)} className="pl-11" required />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
-                  required
-                />
-              </div>
+            <div className="relative">
+              <Lock className="absolute left-4 top-[2.6rem] w-4 h-4 text-ink-muted pointer-events-none" />
+              <Input type="password" label="Password" placeholder="••••••••"
+                value={password} onChange={(e) => setPassword(e.target.value)} className="pl-11" required />
             </div>
 
             {pendingApproval && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start space-x-3">
-                <Clock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 bg-warning/10 border border-warning/20 rounded-xl p-4">
+                <Clock className="w-4 h-4 text-warning shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-semibold text-amber-900">Account in attesa di approvazione</p>
-                  <p className="text-xs text-amber-700 mt-1">
-                    Il tuo profilo autista è in fase di verifica. Riceverai una email non appena sarà approvato dall&apos;amministratore.
+                  <p className="text-sm font-semibold text-warning">In attesa di approvazione</p>
+                  <p className="text-xs text-ink-secondary mt-1">
+                    Il tuo profilo è in revisione. Riceverai un&apos;email quando sarà approvato.
                   </p>
                 </div>
               </div>
             )}
-
             {error && !pendingApproval && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start space-x-2">
-                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-800">{error}</p>
+              <div className="flex items-start gap-3 bg-danger/10 border border-danger/20 rounded-xl p-3.5">
+                <AlertCircle className="w-4 h-4 text-danger shrink-0 mt-0.5" />
+                <p className="text-sm text-danger">{error}</p>
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-primary-600 text-white py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50"
-            >
-              {loading ? 'Accesso in corso...' : 'Accedi come Autista'}
-            </button>
+            <Button type="submit" className="w-full mt-2" size="lg" disabled={loading}>
+              {loading ? 'Accesso...' : 'Accedi come Autista'}
+            </Button>
           </form>
-        </Card>
-
-        <div className="mt-6 space-y-3">
-          <Card className="bg-primary-50 border-primary-200">
-            <div className="flex items-start space-x-3">
-              <div className="flex-shrink-0 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm">💡</span>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 text-sm mb-1">Sei un passeggero?</h3>
-                <p className="text-xs text-gray-600 mb-2">Accedi dall'area passeggeri per prenotare le tue corse</p>
-                <Link href="/login" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
-                  Vai al login passeggeri →
-                </Link>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="bg-accent-50 border-accent-200">
-            <div className="flex items-start space-x-3">
-              <div className="flex-shrink-0 w-8 h-8 bg-accent-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm">👨‍✈️</span>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 text-sm mb-1">Vuoi diventare autista?</h3>
-                <p className="text-xs text-gray-600 mb-2">Registrati per guidare con Flanvo</p>
-                <Link href="/driver/signup" className="text-sm text-accent-600 hover:text-accent-700 font-medium">
-                  Registrati come autista →
-                </Link>
-              </div>
-            </div>
-          </Card>
         </div>
 
-        <div className="mt-8 text-center">
-          <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">← Torna alla homepage</Link>
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <Link href="/login" className="bg-surface-1 border border-surface-4 rounded-xl p-4 text-center hover:border-primary-500/30 transition-all group">
+            <p className="text-sm font-semibold text-white group-hover:text-primary-400 transition-colors">Sei passeggero?</p>
+            <p className="text-xs text-ink-muted mt-0.5">Area utenti</p>
+          </Link>
+          <Link href="/driver/signup" className="bg-surface-1 border border-surface-4 rounded-xl p-4 text-center hover:border-primary-500/30 transition-all group">
+            <p className="text-sm font-semibold text-white group-hover:text-primary-400 transition-colors">Vuoi guidare?</p>
+            <p className="text-xs text-ink-muted mt-0.5">Registrati</p>
+          </Link>
         </div>
+        <p className="text-center mt-6">
+          <Link href="/" className="text-xs text-ink-muted hover:text-ink-secondary transition-colors">← Torna alla homepage</Link>
+        </p>
       </div>
     </div>
   );

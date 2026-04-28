@@ -3,28 +3,26 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Booking } from '@/lib/types';
-import { Card, Badge, Button } from './ui';
+import { Button } from './ui';
 import DriverChat from './DriverChat';
 import CancellationModal from './CancellationModal';
 import {
-  Plane,
-  MapPin,
-  DollarSign,
-  MessageCircle,
-  Navigation,
-  Luggage,
-  Clock,
-  Users,
-  XCircle,
-  Star,
-  Share2,
+  Plane, MapPin, DollarSign, MessageCircle, Navigation,
+  Luggage, Clock, Users, XCircle, Star, Share2, ChevronRight,
 } from 'lucide-react';
 
-interface BookingCardProps {
-  booking: Booking;
-}
+const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
+  PENDING:      { label: 'In attesa',    color: 'text-warning',     dot: 'bg-warning' },
+  CONFIRMED:    { label: 'Confermato',   color: 'text-primary-400', dot: 'bg-primary-500' },
+  IN_MATCHING:  { label: 'Matching...',  color: 'text-primary-400', dot: 'bg-primary-500' },
+  MATCHED:      { label: 'Gruppo trovato', color: 'text-success',   dot: 'bg-success' },
+  IN_PROGRESS:  { label: 'In viaggio',   color: 'text-success',     dot: 'bg-success' },
+  COMPLETED:    { label: 'Completata',   color: 'text-ink-muted',   dot: 'bg-ink-muted' },
+  CANCELLED:    { label: 'Cancellata',   color: 'text-danger',      dot: 'bg-danger' },
+  NO_MATCH:     { label: 'Nessun match', color: 'text-ink-muted',   dot: 'bg-ink-muted' },
+};
 
-export default function BookingCard({ booking }: BookingCardProps) {
+export default function BookingCard({ booking }: { booking: Booking }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [rating, setRating] = useState(0);
@@ -33,6 +31,36 @@ export default function BookingCard({ booking }: BookingCardProps) {
   const [ratingSubmitted, setRatingSubmitted] = useState(!!booking.userRating);
   const [ratingLoading, setRatingLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
+
+  const groupId = booking.groupMember?.rideGroupId ?? booking.rideGroupId ?? '';
+  const status = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
+  const isActive = ['IN_PROGRESS', 'MATCHED'].includes(booking.status);
+  const isCompleted = booking.status === 'COMPLETED';
+  const passengers = booking.passengers ?? 1;
+  const luggage = booking.luggage ?? booking.luggageCount ?? 1;
+
+  const handleCancelBooking = async (_?: boolean) => {
+    const token = localStorage.getItem('flanvo_token');
+    const res = await fetch(`/api/bookings/${booking.id}/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+    if (res.ok) { setIsCancelModalOpen(false); window.location.href = '/dashboard'; }
+  };
+
+  const handleSubmitRating = async () => {
+    if (!rating || ratingLoading) return;
+    setRatingLoading(true);
+    try {
+      const token = localStorage.getItem('flanvo_token');
+      const res = await fetch(`/api/bookings/${booking.id}/rate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ rating, comment: ratingComment }),
+      });
+      if (res.ok) setRatingSubmitted(true);
+    } finally { setRatingLoading(false); }
+  };
 
   const handleShare = async () => {
     setShareLoading(true);
@@ -45,313 +73,176 @@ export default function BookingCard({ booking }: BookingCardProps) {
       const data = await res.json();
       if (data.url) {
         if (navigator.share) {
-          await navigator.share({
-            title: `Flanvo — Volo ${booking.flightNumber}`,
-            text: 'Segui la mia corsa in tempo reale!',
-            url: data.url,
-          });
+          await navigator.share({ title: `Flanvo — Volo ${booking.flightNumber}`, text: 'Segui la mia corsa!', url: data.url });
         } else {
           await navigator.clipboard.writeText(data.url);
-          alert('Link copiato negli appunti!');
         }
       }
-    } catch {
-      // silent
-    } finally {
-      setShareLoading(false);
-    }
-  };
-
-  const groupId =
-    booking.groupMember?.rideGroupId ?? booking.rideGroupId ?? '';
-
-  const getStatusVariant = (status: string) => {
-    const variants: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
-      PENDING: 'warning',
-      CONFIRMED: 'info',
-      MATCHED: 'info',
-      IN_PROGRESS: 'info',
-      COMPLETED: 'success',
-      CANCELLED: 'danger',
-    };
-    return variants[status] || 'default';
-  };
-
-  const driver = {
-    name: 'Da assegnare',
-    phone: '',
-    vehicle: 'In attesa di conferma',
-  };
-
-  const pickupPoint = {
-    location: 'Terminal - Uscita Arrivi',
-    time: "15 minuti dopo l'atterraggio",
-    instructions: 'Cerca un cartello con il logo Flanvo',
-  };
-
-  const passengers = booking.passengers ?? 1;
-  const luggage = booking.luggage ?? booking.luggageCount ?? 1;
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleCancelBooking = async (_refundEligible?: boolean) => {
-    try {
-      const token = localStorage.getItem('flanvo_token');
-      const response = await fetch(`/api/bookings/${booking.id}/cancel`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-
-      if (response.ok) {
-        setIsCancelModalOpen(false);
-        window.location.href = '/dashboard';
-      }
-    } catch (error) {
-      console.error('Error cancelling booking:', error);
-    }
-  };
-
-  const handleSubmitRating = async () => {
-    if (!rating || ratingLoading) return;
-    setRatingLoading(true);
-    try {
-      const token = localStorage.getItem('flanvo_token');
-      const res = await fetch(`/api/bookings/${booking.id}/rate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ rating, comment: ratingComment }),
-      });
-      if (res.ok) {
-        setRatingSubmitted(true);
-      }
-    } catch {
-      // silent
-    } finally {
-      setRatingLoading(false);
-    }
-  };
-
-  const getFlightStatus = (): 'scheduled' | 'cancelled' | 'diverted' | 'delayed' | 'normal' => {
-    const status = booking.status.toLowerCase();
-    if (status === 'cancelled') return 'cancelled';
-    if (status === 'confirmed') return 'scheduled';
-    return 'normal';
+    } finally { setShareLoading(false); }
   };
 
   return (
     <>
-      <Card className="hover:shadow-lg transition-shadow">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">
-              Volo {booking.flightNumber || 'N/A'}
-            </h3>
-            <p className="text-sm text-gray-500">
-              {new Date(booking.flightDate).toLocaleDateString('it-IT')}
-            </p>
+      <div className="bg-surface-1 border border-surface-4 rounded-2xl overflow-hidden bg-card-gradient">
+        {/* Header */}
+        <div className="px-5 pt-5 pb-4 border-b border-surface-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-surface-3 rounded-xl">
+                <Plane className="w-4 h-4 text-primary-400" />
+              </div>
+              <div>
+                <p className="font-bold text-white">{booking.flightNumber || 'N/A'}</p>
+                <p className="text-xs text-ink-muted">
+                  {new Date(booking.flightDate).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${status.dot} ${isActive ? 'animate-pulse' : ''}`} />
+              <span className={`text-xs font-semibold ${status.color}`}>{status.label}</span>
+            </div>
           </div>
-          <Badge variant={getStatusVariant(booking.status)}>
-            {booking.status}
-          </Badge>
         </div>
 
-        {(booking.status === 'CONFIRMED' ||
-          booking.status === 'MATCHED' ||
-          booking.status === 'IN_PROGRESS') && (
-          <div className="mb-4 p-3 bg-primary-50 border border-primary-200 rounded-lg">
-            <div className="flex items-start space-x-2 mb-2">
-              <Navigation className="w-5 h-5 text-primary-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">
-                  Punto di ritiro
-                </p>
-                <p className="text-sm text-gray-700">{pickupPoint.location}</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-2">
-              <Clock className="w-5 h-5 text-primary-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-xs text-gray-600">{pickupPoint.time}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {pickupPoint.instructions}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-3 mb-4">
-          <div className="flex items-center space-x-3">
-            <Plane className="w-5 h-5 text-gray-400" />
-            <div className="flex-1">
-              <p className="text-sm text-gray-500">Volo</p>
-              <p className="font-semibold text-gray-900">{booking.flightNumber}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-3">
-            <MapPin className="w-5 h-5 text-gray-400" />
-            <div className="flex-1">
-              <p className="text-sm text-gray-500">Destinazione</p>
-              <p className="font-semibold text-gray-900">
-                {booking.dropoffLocation ||
-                  booking.destination?.address ||
-                  'Da specificare'}
+        {/* Body */}
+        <div className="px-5 py-4 space-y-3">
+          {/* Destination */}
+          <div className="flex items-start gap-2.5">
+            <MapPin className="w-4 h-4 text-ink-muted shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs text-ink-muted mb-0.5">Destinazione</p>
+              <p className="text-sm font-medium text-white leading-tight">
+                {booking.dropoffLocation || booking.destination?.address || 'Da specificare'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-4 text-sm">
-            <div className="flex items-center space-x-2">
-              <Users className="w-4 h-4 text-gray-400" />
-              <span className="text-gray-600">{passengers} pass.</span>
+          {/* Passengers + luggage + price row */}
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center gap-4 text-sm text-ink-secondary">
+              <span className="flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" />{passengers}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Luggage className="w-3.5 h-3.5" />{luggage}
+              </span>
             </div>
-            <div className="flex items-center space-x-2">
-              <Luggage className="w-4 h-4 text-gray-400" />
-              <span className="text-gray-600">{luggage} bag.</span>
-            </div>
-          </div>
-        </div>
-
-        {(booking.status === 'CONFIRMED' ||
-          booking.status === 'MATCHED' ||
-          booking.status === 'IN_PROGRESS') && (
-          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-            <p className="text-xs text-gray-500 mb-1">Il tuo autista</p>
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                DA
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">
-                  {driver.name}
-                </p>
-                <p className="text-xs text-gray-500">{driver.vehicle}</p>
-              </div>
+            <div className="text-right">
+              <p className="text-xs text-ink-muted">Prezzo stimato</p>
+              <p className="text-xl font-black text-primary-400">
+                €{booking.estimatedPrice?.toFixed(2) ?? '—'}
+              </p>
             </div>
           </div>
-        )}
 
-        <div className="flex items-center justify-between py-3 border-t border-gray-200">
-          <div className="flex items-center space-x-2">
-            <DollarSign className="w-5 h-5 text-gray-400" />
-            <span className="text-sm text-gray-600">Prezzo stimato</span>
-          </div>
-          <span className="text-xl font-bold text-primary-600">
-            €{booking.estimatedPrice?.toFixed(2) || 'N/A'}
-          </span>
-        </div>
-
-        {(booking.status === 'IN_PROGRESS' || booking.status === 'MATCHED') && (
-          <div className="space-y-2 mt-2">
-            <div className="flex gap-2">
-              <Link href={`/tracking/${booking.id}`} className="flex-1">
-                <Button className="w-full">Traccia corsa</Button>
-              </Link>
-              {groupId && (
-                <button
-                  onClick={() => setIsChatOpen(true)}
-                  className="flex-1 bg-primary-500 text-white py-2 rounded-lg hover:bg-primary-600 transition-colors font-medium text-sm flex items-center justify-center space-x-2"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>Chat</span>
-                </button>
-              )}
-            </div>
-            <button
-              onClick={handleShare}
-              disabled={shareLoading}
-              className="w-full bg-green-50 text-green-700 border border-green-200 py-2 rounded-lg hover:bg-green-100 transition-colors font-medium text-sm flex items-center justify-center space-x-2 disabled:opacity-50"
-            >
-              <Share2 className="w-4 h-4" />
-              <span>{shareLoading ? 'Generando link...' : 'Condividi posizione (WhatsApp)'}</span>
-            </button>
-
-            <button
-              onClick={() => setIsCancelModalOpen(true)}
-              className="w-full bg-red-50 text-red-600 border border-red-200 py-2 rounded-lg hover:bg-red-100 transition-colors font-medium text-sm flex items-center justify-center space-x-2"
-            >
-              <XCircle className="w-4 h-4" />
-              <span>Cancella Prenotazione</span>
-            </button>
-          </div>
-        )}
-
-        {booking.status === 'COMPLETED' && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            {ratingSubmitted ? (
-              <div className="text-center text-sm text-green-700 bg-green-50 rounded-lg py-3 px-4">
-                <Star className="w-4 h-4 inline mr-1 fill-current text-yellow-500" />
-                Grazie per la valutazione!
-              </div>
-            ) : (
+          {/* Pickup info when active */}
+          {(booking.status === 'CONFIRMED' || booking.status === 'MATCHED') && (
+            <div className="bg-primary-500/8 border border-primary-500/15 rounded-xl px-4 py-3 flex items-start gap-2.5">
+              <Clock className="w-4 h-4 text-primary-400 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-gray-900 mb-2">
-                  Valuta questa corsa
-                </p>
-                <div className="flex space-x-1 mb-3">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <button
-                      key={s}
-                      onMouseEnter={() => setHoverRating(s)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      onClick={() => setRating(s)}
-                      className="p-1"
-                    >
-                      <Star
-                        className={`w-6 h-6 ${
-                          s <= (hoverRating || rating)
-                            ? 'fill-yellow-400 text-yellow-400'
-                            : 'text-gray-300'
-                        }`}
-                      />
-                    </button>
-                  ))}
-                </div>
-                {rating > 0 && (
-                  <>
-                    <textarea
-                      value={ratingComment}
-                      onChange={(e) => setRatingComment(e.target.value)}
-                      placeholder="Commento opzionale..."
-                      rows={2}
-                      className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 mb-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    />
-                    <Button
-                      className="w-full"
-                      disabled={ratingLoading}
-                      onClick={handleSubmitRating}
-                    >
-                      {ratingLoading ? 'Invio...' : 'Invia valutazione'}
-                    </Button>
-                  </>
+                <p className="text-xs font-semibold text-primary-300">Punto di ritiro</p>
+                <p className="text-xs text-ink-secondary mt-0.5">Terminal Arrivi · Uscita principale · Cartello Flanvo</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="px-5 pb-5 space-y-2">
+          {isActive && (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                <Link href={`/tracking/${booking.id}`}>
+                  <button className="w-full flex items-center justify-center gap-1.5 py-3 bg-primary-500 text-[#0B0B0B] font-bold text-sm rounded-xl hover:bg-primary-400 transition-all">
+                    <Navigation className="w-4 h-4" /> Traccia
+                  </button>
+                </Link>
+                {groupId && (
+                  <button
+                    onClick={() => setIsChatOpen(true)}
+                    className="flex items-center justify-center gap-1.5 py-3 bg-surface-3 border border-surface-5 text-white font-semibold text-sm rounded-xl hover:border-primary-500/30 transition-all"
+                  >
+                    <MessageCircle className="w-4 h-4" /> Chat
+                  </button>
                 )}
               </div>
-            )}
-          </div>
-        )}
-      </Card>
+              <button
+                onClick={handleShare}
+                disabled={shareLoading}
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-sm text-ink-secondary border border-surface-5 rounded-xl hover:text-white hover:border-surface-5 transition-all"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                {shareLoading ? 'Generando...' : 'Condividi posizione'}
+              </button>
+              <button
+                onClick={() => setIsCancelModalOpen(true)}
+                className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs text-danger/70 hover:text-danger transition-colors"
+              >
+                <XCircle className="w-3.5 h-3.5" /> Cancella prenotazione
+              </button>
+            </>
+          )}
+
+          {isCompleted && (
+            <div className="pt-1">
+              {ratingSubmitted ? (
+                <div className="flex items-center justify-center gap-2 py-2.5 text-sm text-success">
+                  <Star className="w-4 h-4 fill-current" /> Grazie per la valutazione!
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm font-semibold text-white mb-2.5">Com&apos;è andata?</p>
+                  <div className="flex justify-center gap-2 mb-3">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <button
+                        key={s}
+                        onMouseEnter={() => setHoverRating(s)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        onClick={() => setRating(s)}
+                        className="p-1"
+                      >
+                        <Star className={`w-7 h-7 transition-colors ${s <= (hoverRating || rating) ? 'fill-warning text-warning' : 'text-surface-5'}`} />
+                      </button>
+                    ))}
+                  </div>
+                  {rating > 0 && (
+                    <>
+                      <textarea
+                        value={ratingComment}
+                        onChange={(e) => setRatingComment(e.target.value)}
+                        placeholder="Commento opzionale..."
+                        rows={2}
+                        className="w-full text-sm bg-surface-2 border border-surface-5 rounded-xl px-3 py-2 text-white placeholder-ink-muted mb-2 focus:outline-none focus:border-primary-500 resize-none"
+                      />
+                      <Button className="w-full" disabled={ratingLoading} onClick={handleSubmitRating}>
+                        {ratingLoading ? 'Invio...' : 'Invia valutazione'}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {booking.status === 'NO_MATCH' && (
+            <Link href="/flight-search">
+              <button className="w-full flex items-center justify-center gap-2 py-3 text-sm text-primary-400 border border-primary-500/20 rounded-xl hover:bg-primary-500/5 transition-all">
+                Cerca di nuovo <ChevronRight className="w-4 h-4" />
+              </button>
+            </Link>
+          )}
+        </div>
+      </div>
 
       {groupId && (
-        <DriverChat
-          isOpen={isChatOpen}
-          onClose={() => setIsChatOpen(false)}
-          driverName={driver.name}
-          driverPhone={driver.phone}
-          groupId={groupId}
-        />
+        <DriverChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)}
+          driverName="Autista" driverPhone="" groupId={groupId} />
       )}
-
       <CancellationModal
-        isOpen={isCancelModalOpen}
-        onClose={() => setIsCancelModalOpen(false)}
+        isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)}
         bookingId={booking.id}
-        flightStatus={getFlightStatus()}
+        flightStatus={booking.status === 'CANCELLED' ? 'cancelled' : 'normal'}
         divertedTo={undefined}
         onConfirmCancel={handleCancelBooking}
         onFindNewRide={() => (window.location.href = '/flight-search')}

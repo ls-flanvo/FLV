@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0ea5e9',
+  themeColor: '#00D1B2',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -47,19 +47,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={inter.className}>
         <ClientProvider>
-          <div className="min-h-screen bg-gray-50 flex flex-col">
+          <div className="min-h-screen bg-[#0B0B0B] flex flex-col">
             <Navbar />
             <main className="flex-grow">
               {children}
             </main>
-            <footer className="bg-white border-t border-gray-200 py-6">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                  <p className="text-sm text-gray-500">&copy; 2025 Flanvo. Tutti i diritti riservati.</p>
-                  <div className="flex gap-6 text-xs text-gray-400">
-                    <span>hello@flanvo.com</span>
-                    <span>www.flanvo.com</span>
-                  </div>
+            <footer className="border-t border-surface-4 py-5">
+              <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <svg width="16" height="21" viewBox="0 0 56 72" fill="none">
+                    <path d="M8 0 L48 0 L30 30 L48 30 L8 72 L22 40 L4 40 Z" fill="#00D1B2"/>
+                  </svg>
+                  <span className="text-sm font-semibold text-ink-secondary">flanvo</span>
+                </div>
+                <p className="text-xs text-ink-muted">&copy; 2026 Flanvo. Tutti i diritti riservati.</p>
+                <div className="flex gap-4 text-xs text-ink-muted">
+                  <span>hello@flanvo.com</span>
+                  <span>flanvo.com</span>
                 </div>
               </div>
             </footer>
