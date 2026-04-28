@@ -2,64 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-gray-50 text-gray-900;
+    background-color: #0B0B0B;
+    color: #FFFFFF;
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    min-height: 100vh;
   }
-  
-  /* Dark mode ready */
-  @media (prefers-color-scheme: dark) {
-    body {
-      @apply bg-dark-900 text-white;
-    }
-  }
-}
 
-/* Custom scrollbar turchese */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-gray-100;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-primary-500 rounded-full;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-primary-600;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.3s ease-out;
-}
-
-/* Gradient primary */
-.bg-gradient-primary {
-  background: linear-gradient(135deg, #4DB8AC 0%, #33cfbf 100%);
-}
-
-/* Button accent */
-.btn-accent {
-  @apply bg-accent-500 hover:bg-accent-600 text-white;
-}
-
-/* ⭐ FIX INPUT FIELDS - SFONDO BIANCO, TESTO SCURO ⭐ */
-@layer base {
+  /* Dark inputs */
   input[type="text"],
   input[type="email"],
   input[type="password"],
@@ -69,18 +32,117 @@
   input[type="time"],
   textarea,
   select {
-    @apply text-gray-900 bg-white border-gray-300;
+    background-color: #1A1A1A;
+    color: #FFFFFF;
+    border-color: #2A2A2A;
   }
-  
+
   input::placeholder,
   textarea::placeholder {
-    @apply text-gray-400;
+    color: #71717A;
   }
-  
-  /* Focus state */
+
   input:focus,
   textarea:focus,
   select:focus {
-    @apply ring-2 ring-primary-500 border-primary-500 outline-none;
+    outline: none;
+    border-color: #00D1B2;
+    box-shadow: 0 0 0 3px rgba(0, 209, 178, 0.12);
+  }
+
+  select option {
+    background-color: #1A1A1A;
+    color: #FFFFFF;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #141414;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2A2A2A;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #00D1B2;
   }
 }
+
+@layer utilities {
+  /* Teal glow effect */
+  .glow-teal {
+    box-shadow: 0 0 20px rgba(0,209,178,0.2);
+  }
+
+  /* Glass card */
+  .glass {
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  /* Noise texture overlay */
+  .noise {
+    position: relative;
+  }
+  .noise::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    background: linear-gradient(135deg, #00D1B2, #00B89E);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Animated underline */
+  .link-teal {
+    color: #00D1B2;
+    text-decoration: none;
+    position: relative;
+  }
+  .link-teal::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: #00D1B2;
+    transition: width 0.2s ease;
+  }
+  .link-teal:hover::after {
+    width: 100%;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-fadeIn  { animation: fadeIn  0.3s ease-out; }
+.animate-slideUp { animation: slideUp 0.4s ease-out; }
+.animate-scaleIn { animation: scaleIn 0.2s ease-out; }

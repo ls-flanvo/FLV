@@ -3,190 +3,191 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store';
-import { User, LogOut, Menu, X } from 'lucide-react';
+import { LogOut, Menu, X, Plane, LayoutDashboard, Car, Shield } from 'lucide-react';
 import { useState } from 'react';
-import LanguageCurrencySelector from './LanguageCurrencySelector';
+
+const FlanvoLogo = () => (
+  <div className="flex items-center gap-2.5">
+    <div className="relative">
+      <svg width="26" height="34" viewBox="0 0 56 72" fill="none">
+        <path d="M8 0 L48 0 L30 30 L48 30 L8 72 L22 40 L4 40 Z" fill="#00D1B2"/>
+      </svg>
+    </div>
+    <span className="text-xl font-bold tracking-tight text-white">flanvo</span>
+  </div>
+);
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore();
   const router = useRouter();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
+    setOpen(false);
     router.push('/');
   };
 
+  const navLink = 'text-sm font-medium text-ink-secondary hover:text-white transition-colors duration-150';
+  const mobileLink = 'flex items-center gap-3 px-4 py-3 rounded-xl text-ink-secondary hover:text-white hover:bg-surface-2 transition-all font-medium';
+
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <svg width="28" height="36" viewBox="0 0 56 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 0 L48 0 L30 30 L48 30 L8 72 L22 40 L4 40 Z" fill="#00C2B5"/>
-            </svg>
-            <span className="text-2xl font-bold text-gray-900" style={{ fontWeight: 700, letterSpacing: '-0.02em' }}>flanvo</span>
-          </Link>
+    <>
+      <nav className="sticky top-0 z-40 border-b border-surface-4 bg-[#0B0B0B]/90 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <Link href="/" onClick={() => setOpen(false)}>
+              <FlanvoLogo />
+            </Link>
 
-          {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-6">
-            {/* Selettore Lingua e Valuta */}
-            <LanguageCurrencySelector />
-
-            {/* Divider */}
-            <div className="h-6 w-px bg-gray-300" />
-
-            {isAuthenticated ? (
-              <>
-                {/* MOSTRA SEMPRE per utenti autenticati (semplificato) */}
-                {user?.role !== 'driver' && user?.role !== 'admin' && (
-                  <>
-                    <Link href="/dashboard" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
-                      Dashboard
+            {/* Desktop nav */}
+            <div className="hidden md:flex items-center gap-6">
+              {isAuthenticated ? (
+                <>
+                  {user?.role === 'user' && (
+                    <>
+                      <Link href="/flight-search" className={navLink}>
+                        Cerca corsa
+                      </Link>
+                      <Link href="/dashboard" className={navLink}>
+                        Le mie prenotazioni
+                      </Link>
+                    </>
+                  )}
+                  {user?.role === 'driver' && (
+                    <Link href="/driver/dashboard" className={navLink}>
+                      Dashboard Driver
                     </Link>
-                    <Link href="/flight-search" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
-                      Cerca Corsa
+                  )}
+                  {user?.role === 'admin' && (
+                    <Link href="/admin/dashboard" className={navLink}>
+                      Admin
                     </Link>
-                  </>
-                )}
-                
-                {/* Link solo per driver */}
-                {user?.role === 'driver' && (
-                  <Link href="/driver/dashboard" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
-                    Dashboard Driver
-                  </Link>
-                )}
-                
-                {/* Link solo per admin */}
-                {user?.role === 'admin' && (
-                  <Link href="/admin/dashboard" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
-                    Dashboard Admin
-                  </Link>
-                )}
-                
-                <div className="flex items-center space-x-3 pl-4 border-l border-gray-300">
-                  <div className="flex items-center space-x-2 text-gray-700">
-                    <User className="w-5 h-5" />
-                    <span className="font-medium">{user?.name}</span>
+                  )}
+
+                  <div className="h-5 w-px bg-surface-5" />
+
+                  {/* User chip */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5 bg-surface-2 border border-surface-5 rounded-xl px-3 py-1.5">
+                      <div className="w-6 h-6 rounded-lg bg-primary-500/20 flex items-center justify-center">
+                        <span className="text-xs font-bold text-primary-400">
+                          {user?.name?.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <span className="text-sm font-medium text-white">{user?.name?.split(' ')[0]}</span>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="p-2 rounded-lg text-ink-muted hover:text-danger hover:bg-danger/10 transition-all"
+                      title="Logout"
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </button>
                   </div>
-                  <button
-                    onClick={handleLogout}
-                    className="text-gray-500 hover:text-red-600 transition-colors"
-                    title="Logout"
+                </>
+              ) : (
+                <>
+                  <Link href="/login" className={navLink}>Accedi</Link>
+                  <Link
+                    href="/signup"
+                    className="bg-primary-500 text-[#0B0B0B] font-semibold text-sm px-5 py-2 rounded-xl hover:bg-primary-400 transition-all shadow-teal"
                   >
-                    <LogOut className="w-5 h-5" />
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <Link href="/login" className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
-                  Accedi
-                </Link>
-                <Link
-                  href="/signup"
-                  className="bg-accent-500 text-white px-5 py-2 rounded-lg hover:bg-accent-600 font-medium transition-colors shadow-md hover:shadow-lg"
-                >
-                  Registrati
-                </Link>
-              </>
-            )}
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden text-gray-700"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200">
-            {/* Selettore Mobile */}
-            <div className="mb-4 pb-4 border-b border-gray-200">
-              <LanguageCurrencySelector />
+                    Inizia gratis
+                  </Link>
+                </>
+              )}
             </div>
 
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setOpen(!open)}
+              className="md:hidden p-2 rounded-lg text-ink-secondary hover:text-white hover:bg-surface-2 transition-all"
+            >
+              {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Mobile drawer */}
+      {open && (
+        <div className="fixed inset-0 z-30 md:hidden" onClick={() => setOpen(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            className="absolute top-16 left-0 right-0 bg-surface-1 border-b border-surface-4 p-4 animate-slideUp"
+            onClick={(e) => e.stopPropagation()}
+          >
             {isAuthenticated ? (
-              <div className="space-y-3">
-                {/* MOSTRA SEMPRE per utenti non-driver e non-admin */}
-                {user?.role !== 'driver' && user?.role !== 'admin' && (
+              <div className="space-y-1">
+                {/* User info */}
+                <div className="flex items-center gap-3 px-4 py-3 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center">
+                    <span className="text-base font-bold text-primary-400">
+                      {user?.name?.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white">{user?.name}</p>
+                    <p className="text-xs text-ink-muted capitalize">{user?.role}</p>
+                  </div>
+                </div>
+
+                <div className="h-px bg-surface-4 mx-4 mb-2" />
+
+                {user?.role === 'user' && (
                   <>
-                    <Link
-                      href="/dashboard"
-                      className="block text-gray-700 hover:text-primary-600 font-medium py-2"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Dashboard
+                    <Link href="/flight-search" className={mobileLink} onClick={() => setOpen(false)}>
+                      <Plane className="w-4 h-4 text-primary-500" />
+                      Cerca corsa
                     </Link>
-                    <Link
-                      href="/flight-search"
-                      className="block text-gray-700 hover:text-primary-600 font-medium py-2"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Cerca Corsa
+                    <Link href="/dashboard" className={mobileLink} onClick={() => setOpen(false)}>
+                      <LayoutDashboard className="w-4 h-4 text-primary-500" />
+                      Le mie prenotazioni
                     </Link>
                   </>
                 )}
-                
                 {user?.role === 'driver' && (
-                  <Link
-                    href="/driver/dashboard"
-                    className="block text-gray-700 hover:text-primary-600 font-medium py-2"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
+                  <Link href="/driver/dashboard" className={mobileLink} onClick={() => setOpen(false)}>
+                    <Car className="w-4 h-4 text-primary-500" />
                     Dashboard Driver
                   </Link>
                 )}
-                
                 {user?.role === 'admin' && (
-                  <Link
-                    href="/admin/dashboard"
-                    className="block text-gray-700 hover:text-primary-600 font-medium py-2"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Dashboard Admin
+                  <Link href="/admin/dashboard" className={mobileLink} onClick={() => setOpen(false)}>
+                    <Shield className="w-4 h-4 text-primary-500" />
+                    Admin
                   </Link>
                 )}
-                
-                <div className="pt-3 border-t border-gray-200">
-                  <p className="text-sm text-gray-600 mb-2">{user?.name}</p>
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="text-red-600 font-medium"
-                  >
-                    Logout
-                  </button>
-                </div>
+
+                <div className="h-px bg-surface-4 mx-4 my-2" />
+
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-danger hover:bg-danger/10 transition-all font-medium w-full"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </button>
               </div>
             ) : (
-              <div className="space-y-3">
-                <Link
-                  href="/login"
-                  className="block text-gray-700 hover:text-primary-600 font-medium py-2"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
+              <div className="space-y-2">
+                <Link href="/login" className={mobileLink} onClick={() => setOpen(false)}>
                   Accedi
                 </Link>
                 <Link
                   href="/signup"
-                  className="block bg-accent-500 text-white px-5 py-2 rounded-lg hover:bg-accent-600 font-medium text-center transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center mx-4 py-3 bg-primary-500 text-[#0B0B0B] font-semibold rounded-xl hover:bg-primary-400 transition-all"
+                  onClick={() => setOpen(false)}
                 >
-                  Registrati
+                  Inizia gratis
                 </Link>
               </div>
             )}
           </div>
-        )}
-      </div>
-    </nav>
+        </div>
+      )}
+    </>
   );
 }
