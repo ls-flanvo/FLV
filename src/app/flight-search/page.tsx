@@ -7,7 +7,7 @@ import AddressAutocomplete from '@/components/AddressAutocomplete';
 import { Flight } from '@/lib/types';
 import {
   Plane, MapPin, ChevronRight, CheckCircle2,
-  AlertCircle, Loader2, Clock, AlertTriangle
+  AlertCircle, Loader2, Clock, AlertTriangle, Sparkles
 } from 'lucide-react';
 
 type Step = 'flight' | 'destination' | 'passengers' | 'searching';
@@ -30,6 +30,60 @@ const STATUS_CONFIG = {
   boarding:  { label: 'Imbarco', color: 'text-primary-400', bg: 'bg-primary-500/10 border-primary-500/20' },
 };
 
+const SEARCH_STEPS = [
+  { text: 'Verifica volo in tempo reale', ms: 0 },
+  { text: 'Analisi destinazioni simili', ms: 500 },
+  { text: 'Calcolo prezzo ottimale', ms: 1000 },
+  { text: 'Composizione del gruppo', ms: 1400 },
+];
+
+function SearchingStep({ flight, destination }: { flight: Flight | null; destination: string }) {
+  const [visible, setVisible] = useState<number[]>([]);
+  const [done, setDone] = useState<number[]>([]);
+
+  useEffect(() => {
+    SEARCH_STEPS.forEach(({ ms }, i) => {
+      setTimeout(() => setVisible(v => [...v, i]), ms);
+      setTimeout(() => setDone(v => [...v, i]), ms + 400);
+    });
+  }, []);
+
+  return (
+    <div className="w-full text-center animate-fade-up">
+      <div className="relative inline-flex items-center justify-center w-20 h-20 mb-8">
+        <div className="absolute inset-0 rounded-full bg-primary-500/10 animate-pulse" />
+        <div className="absolute inset-2 rounded-full bg-primary-500/15 animate-pulse" />
+        <Loader2 className="w-10 h-10 text-primary-400 animate-spin relative z-10" />
+      </div>
+      <h2 className="text-2xl font-bold text-white mb-2">Stiamo cercando...</h2>
+      <p className="text-ink-secondary text-sm mb-8">
+        Passeggeri sul volo <span className="text-white font-semibold">{flight?.code}</span> diretti
+        verso <span className="text-white font-semibold">{destination.split(',')[0]}</span>
+      </p>
+      <div className="space-y-3 text-left max-w-xs mx-auto">
+        {SEARCH_STEPS.map(({ text }, i) => (
+          <div key={i} className={`flex items-center gap-3 transition-all duration-500 ${
+            visible.includes(i) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+          }`}>
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-300 ${
+              done.includes(i)
+                ? 'bg-primary-500 border-primary-500'
+                : 'border-surface-5 bg-surface-2'
+            }`}>
+              {done.includes(i) && (
+                <CheckCircle2 className="w-3 h-3 text-[#0B0B0B]" />
+              )}
+            </div>
+            <span className={`text-sm transition-colors duration-300 ${done.includes(i) ? 'text-white' : 'text-ink-muted'}`}>
+              {text}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function FlightSearchPage() {
   const [step, setStep] = useState<Step>('flight');
   const [flightCode, setFlightCode] = useState('');
@@ -41,11 +95,16 @@ export default function FlightSearchPage() {
   const [destError, setDestError] = useState('');
   const [passengers, setPassengers] = useState(2);
   const [luggage, setLuggage] = useState(1);
+  const [aiAddressMode, setAiAddressMode] = useState(false);
+  const [aiInput, setAiInput] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState('');
 
   const { isAuthenticated } = useAuthStore();
   const { setCurrentFlight } = useBookingStore();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) router.push('/login');
@@ -55,30 +114,50 @@ export default function FlightSearchPage() {
     if (step === 'flight') inputRef.current?.focus();
   }, [step]);
 
-  // Auto-search when flight code is 6 chars
-  const handleFlightInput = async (val: string) => {
+  // Auto-search con debounce 350ms
+  const handleFlightInput = (val: string) => {
     const code = val.toUpperCase().replace(/\s/g, '');
     setFlightCode(code);
     setFlightError('');
     setFlight(null);
 
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     if (code.length < 4 || code.length > 8) return;
     if (!/^[A-Z0-9]{2}[0-9]{1,4}$/.test(code)) return;
 
-    setFlightLoading(true);
-    try {
-      const res = await fetch(`/api/flights/${code}`);
-      const data = await res.json();
-      if (data.flight) {
-        setFlight(data.flight);
-      } else {
-        setFlightError('Volo non trovato. Controlla il codice.');
+    debounceRef.current = setTimeout(async () => {
+      setFlightLoading(true);
+      try {
+        const res = await fetch(`/api/flights/${code}`);
+        const data = await res.json();
+        if (data.flight) setFlight(data.flight);
+        else setFlightError('Volo non trovato. Controlla il codice.');
+      } catch {
+        setFlightError('Errore nella ricerca. Riprova.');
+      } finally {
+        setFlightLoading(false);
       }
-    } catch {
-      setFlightError('Errore nella ricerca. Riprova.');
-    } finally {
-      setFlightLoading(false);
-    }
+    }, 350);
+  };
+
+  const resolveAddressWithAI = async () => {
+    if (!aiInput.trim()) return;
+    setAiLoading(true);
+    setAiSuggestion('');
+    try {
+      const res = await fetch('/api/support/address', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: aiInput, flightAirport: flight?.arrivalAirportName }),
+      });
+      const data = await res.json();
+      if (data.query) {
+        setAiSuggestion(data.query);
+        setDestination(data.query);
+        setAiAddressMode(false);
+      }
+    } catch { /* silent */ }
+    finally { setAiLoading(false); }
   };
 
   const confirmFlight = () => {
@@ -277,10 +356,57 @@ export default function FlightSearchPage() {
               error={destError}
             />
 
-            {destinationCoords && destination && (
+            {destinationCoords && destination && !aiAddressMode && (
               <div className="mt-3 flex items-center gap-2 text-xs text-success">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 Indirizzo trovato
+              </div>
+            )}
+
+            {/* AI address helper */}
+            {!aiAddressMode ? (
+              <button
+                type="button"
+                onClick={() => setAiAddressMode(true)}
+                className="mt-4 flex items-center gap-1.5 text-xs text-ink-muted hover:text-primary-400 transition-colors"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Non sai l&apos;indirizzo esatto? Descrivi in italiano
+              </button>
+            ) : (
+              <div className="mt-4 bg-surface-2 border border-primary-500/20 rounded-xl p-3.5 animate-fade-up">
+                <div className="flex items-center gap-1.5 text-xs text-primary-400 font-medium mb-2.5">
+                  <Sparkles className="w-3.5 h-3.5" /> Descrivi la tua destinazione
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={aiInput}
+                    onChange={e => setAiInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && resolveAddressWithAI()}
+                    placeholder="Es: vicino alla stazione centrale di Palermo"
+                    className="flex-1 px-3 py-2.5 bg-surface-3 border border-surface-5 rounded-lg text-sm text-white placeholder-ink-muted focus:outline-none focus:border-primary-500 transition-colors"
+                    autoFocus
+                  />
+                  <button
+                    onClick={resolveAddressWithAI}
+                    disabled={!aiInput.trim() || aiLoading}
+                    className="px-3.5 py-2.5 bg-primary-500 text-[#0B0B0B] rounded-lg font-bold text-sm hover:bg-primary-400 transition-all disabled:opacity-40 shrink-0"
+                  >
+                    {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Cerca'}
+                  </button>
+                </div>
+                {aiSuggestion && (
+                  <p className="mt-2 text-xs text-success flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Ricercato: {aiSuggestion}
+                  </p>
+                )}
+                <button
+                  onClick={() => { setAiAddressMode(false); setAiInput(''); setAiSuggestion(''); }}
+                  className="mt-2 text-xs text-ink-muted hover:text-ink-secondary transition-colors"
+                >
+                  ← Torna alla ricerca normale
+                </button>
               </div>
             )}
 
@@ -374,27 +500,7 @@ export default function FlightSearchPage() {
 
         {/* ── STEP 4: SEARCHING ─────────────────────── */}
         {step === 'searching' && (
-          <div className="w-full text-center animate-fade-up">
-            <div className="relative inline-flex items-center justify-center w-20 h-20 mb-8">
-              <div className="absolute inset-0 rounded-full bg-primary-500/10 animate-pulse" />
-              <div className="absolute inset-2 rounded-full bg-primary-500/15 animate-pulse delay-75" />
-              <Loader2 className="w-10 h-10 text-primary-400 animate-spin relative z-10" />
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-3">Stiamo cercando...</h2>
-            <p className="text-ink-secondary text-sm mb-8">
-              Troviamo passeggeri con lo stesso volo {flight?.code}<br />
-              diretti verso {destination.split(',')[0]}
-            </p>
-            <div className="space-y-2.5 text-sm text-ink-muted text-left max-w-xs mx-auto">
-              {[
-                '✓ Verifica volo in tempo reale',
-                '✓ Analisi destinazioni vicine',
-                '✓ Calcolo prezzo ottimale',
-              ].map((t) => (
-                <p key={t} className="flex items-center gap-2">{t}</p>
-              ))}
-            </div>
-          </div>
+          <SearchingStep flight={flight} destination={destination} />
         )}
       </div>
     </div>

@@ -3,735 +3,426 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Car, User, Mail, Lock, Phone, FileText, Calendar, MapPin, Upload, ArrowLeft } from 'lucide-react';
+import { Car, User, Mail, Lock, Phone, FileText, Calendar, MapPin, ArrowLeft, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
+
+type Step = 'personal' | 'vehicle' | 'documents' | 'done';
+
+const STEPS: { key: Step; label: string; icon: React.ElementType }[] = [
+  { key: 'personal', label: 'Dati personali', icon: User },
+  { key: 'vehicle', label: 'Veicolo', icon: Car },
+  { key: 'documents', label: 'Documenti', icon: FileText },
+];
+
+const STEP_ORDER: Step[] = ['personal', 'vehicle', 'documents'];
 
 export default function DriverSignupPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    // Dati personali
-    name: '',
-    surname: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    phone: '',
-    dateOfBirth: '',
-    taxCode: '',
-    
-    // Indirizzo
-    address: '',
-    city: '',
-    province: '',
-    zipCode: '',
-    
-    // Documenti
-    driverLicense: '',
-    licenseExpiry: '',
-    cqcNumber: '',
-    cqcExpiry: '',
-    
-    // Veicolo
-    vehicleBrand: '',
-    vehicleModel: '',
-    vehicleYear: '',
-    licensePlate: '',
-    vehicleColor: '',
-    seats: '',
-    
-    // Assicurazione
-    insuranceCompany: '',
-    insuranceNumber: '',
-    insuranceExpiry: '',
-    
-    // Disponibilità
-    availability: 'fulltime',
-    
-    // Accordi
-    termsAccepted: false,
-    privacyAccepted: false
+  const [step, setStep] = useState<Step>('personal');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const [form, setForm] = useState({
+    name: '', surname: '', email: '', phone: '',
+    dateOfBirth: '', taxCode: '', password: '', confirmPassword: '',
+    address: '', city: '', province: '', zipCode: '',
+    vehicleBrand: '', vehicleModel: '', vehicleYear: '', licensePlate: '', vehicleColor: '', seats: '',
+    insuranceCompany: '', insuranceNumber: '', insuranceExpiry: '',
+    driverLicense: '', licenseExpiry: '', cqcNumber: '', cqcExpiry: '',
+    availability: 'fulltime', termsAccepted: false, privacyAccepted: false,
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
+  const set = (k: string, v: string | boolean) => setForm(f => ({ ...f, [k]: v }));
+  const ch = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const t = e.target as HTMLInputElement;
+    set(t.name, t.type === 'checkbox' ? t.checked : t.value);
+  };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    const checked = (e.target as HTMLInputElement).checked;
-    
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-    
-    // Rimuovi errore quando l'utente modifica il campo
-    if (errors[name]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
+  const currentIdx = STEP_ORDER.indexOf(step);
+  const progress = ((currentIdx + 1) / STEP_ORDER.length) * 100;
+
+  const validateStep = (): string => {
+    if (step === 'personal') {
+      if (!form.name.trim()) return 'Nome obbligatorio';
+      if (!form.surname.trim()) return 'Cognome obbligatorio';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return 'Email non valida';
+      if (!form.phone.trim()) return 'Telefono obbligatorio';
+      if (form.password.length < 8) return 'Password minimo 8 caratteri';
+      if (form.password !== form.confirmPassword) return 'Le password non coincidono';
+      if (!form.taxCode.trim()) return 'Codice fiscale obbligatorio';
+    }
+    if (step === 'vehicle') {
+      if (!form.vehicleBrand.trim()) return 'Marca obbligatoria';
+      if (!form.vehicleModel.trim()) return 'Modello obbligatorio';
+      if (!form.licensePlate.trim()) return 'Targa obbligatoria';
+    }
+    if (step === 'documents') {
+      if (!form.driverLicense.trim()) return 'Numero patente obbligatorio';
+      if (!form.licenseExpiry) return 'Scadenza patente obbligatoria';
+      if (!form.cqcNumber.trim()) return 'Numero CQC obbligatorio';
+      if (!form.cqcExpiry) return 'Scadenza CQC obbligatoria';
+      if (!form.termsAccepted) return 'Devi accettare i Termini e Condizioni';
+      if (!form.privacyAccepted) return 'Devi accettare la Privacy Policy';
+    }
+    return '';
+  };
+
+  const next = () => {
+    const err = validateStep();
+    if (err) { setError(err); return; }
+    setError('');
+    const idx = STEP_ORDER.indexOf(step);
+    if (idx < STEP_ORDER.length - 1) {
+      setStep(STEP_ORDER[idx + 1]);
+    } else {
+      handleSubmit();
     }
   };
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    // Validazione dati personali
-    if (!formData.name.trim()) newErrors.name = 'Nome obbligatorio';
-    if (!formData.surname.trim()) newErrors.surname = 'Cognome obbligatorio';
-    if (!formData.email.trim()) newErrors.email = 'Email obbligatoria';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Email non valida';
-    }
-    if (!formData.password) newErrors.password = 'Password obbligatoria';
-    else if (formData.password.length < 8) {
-      newErrors.password = 'Password deve essere almeno 8 caratteri';
-    }
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Le password non coincidono';
-    }
-    if (!formData.phone.trim()) newErrors.phone = 'Telefono obbligatorio';
-    if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Data di nascita obbligatoria';
-    if (!formData.taxCode.trim()) newErrors.taxCode = 'Codice fiscale obbligatorio';
-
-    // Validazione documenti
-    if (!formData.driverLicense.trim()) newErrors.driverLicense = 'Numero patente obbligatorio';
-    if (!formData.licenseExpiry) newErrors.licenseExpiry = 'Scadenza patente obbligatoria';
-    if (!formData.cqcNumber.trim()) newErrors.cqcNumber = 'Numero CQC obbligatorio';
-    if (!formData.cqcExpiry) newErrors.cqcExpiry = 'Scadenza CQC obbligatoria';
-
-    // Validazione veicolo
-    if (!formData.vehicleBrand.trim()) newErrors.vehicleBrand = 'Marca veicolo obbligatoria';
-    if (!formData.vehicleModel.trim()) newErrors.vehicleModel = 'Modello veicolo obbligatorio';
-    if (!formData.licensePlate.trim()) newErrors.licensePlate = 'Targa obbligatoria';
-
-    // Validazione accordi
-    if (!formData.termsAccepted) newErrors.termsAccepted = 'Devi accettare i termini e condizioni';
-    if (!formData.privacyAccepted) newErrors.privacyAccepted = 'Devi accettare la privacy policy';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const back = () => {
+    setError('');
+    const idx = STEP_ORDER.indexOf(step);
+    if (idx > 0) setStep(STEP_ORDER[idx - 1]);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
+  const handleSubmit = async () => {
     setLoading(true);
-
+    setError('');
     try {
-      const response = await fetch('/api/auth/driver/signup', {
+      const res = await fetch('/api/auth/driver/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...form,
+          name: `${form.name} ${form.surname}`.trim(),
+          vehicleModel: `${form.vehicleBrand} ${form.vehicleModel}`.trim(),
+          vehicleYear: Number(form.vehicleYear) || new Date().getFullYear(),
+          vehiclePlate: form.licensePlate,
+          licenseNumber: form.driverLicense,
+        }),
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert('Registrazione completata! La tua richiesta è in attesa di approvazione. Riceverai una email di conferma.');
-        router.push('/driver/login');
+      const data = await res.json();
+      if (res.ok) {
+        setStep('done');
       } else {
-        alert(data.error || 'Errore durante la registrazione');
+        setError(data.error || 'Errore durante la registrazione');
       }
-    } catch (error) {
-      console.error('Signup error:', error);
-      alert('Errore durante la registrazione. Riprova.');
+    } catch {
+      setError('Errore di connessione');
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <Link 
-            href="/driver/login"
-            className="inline-flex items-center text-primary-600 hover:text-primary-700 mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Torna al login
-          </Link>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Diventa Autista Flanvo
-          </h1>
-          <p className="text-gray-600">
-            Compila il modulo per unirti alla nostra rete di autisti professionisti
+  if (step === 'done') {
+    return (
+      <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center px-4 py-12 bg-hero-gradient">
+        <div className="w-full max-w-md text-center animate-fade-up">
+          <div className="w-20 h-20 bg-success/10 border border-success/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-success" />
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-3">Candidatura inviata!</h1>
+          <p className="text-ink-secondary text-sm mb-8">
+            Il nostro team verificherà i tuoi documenti entro 2–3 giorni lavorativi.
+            Riceverai una email all&apos;indirizzo <span className="text-white font-medium">{form.email}</span>.
           </p>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl p-8 space-y-8">
-          
-          {/* Sezione 1: Dati Personali */}
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-              <User className="w-6 h-6 mr-3 text-primary-600" />
-              Dati Personali
-            </h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nome *
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.name ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Mario"
-                />
-                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+          <div className="space-y-3 bg-surface-1 border border-surface-4 rounded-2xl p-5 text-left mb-8">
+            {[
+              'Verifica documenti (2–3 gg)',
+              'Approvazione account',
+              'Collega IBAN con Stripe',
+              'Inizia a guadagnare',
+            ].map((s, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-xs font-bold text-primary-400">
+                  {i + 1}
+                </div>
+                <span className="text-sm text-ink-secondary">{s}</span>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cognome *
-                </label>
-                <input
-                  type="text"
-                  name="surname"
-                  value={formData.surname}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.surname ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Rossi"
-                />
-                {errors.surname && <p className="text-red-500 text-sm mt-1">{errors.surname}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.email ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="mario.rossi@email.com"
-                />
-                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Telefono *
-                </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.phone ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="+39 333 1234567"
-                />
-                {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Data di Nascita *
-                </label>
-                <input
-                  type="date"
-                  name="dateOfBirth"
-                  value={formData.dateOfBirth}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.dateOfBirth && <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Codice Fiscale *
-                </label>
-                <input
-                  type="text"
-                  name="taxCode"
-                  value={formData.taxCode}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.taxCode ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="RSSMRA80A01H501Z"
-                  maxLength={16}
-                />
-                {errors.taxCode && <p className="text-red-500 text-sm mt-1">{errors.taxCode}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Password *
-                </label>
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.password ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Minimo 8 caratteri"
-                />
-                {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Conferma Password *
-                </label>
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Ripeti la password"
-                />
-                {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
-              </div>
-            </div>
+            ))}
           </div>
-
-          {/* Sezione 2: Indirizzo */}
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-              <MapPin className="w-6 h-6 mr-3 text-primary-600" />
-              Indirizzo
-            </h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Indirizzo
-                </label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Via Roma, 123"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Città
-                </label>
-                <input
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Milano"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Provincia
-                </label>
-                <input
-                  type="text"
-                  name="province"
-                  value={formData.province}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="MI"
-                  maxLength={2}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  CAP
-                </label>
-                <input
-                  type="text"
-                  name="zipCode"
-                  value={formData.zipCode}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="20100"
-                  maxLength={5}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Sezione 3: Documenti */}
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-              <FileText className="w-6 h-6 mr-3 text-primary-600" />
-              Documenti
-            </h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Numero Patente *
-                </label>
-                <input
-                  type="text"
-                  name="driverLicense"
-                  value={formData.driverLicense}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.driverLicense ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="MI1234567X"
-                />
-                {errors.driverLicense && <p className="text-red-500 text-sm mt-1">{errors.driverLicense}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Scadenza Patente *
-                </label>
-                <input
-                  type="date"
-                  name="licenseExpiry"
-                  value={formData.licenseExpiry}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.licenseExpiry ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.licenseExpiry && <p className="text-red-500 text-sm mt-1">{errors.licenseExpiry}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Numero CQC *
-                </label>
-                <input
-                  type="text"
-                  name="cqcNumber"
-                  value={formData.cqcNumber}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.cqcNumber ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="CQC1234567"
-                />
-                {errors.cqcNumber && <p className="text-red-500 text-sm mt-1">{errors.cqcNumber}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Scadenza CQC *
-                </label>
-                <input
-                  type="date"
-                  name="cqcExpiry"
-                  value={formData.cqcExpiry}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.cqcExpiry ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.cqcExpiry && <p className="text-red-500 text-sm mt-1">{errors.cqcExpiry}</p>}
-              </div>
-            </div>
-          </div>
-
-          {/* Sezione 4: Veicolo */}
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-              <Car className="w-6 h-6 mr-3 text-primary-600" />
-              Informazioni Veicolo
-            </h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Marca *
-                </label>
-                <input
-                  type="text"
-                  name="vehicleBrand"
-                  value={formData.vehicleBrand}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.vehicleBrand ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Mercedes-Benz"
-                />
-                {errors.vehicleBrand && <p className="text-red-500 text-sm mt-1">{errors.vehicleBrand}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Modello *
-                </label>
-                <input
-                  type="text"
-                  name="vehicleModel"
-                  value={formData.vehicleModel}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.vehicleModel ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Classe E"
-                />
-                {errors.vehicleModel && <p className="text-red-500 text-sm mt-1">{errors.vehicleModel}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Anno
-                </label>
-                <input
-                  type="number"
-                  name="vehicleYear"
-                  value={formData.vehicleYear}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="2023"
-                  min="2000"
-                  max="2025"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Targa *
-                </label>
-                <input
-                  type="text"
-                  name="licensePlate"
-                  value={formData.licensePlate}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.licensePlate ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="AB123CD"
-                />
-                {errors.licensePlate && <p className="text-red-500 text-sm mt-1">{errors.licensePlate}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Colore
-                </label>
-                <input
-                  type="text"
-                  name="vehicleColor"
-                  value={formData.vehicleColor}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Nero"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Numero Posti
-                </label>
-                <select
-                  name="seats"
-                  value={formData.seats}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value="">Seleziona</option>
-                  <option value="4">4 posti</option>
-                  <option value="5">5 posti</option>
-                  <option value="6">6 posti</option>
-                  <option value="7">7 posti</option>
-                  <option value="8">8 posti</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Sezione 5: Assicurazione */}
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-              <FileText className="w-6 h-6 mr-3 text-primary-600" />
-              Assicurazione
-            </h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Compagnia Assicurativa
-                </label>
-                <input
-                  type="text"
-                  name="insuranceCompany"
-                  value={formData.insuranceCompany}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Generali, AXA, Allianz..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Numero Polizza
-                </label>
-                <input
-                  type="text"
-                  name="insuranceNumber"
-                  value={formData.insuranceNumber}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="POL123456789"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Scadenza Assicurazione
-                </label>
-                <input
-                  type="date"
-                  name="insuranceExpiry"
-                  value={formData.insuranceExpiry}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Sezione 6: Disponibilità */}
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-              <Calendar className="w-6 h-6 mr-3 text-primary-600" />
-              Disponibilità
-            </h2>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Tipo di Disponibilità
-              </label>
-              <div className="space-y-3">
-                <label className="flex items-center space-x-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="availability"
-                    value="fulltime"
-                    checked={formData.availability === 'fulltime'}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-primary-600 focus:ring-primary-500"
-                  />
-                  <span className="text-gray-700">Full-time (Disponibile sempre)</span>
-                </label>
-                <label className="flex items-center space-x-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="availability"
-                    value="parttime"
-                    checked={formData.availability === 'parttime'}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-primary-600 focus:ring-primary-500"
-                  />
-                  <span className="text-gray-700">Part-time (Orari flessibili)</span>
-                </label>
-                <label className="flex items-center space-x-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="availability"
-                    value="weekend"
-                    checked={formData.availability === 'weekend'}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-primary-600 focus:ring-primary-500"
-                  />
-                  <span className="text-gray-700">Solo Weekend</span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* Sezione 7: Termini e Condizioni */}
-          <div className="border-t pt-8">
-            <div className="space-y-4">
-              <label className="flex items-start space-x-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="termsAccepted"
-                  checked={formData.termsAccepted}
-                  onChange={handleChange}
-                  className={`mt-1 w-5 h-5 text-primary-600 focus:ring-primary-500 rounded ${
-                    errors.termsAccepted ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                <span className="text-sm text-gray-700">
-                  Accetto i <Link href="/terms" className="text-primary-600 hover:underline">Termini e Condizioni</Link> e le politiche di servizio di Flanvo *
-                </span>
-              </label>
-              {errors.termsAccepted && <p className="text-red-500 text-sm">{errors.termsAccepted}</p>}
-
-              <label className="flex items-start space-x-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="privacyAccepted"
-                  checked={formData.privacyAccepted}
-                  onChange={handleChange}
-                  className={`mt-1 w-5 h-5 text-primary-600 focus:ring-primary-500 rounded ${
-                    errors.privacyAccepted ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                <span className="text-sm text-gray-700">
-                  Accetto la <Link href="/privacy" className="text-primary-600 hover:underline">Privacy Policy</Link> e il trattamento dei miei dati personali *
-                </span>
-              </label>
-              {errors.privacyAccepted && <p className="text-red-500 text-sm">{errors.privacyAccepted}</p>}
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <div className="flex flex-col sm:flex-row gap-4 pt-6">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-primary-600 text-white py-4 px-8 rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-            >
-              {loading ? 'Invio in corso...' : 'Invia Candidatura'}
+          <Link href="/driver/login">
+            <button className="w-full py-3 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all">
+              Vai al login
             </button>
-            <Link
-              href="/driver/login"
-              className="flex-1 bg-gray-100 text-gray-700 py-4 px-8 rounded-lg font-semibold hover:bg-gray-200 transition-colors text-center"
-            >
-              Annulla
-            </Link>
-          </div>
-
-          <p className="text-sm text-gray-500 text-center">
-            * Campi obbligatori
-          </p>
-        </form>
-
-        {/* Info Box */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
-          <h3 className="font-semibold text-blue-900 mb-3">📋 Cosa succede dopo?</h3>
-          <ul className="space-y-2 text-sm text-blue-800">
-            <li>✅ <strong>Verifica documenti:</strong> Il nostro team controllerà i tuoi documenti entro 2-3 giorni lavorativi</li>
-            <li>✅ <strong>Colloquio:</strong> Se i documenti sono in ordine, ti contatteremo per un breve colloquio</li>
-            <li>✅ <strong>Formazione:</strong> Riceverai materiale informativo sulla piattaforma e le procedure</li>
-            <li>✅ <strong>Attivazione:</strong> Una volta approvato, potrai iniziare a ricevere richieste di corsa!</li>
-          </ul>
+          </Link>
         </div>
+      </div>
+    );
+  }
+
+  const inputCls = (err?: boolean) =>
+    `w-full px-4 py-3 bg-surface-2 border ${err ? 'border-danger' : 'border-surface-5'} rounded-xl text-white placeholder-ink-muted focus:outline-none focus:border-primary-500 text-sm transition-colors`;
+
+  return (
+    <div className="min-h-screen bg-[#0B0B0B] py-10 px-4 bg-hero-gradient">
+      <div className="max-w-lg mx-auto">
+        {/* Logo + back */}
+        <div className="flex items-center justify-between mb-8">
+          <Link href="/driver/login" className="flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink-secondary transition-colors">
+            <ArrowLeft className="w-3.5 h-3.5" /> Login autisti
+          </Link>
+          <Link href="/" className="flex items-center gap-2">
+            <svg width="16" height="22" viewBox="0 0 56 72" fill="none">
+              <path d="M8 0 L48 0 L30 30 L48 30 L8 72 L22 40 L4 40 Z" fill="#00D1B2"/>
+            </svg>
+            <span className="text-sm font-bold text-white">flanvo</span>
+          </Link>
+        </div>
+
+        {/* Title */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-white mb-1">Diventa autista</h1>
+          <p className="text-ink-secondary text-sm">Guadagna trasportando gruppi in aeroporto</p>
+        </div>
+
+        {/* Progress */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            {STEPS.map((s, i) => {
+              const active = s.key === step;
+              const done = STEP_ORDER.indexOf(s.key) < currentIdx;
+              return (
+                <div key={s.key} className="flex items-center gap-2">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                    done ? 'bg-primary-500 text-[#0B0B0B]' : active ? 'bg-primary-500/20 border border-primary-500 text-primary-400' : 'bg-surface-3 text-ink-muted'
+                  }`}>
+                    {done ? <CheckCircle className="w-4 h-4" /> : i + 1}
+                  </div>
+                  <span className={`text-xs font-medium hidden sm:block ${active ? 'text-white' : 'text-ink-muted'}`}>{s.label}</span>
+                  {i < STEPS.length - 1 && <div className={`w-8 h-px mx-1 ${done ? 'bg-primary-500' : 'bg-surface-4'}`} />}
+                </div>
+              );
+            })}
+          </div>
+          <div className="h-1 bg-surface-3 rounded-full overflow-hidden">
+            <div className="h-full bg-primary-500 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+
+        {/* Card */}
+        <div className="bg-surface-1 border border-surface-4 rounded-2xl p-6 bg-card-gradient">
+          {error && (
+            <div className="flex items-center gap-3 bg-danger/10 border border-danger/20 rounded-xl p-3.5 mb-5">
+              <AlertCircle className="w-4 h-4 text-danger shrink-0" />
+              <p className="text-sm text-danger">{error}</p>
+            </div>
+          )}
+
+          {/* STEP: Personal */}
+          {step === 'personal' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-5">
+                <User className="w-4 h-4 text-primary-400" />
+                <h2 className="font-bold text-white">Dati personali</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-ink-secondary mb-1.5">Nome *</label>
+                  <input name="name" value={form.name} onChange={ch} placeholder="Mario" className={inputCls()} />
+                </div>
+                <div>
+                  <label className="block text-xs text-ink-secondary mb-1.5">Cognome *</label>
+                  <input name="surname" value={form.surname} onChange={ch} placeholder="Rossi" className={inputCls()} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-ink-secondary mb-1.5">Email *</label>
+                <input name="email" type="email" value={form.email} onChange={ch} placeholder="mario.rossi@email.com" className={inputCls()} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-ink-secondary mb-1.5">Telefono *</label>
+                  <input name="phone" type="tel" value={form.phone} onChange={ch} placeholder="+39 333 1234567" className={inputCls()} />
+                </div>
+                <div>
+                  <label className="block text-xs text-ink-secondary mb-1.5">Data di nascita</label>
+                  <input name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={ch} className={`${inputCls()} [color-scheme:dark]`} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-ink-secondary mb-1.5">Codice fiscale *</label>
+                <input name="taxCode" value={form.taxCode} onChange={ch} placeholder="RSSMRA80A01H501Z" maxLength={16} className={inputCls()} style={{ textTransform: 'uppercase' }} />
+              </div>
+              <div>
+                <label className="block text-xs text-ink-secondary mb-1.5">Città di residenza</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="col-span-2">
+                    <input name="city" value={form.city} onChange={ch} placeholder="Milano" className={inputCls()} />
+                  </div>
+                  <input name="province" value={form.province} onChange={ch} placeholder="MI" maxLength={2} className={inputCls()} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-ink-secondary mb-1.5">Password *</label>
+                <input name="password" type="password" value={form.password} onChange={ch} placeholder="Minimo 8 caratteri" className={inputCls()} />
+              </div>
+              <div>
+                <label className="block text-xs text-ink-secondary mb-1.5">Conferma password *</label>
+                <input name="confirmPassword" type="password" value={form.confirmPassword} onChange={ch} placeholder="Ripeti la password" className={inputCls()} />
+              </div>
+            </div>
+          )}
+
+          {/* STEP: Vehicle */}
+          {step === 'vehicle' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-5">
+                <Car className="w-4 h-4 text-primary-400" />
+                <h2 className="font-bold text-white">Informazioni veicolo</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-ink-secondary mb-1.5">Marca *</label>
+                  <input name="vehicleBrand" value={form.vehicleBrand} onChange={ch} placeholder="Mercedes-Benz" className={inputCls()} />
+                </div>
+                <div>
+                  <label className="block text-xs text-ink-secondary mb-1.5">Modello *</label>
+                  <input name="vehicleModel" value={form.vehicleModel} onChange={ch} placeholder="Vito 116 CDI" className={inputCls()} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-ink-secondary mb-1.5">Anno</label>
+                  <input name="vehicleYear" type="number" value={form.vehicleYear} onChange={ch} placeholder="2022" min="2000" max="2026" className={inputCls()} />
+                </div>
+                <div>
+                  <label className="block text-xs text-ink-secondary mb-1.5">Posti</label>
+                  <select name="seats" value={form.seats} onChange={ch} className={inputCls()}>
+                    <option value="">Seleziona</option>
+                    {[4,5,6,7,8].map(n => <option key={n} value={n}>{n} posti</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-ink-secondary mb-1.5">Targa *</label>
+                  <input name="licensePlate" value={form.licensePlate} onChange={ch} placeholder="AB123CD" className={inputCls()} style={{ textTransform: 'uppercase' }} />
+                </div>
+                <div>
+                  <label className="block text-xs text-ink-secondary mb-1.5">Colore</label>
+                  <input name="vehicleColor" value={form.vehicleColor} onChange={ch} placeholder="Nero" className={inputCls()} />
+                </div>
+              </div>
+              <div className="border-t border-surface-4 pt-4 mt-2">
+                <p className="text-xs text-ink-secondary mb-3">Assicurazione (opzionale)</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <input name="insuranceCompany" value={form.insuranceCompany} onChange={ch} placeholder="Compagnia" className={inputCls()} />
+                  <input name="insuranceNumber" value={form.insuranceNumber} onChange={ch} placeholder="N° polizza" className={inputCls()} />
+                </div>
+                <div className="mt-3">
+                  <input name="insuranceExpiry" type="date" value={form.insuranceExpiry} onChange={ch} className={`${inputCls()} [color-scheme:dark]`} />
+                </div>
+              </div>
+              <div className="border-t border-surface-4 pt-4">
+                <p className="text-xs text-ink-secondary mb-3">Disponibilità</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { v: 'fulltime', l: 'Full-time' },
+                    { v: 'parttime', l: 'Part-time' },
+                    { v: 'weekend', l: 'Weekend' },
+                  ].map(opt => (
+                    <button key={opt.v} type="button" onClick={() => set('availability', opt.v)}
+                      className={`py-2.5 rounded-xl text-sm font-medium border transition-all ${
+                        form.availability === opt.v
+                          ? 'bg-primary-500/15 border-primary-500 text-primary-400'
+                          : 'bg-surface-2 border-surface-5 text-ink-secondary hover:border-surface-4'
+                      }`}>
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP: Documents */}
+          {step === 'documents' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-5">
+                <FileText className="w-4 h-4 text-primary-400" />
+                <h2 className="font-bold text-white">Documenti</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-ink-secondary mb-1.5">N° Patente *</label>
+                  <input name="driverLicense" value={form.driverLicense} onChange={ch} placeholder="MI1234567X" className={inputCls()} />
+                </div>
+                <div>
+                  <label className="block text-xs text-ink-secondary mb-1.5">Scadenza patente *</label>
+                  <input name="licenseExpiry" type="date" value={form.licenseExpiry} onChange={ch} className={`${inputCls()} [color-scheme:dark]`} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-ink-secondary mb-1.5">N° CQC *</label>
+                  <input name="cqcNumber" value={form.cqcNumber} onChange={ch} placeholder="CQC1234567" className={inputCls()} />
+                </div>
+                <div>
+                  <label className="block text-xs text-ink-secondary mb-1.5">Scadenza CQC *</label>
+                  <input name="cqcExpiry" type="date" value={form.cqcExpiry} onChange={ch} className={`${inputCls()} [color-scheme:dark]`} />
+                </div>
+              </div>
+
+              <div className="bg-surface-2 border border-surface-5 rounded-xl p-4 mt-2">
+                <p className="text-xs font-semibold text-ink-secondary mb-3">Cosa succede dopo?</p>
+                {['Verifica documenti (2–3 gg lavorativi)', 'Approvazione account', 'Setup pagamenti Stripe', 'Inizia a ricevere corse'].map((s, i) => (
+                  <div key={i} className="flex items-center gap-2.5 mb-2 last:mb-0">
+                    <div className="w-4 h-4 rounded-full bg-primary-500/10 flex items-center justify-center text-[10px] font-bold text-primary-400 shrink-0">{i + 1}</div>
+                    <span className="text-xs text-ink-secondary">{s}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t border-surface-4 pt-4 space-y-3">
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
+                    form.termsAccepted ? 'bg-primary-500 border-primary-500' : 'border-surface-5 bg-surface-2'
+                  }`} onClick={() => set('termsAccepted', !form.termsAccepted)}>
+                    {form.termsAccepted && <CheckCircle className="w-3 h-3 text-[#0B0B0B]" />}
+                  </div>
+                  <span className="text-xs text-ink-secondary leading-relaxed">
+                    Accetto i <Link href="/terms" className="text-primary-400 hover:underline">Termini e Condizioni</Link> e le politiche di servizio Flanvo *
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
+                    form.privacyAccepted ? 'bg-primary-500 border-primary-500' : 'border-surface-5 bg-surface-2'
+                  }`} onClick={() => set('privacyAccepted', !form.privacyAccepted)}>
+                    {form.privacyAccepted && <CheckCircle className="w-3 h-3 text-[#0B0B0B]" />}
+                  </div>
+                  <span className="text-xs text-ink-secondary leading-relaxed">
+                    Accetto la <Link href="/privacy" className="text-primary-400 hover:underline">Privacy Policy</Link> e il trattamento dei dati personali *
+                  </span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation */}
+          <div className="flex gap-3 mt-6 pt-5 border-t border-surface-4">
+            {currentIdx > 0 && (
+              <button type="button" onClick={back}
+                className="px-5 py-3 bg-surface-2 border border-surface-5 text-ink-secondary rounded-xl text-sm font-medium hover:text-white hover:border-surface-4 transition-all">
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            )}
+            <button type="button" onClick={next} disabled={loading}
+              className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all disabled:opacity-50 text-sm">
+              {loading ? (
+                <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-[#0B0B0B]/30 border-t-[#0B0B0B] rounded-full animate-spin" /> Invio...</span>
+              ) : currentIdx < STEP_ORDER.length - 1 ? (
+                <><span>Continua</span><ArrowRight className="w-4 h-4" /></>
+              ) : (
+                'Invia candidatura'
+              )}
+            </button>
+          </div>
+        </div>
+
+        <p className="text-center text-xs text-ink-muted mt-6">
+          Hai già un account?{' '}
+          <Link href="/driver/login" className="text-primary-400 hover:underline">Accedi</Link>
+        </p>
       </div>
     </div>
   );

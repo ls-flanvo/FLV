@@ -2,474 +2,327 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Map, { Marker, Source, Layer, NavigationControl } from 'react-map-gl';
+import Map, { Marker, NavigationControl } from 'react-map-gl';
 import { useAuthStore } from '@/store';
-import { Card, Button, Badge } from '@/components/ui';
-import { 
-  Navigation, 
-  MapPin, 
-  Users, 
-  CheckCircle, 
-  ArrowDown,
-  ArrowUp,
-  Phone,
-  MessageCircle,
-  X,
-  Clock,
-  AlertCircle
+import {
+  Navigation, MapPin, Users, CheckCircle,
+  ArrowDown, ArrowUp, Phone, X, AlertCircle
 } from 'lucide-react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 interface Passenger {
-  id: string;
-  name: string;
-  phone: string;
+  id: string; name: string; phone: string;
   status: 'waiting' | 'onboard' | 'dropped';
   luggage: number;
-  destination: {
-    address: string;
-    lat: number;
-    lng: number;
-  };
+  destination: { address: string; lat: number; lng: number };
 }
 
 interface Stop {
-  id: string;
-  address: string;
-  lat: number;
-  lng: number;
-  type: 'pickup' | 'dropoff';
-  passenger: Passenger;
-  completed: boolean;
+  id: string; address: string; lat: number; lng: number;
+  type: 'pickup' | 'dropoff'; passenger: Passenger; completed: boolean;
 }
 
 export default function DriverNavigationPage({ params }: { params: { id: string } }) {
   const [currentLocation, setCurrentLocation] = useState({ lat: 45.4642, lng: 9.1900 });
   const [stops, setStops] = useState<Stop[]>([]);
   const [currentStopIndex, setCurrentStopIndex] = useState(0);
-  const [viewState, setViewState] = useState({
-    longitude: 9.1900,
-    latitude: 45.4642,
-    zoom: 13
-  });
-  const [showPassengerPanel, setShowPassengerPanel] = useState(true);
+  const [viewState, setViewState] = useState({ longitude: 9.1900, latitude: 45.4642, zoom: 13 });
+  const [showPanel, setShowPanel] = useState(true);
   const [rideStatus, setRideStatus] = useState<'in_progress' | 'completed'>('in_progress');
-  
-  const { user, isAuthenticated } = useAuthStore();
-  const router = useRouter();
-  const mapRef = useRef<any>(null);
 
+  const { user, isAuthenticated, token } = useAuthStore();
+  const router = useRouter();
   const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
-  // Mock data - sostituire con dati reali dall'API
   useEffect(() => {
-    if (!isAuthenticated || user?.role !== 'driver') {
-      router.push('/driver/login');
-      return;
+    if (!isAuthenticated || user?.role !== 'driver') { router.push('/driver/login'); return; }
+
+    const t = token || localStorage.getItem('flanvo_token');
+    fetch(`/api/driver/rides`, { headers: { Authorization: `Bearer ${t}` } })
+      .then(r => r.json())
+      .then(data => {
+        const ride = data.rides?.find((r: { id: string }) => r.id === params.id);
+        if (!ride) return;
+        const builtStops: Stop[] = [];
+        ride.passengers?.forEach((p: { id: string; name: string; phone: string; luggage?: number; destination?: { address: string; lat: number; lng: number } }, i: number) => {
+          builtStops.push({
+            id: `pick-${i}`, address: ride.destinations?.[0]?.address || 'Aeroporto',
+            lat: ride.destinations?.[0]?.lat || 45.63, lng: ride.destinations?.[0]?.lng || 8.73,
+            type: 'pickup', completed: false,
+            passenger: { id: p.id, name: p.name, phone: p.phone || '', status: 'waiting', luggage: p.luggage || 0,
+              destination: p.destination || { address: '', lat: 0, lng: 0 } },
+          });
+        });
+        ride.destinations?.forEach((d: { city: string; address: string; lat?: number; lng?: number }, i: number) => {
+          const pax = ride.passengers?.[i];
+          if (!pax) return;
+          builtStops.push({
+            id: `drop-${i}`, address: d.address || d.city, lat: d.lat || 45.46, lng: d.lng || 9.19,
+            type: 'dropoff', completed: false,
+            passenger: { id: pax.id, name: pax.name, phone: pax.phone || '', status: 'waiting', luggage: 0,
+              destination: { address: d.address, lat: d.lat || 0, lng: d.lng || 0 } },
+          });
+        });
+        if (builtStops.length) {
+          setStops(builtStops);
+          setViewState({ longitude: builtStops[0].lng, latitude: builtStops[0].lat, zoom: 13 });
+        }
+      }).catch(() => {});
+
+    if (navigator.geolocation) {
+      const send = (pos: GeolocationPosition) => {
+        setCurrentLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        const t2 = token || localStorage.getItem('flanvo_token');
+        fetch('/api/driver/location', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(t2 ? { Authorization: `Bearer ${t2}` } : {}) },
+          body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        }).catch(() => {});
+      };
+      navigator.geolocation.getCurrentPosition(send, () => {});
+      const geoInterval = setInterval(() => navigator.geolocation.getCurrentPosition(send, () => {}), 10000);
+      return () => clearInterval(geoInterval);
     }
-
-    // Simula dati corsa
-    const mockStops: Stop[] = [
-      {
-        id: '1',
-        address: 'Terminal 1, Aeroporto Malpensa',
-        lat: 45.6301,
-        lng: 8.7281,
-        type: 'pickup',
-        passenger: {
-          id: 'p1',
-          name: 'Marco Bianchi',
-          phone: '+39 340 1234567',
-          status: 'waiting',
-          luggage: 2,
-          destination: { address: 'Via Dante 45, Milano', lat: 45.4654, lng: 9.1859 }
-        },
-        completed: false
-      },
-      {
-        id: '2',
-        address: 'Terminal 1, Aeroporto Malpensa',
-        lat: 45.6301,
-        lng: 8.7281,
-        type: 'pickup',
-        passenger: {
-          id: 'p2',
-          name: 'Laura Rossi',
-          phone: '+39 345 9876543',
-          status: 'waiting',
-          luggage: 1,
-          destination: { address: 'Piazza Duomo, Milano', lat: 45.4642, lng: 9.1900 }
-        },
-        completed: false
-      },
-      {
-        id: '3',
-        address: 'Via Dante 45, Milano',
-        lat: 45.4654,
-        lng: 9.1859,
-        type: 'dropoff',
-        passenger: {
-          id: 'p1',
-          name: 'Marco Bianchi',
-          phone: '+39 340 1234567',
-          status: 'waiting',
-          luggage: 2,
-          destination: { address: 'Via Dante 45, Milano', lat: 45.4654, lng: 9.1859 }
-        },
-        completed: false
-      },
-      {
-        id: '4',
-        address: 'Piazza Duomo, Milano',
-        lat: 45.4642,
-        lng: 9.1900,
-        type: 'dropoff',
-        passenger: {
-          id: 'p2',
-          name: 'Laura Rossi',
-          phone: '+39 345 9876543',
-          status: 'waiting',
-          luggage: 1,
-          destination: { address: 'Piazza Duomo, Milano', lat: 45.4642, lng: 9.1900 }
-        },
-        completed: false
-      }
-    ];
-
-    setStops(mockStops);
-    
-    // Centra mappa sulla prima fermata
-    setViewState({
-      longitude: mockStops[0].lng,
-      latitude: mockStops[0].lat,
-      zoom: 13
-    });
-  }, [isAuthenticated, user, router]);
-
-  // Simula aggiornamento posizione GPS
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Simula movimento verso la destinazione
-      setCurrentLocation(prev => ({
-        lat: prev.lat + (Math.random() - 0.5) * 0.001,
-        lng: prev.lng + (Math.random() - 0.5) * 0.001
-      }));
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, []);
+  }, [isAuthenticated, user, router, params.id, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentStop = stops[currentStopIndex];
-  const allPassengers = Array.from(new Set(stops.map(s => s.passenger.id)))
-    .map(id => stops.find(s => s.passenger.id === id)?.passenger)
-    .filter(Boolean) as Passenger[];
+  const uniqueIds = Array.from(new Set(stops.map(s => s.passenger.id)));
+  const allPassengers = uniqueIds.map(id => stops.find(s => s.passenger.id === id)?.passenger).filter(Boolean) as Passenger[];
 
-  const handlePassengerOnboard = (passengerId: string) => {
-    setStops(stops.map(stop => 
-      stop.passenger.id === passengerId && stop.type === 'pickup'
-        ? { ...stop, completed: true, passenger: { ...stop.passenger, status: 'onboard' } }
-        : stop
-    ));
-  };
+  const handleOnboard = (id: string) =>
+    setStops(s => s.map(stop => stop.passenger.id === id && stop.type === 'pickup'
+      ? { ...stop, completed: true, passenger: { ...stop.passenger, status: 'onboard' } } : stop));
 
-  const handlePassengerDropped = (passengerId: string) => {
-    setStops(stops.map(stop => 
-      stop.passenger.id === passengerId && stop.type === 'dropoff'
-        ? { ...stop, completed: true, passenger: { ...stop.passenger, status: 'dropped' } }
-        : stop
-    ));
-  };
+  const handleDropped = (id: string) =>
+    setStops(s => s.map(stop => stop.passenger.id === id && stop.type === 'dropoff'
+      ? { ...stop, completed: true, passenger: { ...stop.passenger, status: 'dropped' } } : stop));
 
-  const handleNextStop = () => {
-    const nextIndex = stops.findIndex((stop, index) => index > currentStopIndex && !stop.completed);
-    
-    if (nextIndex !== -1) {
-      setCurrentStopIndex(nextIndex);
-      setViewState({
-        longitude: stops[nextIndex].lng,
-        latitude: stops[nextIndex].lat,
-        zoom: 14
-      });
+  const handleNext = () => {
+    const next = stops.findIndex((s, i) => i > currentStopIndex && !s.completed);
+    if (next !== -1) {
+      setCurrentStopIndex(next);
+      setViewState({ longitude: stops[next].lng, latitude: stops[next].lat, zoom: 14 });
     } else {
       setRideStatus('completed');
     }
   };
 
-  const handleCompleteRide = async () => {
-    // Chiamata API per completare la corsa
-    try {
-      await fetch(`/api/driver/rides/${params.id}/complete`, {
-        method: 'POST'
-      });
-      router.push('/driver/dashboard');
-    } catch (error) {
-      console.error('Error completing ride:', error);
-    }
+  const handleComplete = async () => {
+    const t = token || localStorage.getItem('flanvo_token');
+    await fetch(`/api/payments/capture-dropoff`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+      body: JSON.stringify({ rideId: params.id }),
+    }).catch(() => {});
+    router.push('/driver/dashboard');
   };
 
-  if (!isAuthenticated || user?.role !== 'driver') {
-    return null;
+  if (!isAuthenticated || user?.role !== 'driver') return null;
+
+  if (stops.length === 0 && !rideStatus) {
+    return (
+      <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 bg-surface-2 border border-surface-4 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <Navigation className="w-8 h-8 text-ink-muted" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Nessun percorso disponibile</h2>
+          <p className="text-ink-secondary text-sm mb-6">
+            Il percorso per questa corsa non è ancora stato generato. Torna alla dashboard e riprova.
+          </p>
+          <button onClick={() => window.history.back()}
+            className="px-6 py-3 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all text-sm">
+            ← Torna indietro
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (rideStatus === 'completed') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-primary-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full text-center p-8">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-10 h-10 text-green-600" />
+      <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center p-4">
+        <div className="w-full max-w-sm text-center">
+          <div className="w-20 h-20 bg-success/10 border border-success/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-success" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            Corsa Completata!
-          </h1>
-          <p className="text-gray-600 mb-8">
-            Tutti i passeggeri sono stati consegnati alle loro destinazioni.
+          <h1 className="text-2xl font-bold text-white mb-3">Corsa completata!</h1>
+          <p className="text-ink-secondary text-sm mb-8">
+            Tutti i passeggeri sono stati consegnati. Il pagamento verrà accreditato sul tuo conto.
           </p>
-          <div className="space-y-3">
-            <Button onClick={handleCompleteRide} size="lg" className="w-full">
-              Conferma e torna alla dashboard
-            </Button>
-            <Button 
-              variant="secondary" 
-              size="lg" 
-              className="w-full"
-              onClick={() => router.push('/driver/dashboard')}
-            >
-              Dashboard
-            </Button>
-          </div>
-        </Card>
+          <button onClick={handleComplete}
+            className="w-full py-3.5 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all mb-3">
+            Conferma e torna alla dashboard
+          </button>
+          <button onClick={() => router.push('/driver/dashboard')}
+            className="w-full py-3.5 bg-surface-2 border border-surface-5 text-ink-secondary font-medium rounded-xl hover:text-white transition-all">
+            Dashboard
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="relative h-screen w-screen overflow-hidden">
-      {/* Mappa a schermo intero */}
       <Map
-        ref={mapRef}
         {...viewState}
-        onMove={evt => setViewState(evt.viewState)}
-        mapStyle="mapbox://styles/mapbox/streets-v12"
+        onMove={e => setViewState(e.viewState)}
+        mapStyle="mapbox://styles/mapbox/dark-v11"
         mapboxAccessToken={MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
       >
         <NavigationControl position="top-right" />
 
-        {/* Marker posizione corrente driver */}
-        <Marker
-          longitude={currentLocation.lng}
-          latitude={currentLocation.lat}
-          anchor="center"
-        >
+        {/* Driver position marker */}
+        <Marker longitude={currentLocation.lng} latitude={currentLocation.lat} anchor="center">
           <div className="relative">
-            <div className="absolute inset-0 bg-accent-500 rounded-full opacity-30 animate-ping"></div>
-            <div className="relative bg-accent-500 rounded-full p-3 shadow-lg border-4 border-white">
-              <Navigation className="w-6 h-6 text-white" />
+            <div className="absolute inset-0 bg-primary-500 rounded-full opacity-30 animate-ping" />
+            <div className="relative bg-primary-500 rounded-full p-2.5 shadow-teal border-2 border-[#0B0B0B]">
+              <Navigation className="w-5 h-5 text-[#0B0B0B]" />
             </div>
           </div>
         </Marker>
 
-        {/* Marker fermate */}
-        {stops.map((stop, index) => (
-          <Marker
-            key={stop.id}
-            longitude={stop.lng}
-            latitude={stop.lat}
-            anchor="bottom"
-          >
-            <div className="relative">
-              <div className={`px-3 py-1 rounded-full text-xs font-bold mb-1 ${
-                stop.completed 
-                  ? 'bg-green-500 text-white' 
-                  : index === currentStopIndex
-                  ? 'bg-accent-500 text-white animate-pulse'
-                  : 'bg-white text-gray-700 border-2 border-gray-300'
-              }`}>
-                {index + 1}
-              </div>
-              <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-                  fill={stop.completed ? '#10b981' : index === currentStopIndex ? '#5B4FFF' : '#9ca3af'}
-                  stroke="white"
-                  strokeWidth="2"
-                />
-                {stop.type === 'pickup' ? (
-                  <ArrowUp className="w-3 h-3 text-white" style={{ position: 'absolute', top: '6px', left: '8.5px' }} />
-                ) : (
-                  <ArrowDown className="w-3 h-3 text-white" style={{ position: 'absolute', top: '6px', left: '8.5px' }} />
-                )}
-              </svg>
+        {/* Stop markers */}
+        {stops.map((stop, i) => (
+          <Marker key={stop.id} longitude={stop.lng} latitude={stop.lat} anchor="bottom">
+            <div className="flex flex-col items-center">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 border-[#0B0B0B] ${
+                stop.completed ? 'bg-success text-white' : i === currentStopIndex ? 'bg-primary-500 text-[#0B0B0B] animate-pulse' : 'bg-surface-3 text-ink-secondary'
+              }`}>{i + 1}</div>
+              <div className={`w-0.5 h-3 ${stop.completed ? 'bg-success' : 'bg-surface-4'}`} />
+              <div className={`w-1.5 h-1.5 rounded-full ${stop.completed ? 'bg-success' : i === currentStopIndex ? 'bg-primary-500' : 'bg-surface-4'}`} />
             </div>
           </Marker>
         ))}
       </Map>
 
-      {/* Header Info Corrente */}
-      <div className="absolute top-4 left-4 right-4 z-10">
-        <Card className="bg-white/95 backdrop-blur-sm shadow-xl">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-1">
-                <Badge variant={currentStop?.type === 'pickup' ? 'info' : 'warning'}>
-                  {currentStop?.type === 'pickup' ? 'RITIRO' : 'CONSEGNA'}
-                </Badge>
-                <span className="text-sm text-gray-500">
-                  Fermata {currentStopIndex + 1} di {stops.length}
-                </span>
-              </div>
-              <h2 className="text-lg font-bold text-gray-900 mb-1">
-                {currentStop?.passenger.name}
-              </h2>
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <MapPin className="w-4 h-4" />
-                <span className="line-clamp-1">{currentStop?.address}</span>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <a
-                href={`tel:${currentStop?.passenger.phone}`}
-                className="p-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-              >
-                <Phone className="w-5 h-5" />
-              </a>
-              <button
-                onClick={() => setShowPassengerPanel(!showPassengerPanel)}
-                className="p-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                <Users className="w-5 h-5" />
-              </button>
-            </div>
+      {/* Top current stop bar */}
+      <div className="absolute top-4 left-4 right-16 z-10">
+        <div className="bg-[#0B0B0B]/90 backdrop-blur border border-surface-4 rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+              currentStop?.type === 'pickup' ? 'bg-primary-500/20 text-primary-400' : 'bg-warning/15 text-warning'
+            }`}>
+              {currentStop?.type === 'pickup' ? 'RITIRO' : 'CONSEGNA'}
+            </span>
+            <span className="text-xs text-ink-muted">Fermata {currentStopIndex + 1}/{stops.length}</span>
           </div>
-        </Card>
+          <p className="font-bold text-white text-sm mb-1">{currentStop?.passenger.name}</p>
+          <div className="flex items-center gap-1.5 text-xs text-ink-secondary">
+            <MapPin className="w-3 h-3" />
+            <span className="truncate">{currentStop?.address}</span>
+          </div>
+          {currentStop?.passenger.phone && (
+            <a href={`tel:${currentStop.passenger.phone}`}
+              className="mt-3 flex items-center gap-2 py-2 px-3 bg-primary-500/10 border border-primary-500/20 rounded-xl text-primary-400 text-xs font-medium">
+              <Phone className="w-3.5 h-3.5" /> Chiama passeggero
+            </a>
+          )}
+        </div>
       </div>
 
-      {/* Pannello Passeggeri (laterale) */}
-      {showPassengerPanel && (
-        <div className="absolute top-4 right-4 bottom-24 w-80 z-10 overflow-hidden">
-          <Card className="h-full flex flex-col bg-white/95 backdrop-blur-sm shadow-xl">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="font-bold text-gray-900 flex items-center">
-                <Users className="w-5 h-5 mr-2 text-primary-600" />
-                Passeggeri ({allPassengers.length})
-              </h3>
-              <button
-                onClick={() => setShowPassengerPanel(false)}
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-500" />
+      {/* Passengers toggle */}
+      <button onClick={() => setShowPanel(!showPanel)}
+        className="absolute top-4 right-4 z-10 p-3 bg-[#0B0B0B]/90 backdrop-blur border border-surface-4 rounded-xl text-ink-secondary hover:text-white transition-all">
+        <Users className="w-5 h-5" />
+      </button>
+
+      {/* Passengers side panel */}
+      {showPanel && (
+        <div className="absolute top-4 right-4 bottom-28 w-72 z-10 overflow-hidden">
+          <div className="h-full flex flex-col bg-[#0B0B0B]/95 backdrop-blur border border-surface-4 rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-surface-4">
+              <span className="text-sm font-bold text-white flex items-center gap-2">
+                <Users className="w-4 h-4 text-primary-400" /> Passeggeri ({allPassengers.length})
+              </span>
+              <button onClick={() => setShowPanel(false)} className="p-1 text-ink-muted hover:text-white rounded-lg">
+                <X className="w-4 h-4" />
               </button>
             </div>
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {allPassengers.map(passenger => (
-                <div
-                  key={passenger.id}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    passenger.status === 'onboard'
-                      ? 'bg-green-50 border-green-300'
-                      : passenger.status === 'dropped'
-                      ? 'bg-gray-50 border-gray-300 opacity-60'
-                      : 'bg-white border-gray-200'
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold">
-                        {passenger.name[0]}
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {allPassengers.map(p => (
+                <div key={p.id} className={`rounded-xl p-3 border transition-all ${
+                  p.status === 'onboard' ? 'bg-success/5 border-success/20'
+                  : p.status === 'dropped' ? 'bg-surface-2 border-surface-4 opacity-60'
+                  : 'bg-surface-2 border-surface-5'
+                }`}>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 bg-primary-500/15 rounded-lg flex items-center justify-center text-primary-400 text-sm font-bold">
+                        {p.name.charAt(0)}
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900">{passenger.name}</p>
-                        <p className="text-xs text-gray-500">🧳 {passenger.luggage} bagagli</p>
+                        <p className="text-sm font-medium text-white">{p.name}</p>
+                        <p className="text-xs text-ink-muted">{p.luggage} bag.</p>
                       </div>
                     </div>
-                    <Badge variant={
-                      passenger.status === 'onboard' ? 'success' :
-                      passenger.status === 'dropped' ? 'info' : 'warning'
-                    }>
-                      {passenger.status === 'onboard' ? 'A bordo' :
-                       passenger.status === 'dropped' ? 'Consegnato' : 'In attesa'}
-                    </Badge>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      p.status === 'onboard' ? 'bg-success/15 text-success'
+                      : p.status === 'dropped' ? 'bg-surface-3 text-ink-muted'
+                      : 'bg-warning/15 text-warning'
+                    }`}>
+                      {p.status === 'onboard' ? 'A bordo' : p.status === 'dropped' ? 'Consegnato' : 'In attesa'}
+                    </span>
                   </div>
-
-                  <div className="text-xs text-gray-600 mb-3">
-                    <MapPin className="w-3 h-3 inline mr-1" />
-                    {passenger.destination.address}
-                  </div>
-
-                  <div className="flex space-x-2">
-                    {passenger.status === 'waiting' && (
-                      <Button
-                        size="sm"
-                        onClick={() => handlePassengerOnboard(passenger.id)}
-                        className="flex-1"
-                      >
-                        <ArrowUp className="w-4 h-4 mr-1" />
-                        A bordo
-                      </Button>
+                  <p className="text-xs text-ink-muted mb-2.5 flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />{p.destination.address}
+                  </p>
+                  <div className="flex gap-2">
+                    {p.status === 'waiting' && (
+                      <button onClick={() => handleOnboard(p.id)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-primary-500/10 border border-primary-500/20 text-primary-400 text-xs font-medium rounded-lg hover:bg-primary-500/20 transition-all">
+                        <ArrowUp className="w-3.5 h-3.5" /> A bordo
+                      </button>
                     )}
-                    {passenger.status === 'onboard' && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handlePassengerDropped(passenger.id)}
-                        className="flex-1"
-                      >
-                        <ArrowDown className="w-4 h-4 mr-1" />
-                        Sceso
-                      </Button>
+                    {p.status === 'onboard' && (
+                      <button onClick={() => handleDropped(p.id)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-warning/10 border border-warning/20 text-warning text-xs font-medium rounded-lg hover:bg-warning/20 transition-all">
+                        <ArrowDown className="w-3.5 h-3.5" /> Sceso
+                      </button>
                     )}
-                    <a
-                      href={`tel:${passenger.phone}`}
-                      className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                    >
-                      <Phone className="w-4 h-4 text-gray-600" />
-                    </a>
+                    {p.phone && (
+                      <a href={`tel:${p.phone}`}
+                        className="p-1.5 bg-surface-3 border border-surface-5 rounded-lg text-ink-muted hover:text-white transition-all">
+                        <Phone className="w-3.5 h-3.5" />
+                      </a>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
-          </Card>
+          </div>
         </div>
       )}
 
-      {/* Bottom Actions */}
+      {/* Bottom action bar */}
       <div className="absolute bottom-4 left-4 right-4 z-10">
-        <Card className="bg-white/95 backdrop-blur-sm shadow-xl">
-          <div className="flex items-center space-x-4">
-            {currentStop && !currentStop.completed && (
-              <div className="flex-1 flex items-center space-x-2 text-sm text-gray-600">
-                <AlertCircle className="w-5 h-5 text-yellow-500" />
-                <span>
-                  {currentStop.type === 'pickup' 
-                    ? 'Conferma il ritiro del passeggero prima di procedere'
-                    : 'Conferma la discesa del passeggero prima di procedere'
-                  }
-                </span>
-              </div>
+        <div className="bg-[#0B0B0B]/95 backdrop-blur border border-surface-4 rounded-2xl p-4">
+          {currentStop && !currentStop.completed && (
+            <div className="flex items-center gap-2 mb-3 text-xs text-warning">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              {currentStop.type === 'pickup'
+                ? 'Conferma ritiro prima di procedere'
+                : 'Conferma discesa prima di procedere'}
+            </div>
+          )}
+          <button onClick={handleNext} disabled={currentStop && !currentStop.completed}
+            className="w-full py-3.5 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all disabled:opacity-40 text-sm flex items-center justify-center gap-2">
+            {currentStopIndex >= stops.length - 1 ? (
+              <><CheckCircle className="w-4 h-4" /> Completa corsa</>
+            ) : (
+              <><Navigation className="w-4 h-4" /> Prossima fermata</>
             )}
-            
-            <Button
-              size="lg"
-              onClick={handleNextStop}
-              disabled={currentStop && !currentStop.completed}
-              className="min-w-[200px]"
-            >
-              {currentStopIndex === stops.length - 1 ? 'Completa Corsa' : 'Prossima Fermata'}
-            </Button>
-          </div>
-        </Card>
+          </button>
+        </div>
       </div>
 
-      {/* Stili per i controlli Mapbox */}
       <style jsx global>{`
-        .mapboxgl-ctrl-group button {
-          background-color: white !important;
-          color: #1a1a1a !important;
-        }
-        .mapboxgl-ctrl-group button:hover {
-          background-color: #f3f4f6 !important;
-        }
+        .mapboxgl-ctrl-group { background: #141414 !important; border: 1px solid #2A2A2A !important; }
+        .mapboxgl-ctrl-group button { background: transparent !important; color: #A1A1AA !important; }
+        .mapboxgl-ctrl-group button:hover { background: #1A1A1A !important; color: #fff !important; }
+        .mapboxgl-ctrl-group button + button { border-top: 1px solid #2A2A2A !important; }
       `}</style>
     </div>
   );

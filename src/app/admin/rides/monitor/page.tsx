@@ -3,50 +3,38 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft,
-  MapPin,
-  Clock,
-  User,
-  Car,
-  Euro,
-  Calendar,
-  Filter,
-  Search,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Navigation,
-  Phone,
+  ArrowLeft, MapPin, Clock, Car, Euro, Filter, Search,
+  CheckCircle, XCircle, AlertCircle, Navigation, Phone, X, Users,
 } from 'lucide-react';
 
 interface AdminRide {
-  id: string;
-  flightNumber: string;
-  status: string;
-  scheduledTime: string;
-  passengerCount: number;
+  id: string; flightNumber: string; status: string;
+  scheduledTime: string; passengerCount: number;
   passengers: { name: string; email: string; phone: string }[];
   driver: { name: string; phone: string; vehicle: string; licensePlate: string } | null;
   pickup: { address: string; time: string };
   dropoff: { address: string };
-  totalRevenue: number;
-  createdAt: string;
+  totalRevenue: number; createdAt: string;
 }
 
 interface RideStats {
-  total: number;
-  forming: number;
-  confirmed: number;
-  inProgress: number;
-  completed: number;
-  cancelled: number;
+  total: number; forming: number; confirmed: number;
+  inProgress: number; completed: number; cancelled: number;
 }
+
+const STATUS_CONFIG: Record<string, { label: string; cls: string; dot: string }> = {
+  forming:     { label: 'In formazione', cls: 'bg-warning/15 text-warning border-warning/20',    dot: 'bg-warning' },
+  confirmed:   { label: 'Confermato',    cls: 'bg-primary-500/15 text-primary-400 border-primary-500/20', dot: 'bg-primary-500' },
+  in_progress: { label: 'In corso',      cls: 'bg-success/15 text-success border-success/20',    dot: 'bg-success animate-pulse' },
+  completed:   { label: 'Completato',    cls: 'bg-surface-3 text-ink-secondary border-surface-5', dot: 'bg-ink-muted' },
+  cancelled:   { label: 'Cancellato',    cls: 'bg-danger/15 text-danger border-danger/20',       dot: 'bg-danger' },
+};
+
+const defaultStatus = { label: 'Sconosciuto', cls: 'bg-surface-3 text-ink-muted border-surface-5', dot: 'bg-surface-4' };
 
 export default function AdminMonitorRidesPage() {
   const [rides, setRides] = useState<AdminRide[]>([]);
-  const [stats, setStats] = useState<RideStats>({
-    total: 0, forming: 0, confirmed: 0, inProgress: 0, completed: 0, cancelled: 0,
-  });
+  const [stats, setStats] = useState<RideStats>({ total: 0, forming: 0, confirmed: 0, inProgress: 0, completed: 0, cancelled: 0 });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -61,287 +49,223 @@ export default function AdminMonitorRidesPage() {
   const fetchRides = async () => {
     try {
       const token = localStorage.getItem('flanvo_token');
-      const params = new URLSearchParams({
-        status: statusFilter,
-        search: searchTerm,
-      });
-      const res = await fetch(`/api/admin/rides?${params}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setRides(data.rides ?? []);
-        setStats(data.stats ?? stats);
-      }
-    } catch (error) {
-      console.error('Error fetching rides:', error);
-    } finally {
-      setLoading(false);
-    }
+      const params = new URLSearchParams({ status: statusFilter, search: searchTerm });
+      const res = await fetch(`/api/admin/rides?${params}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (res.ok) { const data = await res.json(); setRides(data.rides ?? []); setStats(data.stats ?? stats); }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'forming': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'confirmed': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'in_progress': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    const map: Record<string, string> = {
-      forming: 'In formazione',
-      confirmed: 'Confermato',
-      in_progress: 'In corso',
-      completed: 'Completato',
-      cancelled: 'Cancellato',
-    };
-    return map[status] ?? status;
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4" />
-          <p className="text-gray-600">Caricamento corse...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-[#0B0B0B] py-8 px-4">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <Link href="/admin/dashboard" className="inline-flex items-center text-primary-600 hover:text-primary-700 mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Torna alla Dashboard
+        {/* Header */}
+        <div className="mb-7">
+          <Link href="/admin/dashboard" className="inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink-secondary mb-4">
+            <ArrowLeft className="w-3.5 h-3.5" /> Dashboard
           </Link>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                <Navigation className="w-8 h-8 mr-3 text-primary-600" />
-                Monitora Corse
-              </h1>
-              <p className="text-gray-600 mt-1">Corse in tempo reale — aggiornamento ogni 30s</p>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-surface-2 border border-surface-5 rounded-xl">
+                <Navigation className="w-5 h-5 text-primary-400" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-white">Monitora Corse</h1>
+                <p className="text-ink-muted text-xs">Aggiornamento automatico ogni 30s</p>
+              </div>
             </div>
-            <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg flex items-center">
-              <div className="w-2 h-2 bg-green-600 rounded-full mr-2 animate-pulse" />
-              <span className="text-sm font-medium">Live</span>
+            <div className="flex items-center gap-2 bg-success/10 border border-success/20 rounded-xl px-3 py-1.5">
+              <span className="w-2 h-2 bg-success rounded-full animate-pulse" />
+              <span className="text-xs font-semibold text-success">Live</span>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        {/* Stats mini-grid */}
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
           {[
-            { label: 'Totale', value: stats.total, cls: 'bg-white border-gray-200' },
-            { label: 'In formazione', value: stats.forming, cls: 'bg-yellow-50 border-yellow-200' },
-            { label: 'Confermate', value: stats.confirmed, cls: 'bg-blue-50 border-blue-200' },
-            { label: 'In corso', value: stats.inProgress, cls: 'bg-purple-50 border-purple-200' },
-            { label: 'Completate', value: stats.completed, cls: 'bg-green-50 border-green-200' },
-            { label: 'Cancellate', value: stats.cancelled, cls: 'bg-red-50 border-red-200' },
-          ].map((s) => (
-            <div key={s.label} className={`rounded-lg p-4 shadow-sm border ${s.cls}`}>
-              <p className="text-sm text-gray-600 mb-1">{s.label}</p>
-              <p className="text-2xl font-bold text-gray-900">{s.value}</p>
+            { label: 'Totale', value: stats.total, color: 'text-white' },
+            { label: 'In formazione', value: stats.forming, color: 'text-warning' },
+            { label: 'Confermate', value: stats.confirmed, color: 'text-primary-400' },
+            { label: 'In corso', value: stats.inProgress, color: 'text-success' },
+            { label: 'Completate', value: stats.completed, color: 'text-ink-secondary' },
+            { label: 'Cancellate', value: stats.cancelled, color: 'text-danger' },
+          ].map(s => (
+            <div key={s.label} className="bg-surface-1 border border-surface-4 rounded-xl p-3">
+              <p className="text-xs text-ink-muted mb-1">{s.label}</p>
+              <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
             </div>
           ))}
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6 border border-gray-200">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Search className="w-4 h-4 inline mr-2" />
-                Cerca
-              </label>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Volo, passeggero, autista..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Filter className="w-4 h-4 inline mr-2" />
-                Stato
-              </label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              >
-                <option value="all">Tutti</option>
-                <option value="FORMING">In formazione</option>
-                <option value="CONFIRMED">Confermato</option>
-                <option value="IN_PROGRESS">In corso</option>
-                <option value="COMPLETED">Completato</option>
-                <option value="CANCELLED">Cancellato</option>
-              </select>
-            </div>
+        {/* Filters */}
+        <div className="bg-surface-1 border border-surface-4 rounded-xl p-4 mb-5 grid md:grid-cols-2 gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted" />
+            <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Volo, passeggero, autista..."
+              className="w-full pl-9 pr-4 py-2.5 bg-surface-2 border border-surface-5 rounded-lg text-white text-sm placeholder-ink-muted focus:outline-none focus:border-primary-500" />
+          </div>
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted" />
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 bg-surface-2 border border-surface-5 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500 appearance-none">
+              <option value="all">Tutti gli stati</option>
+              <option value="FORMING">In formazione</option>
+              <option value="CONFIRMED">Confermato</option>
+              <option value="IN_PROGRESS">In corso</option>
+              <option value="COMPLETED">Completato</option>
+              <option value="CANCELLED">Cancellato</option>
+            </select>
           </div>
         </div>
 
-        <div className="space-y-4">
-          {rides.map((ride) => (
-            <div key={ride.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 mr-4">
-                    <Car className="w-6 h-6" />
+        {/* Rides */}
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
+          </div>
+        ) : rides.length === 0 ? (
+          <div className="bg-surface-1 border border-surface-4 rounded-2xl p-12 text-center">
+            <Navigation className="w-10 h-10 text-ink-muted mx-auto mb-3" />
+            <p className="text-white font-semibold">Nessuna corsa trovata</p>
+            <p className="text-ink-muted text-sm mt-1">Modifica i filtri per vedere altre corse</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {rides.map(ride => {
+              const sc = STATUS_CONFIG[ride.status] ?? defaultStatus;
+              return (
+                <div key={ride.id} className="bg-surface-1 border border-surface-4 rounded-2xl p-5 hover:border-surface-5 transition-all">
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary-500/10 rounded-xl">
+                        <Car className="w-4 h-4 text-primary-400" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-white">Volo {ride.flightNumber} · {ride.passengerCount} pax</p>
+                        <p className="text-xs text-ink-muted">
+                          {new Date(ride.scheduledTime).toLocaleString('it-IT', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full border ${sc.cls}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
+                      {sc.label}
+                    </span>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">
-                      Volo {ride.flightNumber} · {ride.passengerCount} pax
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {new Date(ride.scheduledTime).toLocaleString('it-IT', {
-                        day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
-                      })}
-                    </p>
-                  </div>
-                </div>
-                <span className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-full border ${getStatusColor(ride.status)}`}>
-                  {ride.status === 'in_progress' ? <Navigation className="w-4 h-4 mr-1" /> :
-                   ride.status === 'completed' ? <CheckCircle className="w-4 h-4 mr-1" /> :
-                   ride.status === 'cancelled' ? <XCircle className="w-4 h-4 mr-1" /> :
-                   <Clock className="w-4 h-4 mr-1" />}
-                  {getStatusText(ride.status)}
-                </span>
-              </div>
 
-              <div className="grid md:grid-cols-3 gap-6 mb-4">
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
-                    <User className="w-4 h-4 mr-2 text-primary-600" />
-                    Passeggeri
-                  </h4>
-                  {ride.passengers.slice(0, 3).map((p, i) => (
-                    <p key={i} className="text-sm text-gray-700">{p.name}</p>
-                  ))}
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
-                    <Car className="w-4 h-4 mr-2 text-primary-600" />
-                    Autista
-                  </h4>
-                  {ride.driver ? (
-                    <>
-                      <p className="text-gray-900 font-medium">{ride.driver.name}</p>
-                      <p className="text-sm text-gray-600">{ride.driver.vehicle}</p>
-                      <p className="text-sm text-gray-600">{ride.driver.licensePlate}</p>
-                    </>
-                  ) : (
-                    <p className="text-amber-600 font-medium flex items-center">
-                      <AlertCircle className="w-4 h-4 mr-1" />
-                      In attesa di autista
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
-                    <MapPin className="w-4 h-4 mr-2 text-primary-600" />
-                    Percorso
-                  </h4>
-                  <div className="flex items-start">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mt-1.5 mr-2" />
-                    <p className="text-sm text-gray-600">{ride.pickup.address}</p>
+                  <div className="grid md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <p className="text-xs font-semibold text-ink-secondary mb-1.5 flex items-center gap-1">
+                        <Users className="w-3 h-3" /> Passeggeri
+                      </p>
+                      <div className="space-y-1">
+                        {ride.passengers.slice(0, 3).map((p, i) => (
+                          <p key={i} className="text-xs text-ink-secondary">{p.name}</p>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-ink-secondary mb-1.5 flex items-center gap-1">
+                        <Car className="w-3 h-3" /> Autista
+                      </p>
+                      {ride.driver ? (
+                        <>
+                          <p className="text-xs font-medium text-white">{ride.driver.name}</p>
+                          <p className="text-xs text-ink-muted">{ride.driver.vehicle} · {ride.driver.licensePlate}</p>
+                        </>
+                      ) : (
+                        <p className="text-xs text-warning flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" /> In attesa
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-ink-secondary mb-1.5 flex items-center gap-1">
+                        <MapPin className="w-3 h-3" /> Percorso
+                      </p>
+                      <div className="flex items-start gap-1.5 mb-1">
+                        <span className="w-1.5 h-1.5 bg-success rounded-full mt-1 shrink-0" />
+                        <p className="text-xs text-ink-muted leading-tight">{ride.pickup.address}</p>
+                      </div>
+                      <div className="flex items-start gap-1.5">
+                        <span className="w-1.5 h-1.5 bg-danger rounded-full mt-1 shrink-0" />
+                        <p className="text-xs text-ink-muted leading-tight">{ride.dropoff.address}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-start mt-1">
-                    <div className="w-2 h-2 bg-red-500 rounded-full mt-1.5 mr-2" />
-                    <p className="text-sm text-gray-600">{ride.dropoff.address}</p>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-surface-4">
+                    <div className="flex items-center gap-1 text-sm font-bold text-success">
+                      <Euro className="w-4 h-4" /> {ride.totalRevenue.toFixed(2)}
+                    </div>
+                    <button onClick={() => setSelectedRide(ride)}
+                      className="px-4 py-2 bg-surface-2 border border-surface-5 text-sm text-ink-secondary rounded-xl hover:text-white hover:border-surface-4 transition-all">
+                      Vedi dettagli
+                    </button>
                   </div>
                 </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                <div className="flex items-center text-lg font-bold text-green-600">
-                  <Euro className="w-5 h-5 mr-1" />
-                  {ride.totalRevenue.toFixed(2)}
-                </div>
-                <button
-                  onClick={() => setSelectedRide(ride)}
-                  className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium"
-                >
-                  Vedi Dettagli
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {rides.length === 0 && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-              <Navigation className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Nessuna corsa trovata</h3>
-              <p className="text-gray-600">Non ci sono corse che corrispondono ai filtri.</p>
-            </div>
-          )}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
+      {/* Detail modal */}
       {selectedRide && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+        <div className="fixed inset-0 bg-[#0B0B0B]/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-1 border border-surface-4 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-surface-1 border-b border-surface-4 px-6 py-4 flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Volo {selectedRide.flightNumber}</h2>
-                <span className={`inline-flex items-center px-3 py-1 mt-2 text-sm font-medium rounded-full border ${getStatusColor(selectedRide.status)}`}>
-                  {getStatusText(selectedRide.status)}
+                <h2 className="font-bold text-white">Volo {selectedRide.flightNumber}</h2>
+                <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border mt-1 ${(STATUS_CONFIG[selectedRide.status] ?? defaultStatus).cls}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${(STATUS_CONFIG[selectedRide.status] ?? defaultStatus).dot}`} />
+                  {(STATUS_CONFIG[selectedRide.status] ?? defaultStatus).label}
                 </span>
               </div>
-              <button onClick={() => setSelectedRide(null)} className="text-gray-400 hover:text-gray-600 text-3xl">×</button>
+              <button onClick={() => setSelectedRide(null)} className="p-2 text-ink-muted hover:text-white rounded-lg transition-all">
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-5">
               <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-3">Passeggeri</h3>
-                {selectedRide.passengers.map((p, i) => (
-                  <div key={i} className="bg-gray-50 p-3 rounded-lg mb-2">
-                    <p className="font-medium text-gray-900">{p.name}</p>
-                    <p className="text-sm text-gray-600">{p.email}</p>
-                    {p.phone && (
-                      <a href={`tel:${p.phone}`} className="text-sm text-primary-600 flex items-center mt-1">
-                        <Phone className="w-3 h-3 mr-1" />{p.phone}
-                      </a>
-                    )}
-                  </div>
-                ))}
+                <p className="text-xs font-bold text-ink-secondary mb-3">Passeggeri</p>
+                <div className="space-y-2">
+                  {selectedRide.passengers.map((p, i) => (
+                    <div key={i} className="bg-surface-2 rounded-xl px-4 py-3">
+                      <p className="text-sm font-medium text-white">{p.name}</p>
+                      <p className="text-xs text-ink-muted">{p.email}</p>
+                      {p.phone && (
+                        <a href={`tel:${p.phone}`} className="text-xs text-primary-400 flex items-center gap-1 mt-1">
+                          <Phone className="w-3 h-3" />{p.phone}
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
               {selectedRide.driver && (
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-3">Autista</h3>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="font-medium text-gray-900">{selectedRide.driver.name}</p>
-                    <p className="text-sm text-gray-600">{selectedRide.driver.vehicle} — {selectedRide.driver.licensePlate}</p>
+                  <p className="text-xs font-bold text-ink-secondary mb-3">Autista</p>
+                  <div className="bg-surface-2 rounded-xl px-4 py-3">
+                    <p className="text-sm font-medium text-white">{selectedRide.driver.name}</p>
+                    <p className="text-xs text-ink-muted">{selectedRide.driver.vehicle} — {selectedRide.driver.licensePlate}</p>
                     {selectedRide.driver.phone && (
-                      <a href={`tel:${selectedRide.driver.phone}`} className="text-sm text-primary-600 flex items-center mt-1">
-                        <Phone className="w-3 h-3 mr-1" />{selectedRide.driver.phone}
+                      <a href={`tel:${selectedRide.driver.phone}`} className="text-xs text-primary-400 flex items-center gap-1 mt-1">
+                        <Phone className="w-3 h-3" />{selectedRide.driver.phone}
                       </a>
                     )}
                   </div>
                 </div>
               )}
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
-                  <Euro className="w-5 h-5 mr-2 text-primary-600" />
-                  Ricavo totale gruppo
-                </h3>
-                <p className="text-2xl font-bold text-green-600">€{selectedRide.totalRevenue.toFixed(2)}</p>
+              <div className="bg-surface-2 rounded-xl px-4 py-4">
+                <p className="text-xs text-ink-muted mb-1">Ricavo totale gruppo</p>
+                <p className="text-2xl font-black text-success">€{selectedRide.totalRevenue.toFixed(2)}</p>
               </div>
-              <div className="flex items-center justify-between text-sm text-gray-500">
-                <div className="flex items-center">
-                  <Calendar className="w-4 h-4 mr-1" />
-                  Creato: {new Date(selectedRide.createdAt).toLocaleString('it-IT')}
-                </div>
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 mr-1" />
-                  Pickup: {new Date(selectedRide.pickup.time).toLocaleString('it-IT')}
-                </div>
+              <div className="flex items-center justify-between text-xs text-ink-muted">
+                <span className="flex items-center gap-1"><Clock className="w-3 h-3" />Creato: {new Date(selectedRide.createdAt).toLocaleString('it-IT')}</span>
+                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />Pickup: {new Date(selectedRide.pickup.time).toLocaleString('it-IT')}</span>
               </div>
             </div>
           </div>

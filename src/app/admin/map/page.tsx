@@ -64,14 +64,14 @@ export default function AdminMapPage() {
   const activeCount = drivers.filter((d) => d.activeRide).length;
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-[#0B0B0B] flex flex-col">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 px-6 py-4">
+      <div className="bg-surface-1 border-b border-surface-4 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
               href="/admin/dashboard"
-              className="text-gray-400 hover:text-white flex items-center gap-1 text-sm"
+              className="text-ink-muted hover:text-white flex items-center gap-1 text-sm"
             >
               <ArrowLeft className="w-4 h-4" />
               Dashboard
@@ -86,25 +86,24 @@ export default function AdminMapPage() {
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3 text-sm">
-              <span className="flex items-center gap-1 text-gray-300">
-                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse inline-block" />
-                {activeCount} in corsa
+              <span className="flex items-center gap-2 bg-success/10 border border-success/20 rounded-full px-3 py-1">
+                <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
+                <span className="text-xs font-semibold text-success">{activeCount} in corsa</span>
               </span>
-              <span className="text-gray-500">·</span>
-              <span className="text-gray-400">{drivers.length} online</span>
+              <span className="text-ink-muted text-xs">{drivers.length} online</span>
             </div>
 
             <button
               onClick={fetchDrivers}
-              className="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-700 transition-colors"
+              className="text-ink-muted hover:text-white p-2 rounded-lg hover:bg-surface-3 transition-colors"
               title="Aggiorna"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
 
             {lastUpdate && (
-              <span className="text-xs text-gray-500">
-                Aggiornato {lastUpdate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              <span className="text-xs text-ink-muted">
+                {lastUpdate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>
             )}
           </div>
@@ -114,18 +113,15 @@ export default function AdminMapPage() {
       {/* Map */}
       <div className="flex-1 relative">
         {!MAPBOX_TOKEN ? (
-          <div className="flex items-center justify-center h-full text-gray-400 bg-gray-900">
+          <div className="flex items-center justify-center h-full text-ink-muted bg-[#0B0B0B]">
             <div className="text-center">
               <Navigation className="w-16 h-16 mx-auto mb-4 opacity-30" />
               <p>NEXT_PUBLIC_MAPBOX_TOKEN non configurato</p>
             </div>
           </div>
         ) : loading ? (
-          <div className="flex items-center justify-center h-full text-gray-400 bg-gray-900">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4" />
-              <p>Caricamento mappa...</p>
-            </div>
+          <div className="flex items-center justify-center h-full bg-[#0B0B0B]">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-500" />
           </div>
         ) : (
           <Map
@@ -155,7 +151,7 @@ export default function AdminMapPage() {
                   className={`cursor-pointer flex items-center justify-center rounded-full shadow-lg border-2 transition-transform hover:scale-110 ${
                     driver.activeRide
                       ? 'w-10 h-10 bg-primary-500 border-primary-300'
-                      : 'w-8 h-8 bg-gray-600 border-gray-400'
+                      : 'w-8 h-8 bg-surface-4 border-surface-5'
                   }`}
                   title={driver.name}
                 >
@@ -175,42 +171,42 @@ export default function AdminMapPage() {
                 closeOnClick={false}
                 className="z-50"
               >
-                <div className="p-3 min-w-[200px]">
+                <div className="p-3 min-w-[180px] bg-surface-1 text-white">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selected.activeRide ? 'bg-primary-500' : 'bg-gray-400'}`}>
-                      <Car className="w-4 h-4 text-white" />
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selected.activeRide ? 'bg-primary-500' : 'bg-surface-4'}`}>
+                      <Car className={`w-4 h-4 ${selected.activeRide ? 'text-[#0B0B0B]' : 'text-ink-muted'}`} />
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900 text-sm">{selected.name}</p>
-                      <p className="text-xs text-gray-500">{selected.vehicle} · {selected.plate}</p>
+                      <p className="font-semibold text-white text-sm">{selected.name}</p>
+                      <p className="text-xs text-ink-muted">{selected.vehicle} · {selected.plate}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-1 mb-2">
-                    <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                    <span className="text-xs text-gray-700">{selected.rating.toFixed(1)}</span>
+                    <Star className="w-3 h-3 text-warning fill-warning" />
+                    <span className="text-xs text-warning font-medium">{selected.rating.toFixed(1)}</span>
                   </div>
 
                   {selected.activeRide ? (
-                    <div className="bg-green-50 rounded-lg p-2">
-                      <p className="text-xs font-semibold text-green-800 mb-1 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse inline-block" />
+                    <div className="bg-success/10 border border-success/20 rounded-lg p-2">
+                      <p className="text-xs font-semibold text-success mb-1 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
                         In corsa
                       </p>
-                      <p className="text-xs text-green-700">Volo {selected.activeRide.flightNumber}</p>
-                      <p className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
+                      <p className="text-xs text-ink-secondary">Volo {selected.activeRide.flightNumber}</p>
+                      <p className="text-xs text-ink-muted flex items-center gap-1 mt-0.5">
                         <Users className="w-3 h-3" />
                         {selected.activeRide.passengers} passeggeri
                       </p>
                     </div>
                   ) : (
-                    <div className="bg-gray-50 rounded-lg p-2">
-                      <p className="text-xs text-gray-500">Disponibile · In attesa</p>
+                    <div className="bg-surface-2 rounded-lg p-2">
+                      <p className="text-xs text-ink-muted">Disponibile · In attesa</p>
                     </div>
                   )}
 
-                  <p className="text-xs text-gray-400 mt-2">
-                    Ultimo aggiornamento: {new Date(selected.lastSeen).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  <p className="text-xs text-ink-muted mt-2">
+                    {new Date(selected.lastSeen).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </p>
                 </div>
               </Popup>
@@ -219,32 +215,32 @@ export default function AdminMapPage() {
         )}
 
         {/* Legend overlay */}
-        <div className="absolute bottom-6 left-6 bg-gray-800/90 backdrop-blur rounded-xl p-4 text-sm border border-gray-700">
-          <p className="text-gray-300 font-semibold mb-2">Legenda</p>
+        <div className="absolute bottom-6 left-6 bg-[#0B0B0B]/90 backdrop-blur rounded-xl p-4 text-sm border border-surface-4">
+          <p className="text-white font-semibold text-xs mb-2">Legenda</p>
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 bg-primary-500 border-2 border-primary-300 rounded-full flex items-center justify-center">
-                <Car className="w-3 h-3 text-white" />
+                <Car className="w-3 h-3 text-[#0B0B0B]" />
               </div>
-              <span className="text-gray-300 text-xs">Driver in corsa</span>
+              <span className="text-ink-secondary text-xs">Driver in corsa</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 bg-gray-600 border-2 border-gray-400 rounded-full flex items-center justify-center">
-                <Car className="w-2.5 h-2.5 text-white" />
+              <div className="w-5 h-5 bg-surface-4 border-2 border-surface-5 rounded-full flex items-center justify-center">
+                <Car className="w-2.5 h-2.5 text-ink-muted" />
               </div>
-              <span className="text-gray-300 text-xs">Driver disponibile</span>
+              <span className="text-ink-secondary text-xs">Driver disponibile</span>
             </div>
           </div>
-          <p className="text-gray-500 text-xs mt-2">Refresh ogni 15 secondi</p>
+          <p className="text-ink-muted text-xs mt-2">Refresh ogni 15s</p>
         </div>
 
         {/* Empty state overlay */}
         {!loading && drivers.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="bg-gray-800/90 backdrop-blur rounded-xl p-6 text-center border border-gray-700">
-              <Car className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+            <div className="bg-[#0B0B0B]/90 backdrop-blur rounded-2xl p-6 text-center border border-surface-4">
+              <Car className="w-10 h-10 text-ink-muted mx-auto mb-3" />
               <p className="text-white font-semibold">Nessun driver online</p>
-              <p className="text-gray-400 text-sm mt-1">I driver appaiono qui quando sono attivi</p>
+              <p className="text-ink-muted text-sm mt-1">I driver appaiono qui quando sono attivi</p>
             </div>
           </div>
         )}

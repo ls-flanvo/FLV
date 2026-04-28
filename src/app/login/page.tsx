@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/store';
 import { Input, Button } from '@/components/ui';
 import { Mail, Lock, AlertCircle } from 'lucide-react';
+import SocialButtons from '@/components/SocialButtons';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -97,12 +98,22 @@ export default function LoginPage() {
               </div>
             )}
 
-            <Button type="submit" className="w-full mt-2" size="lg" disabled={loading}>
+            <div className="flex justify-end">
+              <Link href="/forgot-password" className="text-xs text-ink-muted hover:text-primary-400 transition-colors">
+                Password dimenticata?
+              </Link>
+            </div>
+
+            <Button type="submit" className="w-full" size="lg" disabled={loading}>
               {loading ? 'Accesso in corso...' : 'Accedi'}
             </Button>
           </form>
 
-          <p className="text-center text-sm text-ink-secondary mt-6">
+          <div className="mt-5">
+            <SocialButtons />
+          </div>
+
+          <p className="text-center text-sm text-ink-secondary mt-5">
             Non hai un account?{' '}
             <Link href="/signup" className="text-primary-400 hover:text-primary-300 font-semibold transition-colors">
               Registrati gratis

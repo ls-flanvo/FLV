@@ -4,63 +4,44 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store';
-import { Card, Button, Badge } from '@/components/ui';
-import { 
-  Users, 
-  Car, 
-  DollarSign, 
-  TrendingUp, 
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  Clock,
-  MapPin,
-  Shield
+import { StatCard, Badge } from '@/components/ui';
+import {
+  Users, Car, DollarSign, TrendingUp, AlertCircle,
+  CheckCircle, XCircle, Clock, MapPin, Shield, Navigation, BarChart3, Settings
 } from 'lucide-react';
 
 interface AdminStats {
-  totalUsers: number;
-  totalDrivers: number;
-  activeRides: number;
-  totalRevenue: number;
-  todayRides: number;
-  pendingApprovals: number;
+  totalUsers: number; totalDrivers: number; activeRides: number;
+  totalRevenue: number; todayRides: number; pendingApprovals: number;
+}
+interface RecentActivity {
+  id: string; type: string; user: string;
+  description: string; timestamp: string; status: 'success' | 'pending' | 'warning';
 }
 
-interface RecentActivity {
-  id: string;
-  type: 'booking' | 'driver_signup' | 'ride_completed' | 'cancellation';
-  user: string;
-  description: string;
-  timestamp: string;
-  status: 'success' | 'pending' | 'warning';
-}
+const QUICK_ACTIONS = [
+  { href: '/admin/users', icon: Users, label: 'Gestisci utenti' },
+  { href: '/admin/drivers/approve', icon: Car, label: 'Approva autisti' },
+  { href: '/admin/rides/monitor', icon: Navigation, label: 'Monitora corse' },
+  { href: '/admin/map', icon: MapPin, label: 'Mappa live' },
+  { href: '/admin/reports', icon: BarChart3, label: 'Analytics' },
+  { href: '/admin/config', icon: Settings, label: 'Tariffe' },
+];
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStats>({
-    totalUsers: 0,
-    totalDrivers: 0,
-    activeRides: 0,
-    totalRevenue: 0,
-    todayRides: 0,
-    pendingApprovals: 0,
+    totalUsers: 0, totalDrivers: 0, activeRides: 0,
+    totalRevenue: 0, todayRides: 0, pendingApprovals: 0,
   });
   const [activities, setActivities] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'drivers' | 'rides'>('overview');
 
   const { user, isAuthenticated, token } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/admin/login');
-      return;
-    }
-    if (user?.role !== 'admin') {
-      router.push('/login');
-      return;
-    }
+    if (!isAuthenticated) { router.push('/admin/login'); return; }
+    if (user?.role !== 'admin') { router.push('/login'); return; }
     fetchAdminData();
   }, [isAuthenticated, user, router]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -71,282 +52,121 @@ export default function AdminDashboardPage() {
         headers: { Authorization: `Bearer ${authToken}` },
       });
       const data = await res.json();
-
       if (data.stats) {
         setStats(data.stats);
-        setActivities(
-          (data.activity || []).map((a: { id: string; type: string; description: string; status: string; timestamp: string }) => ({
-            id: a.id,
-            type: a.type,
-            user: '',
-            description: a.description,
-            timestamp: a.timestamp,
-            status: a.status === 'pending' ? 'pending' : a.status === 'cancelled' ? 'warning' : 'success',
-          }))
-        );
+        setActivities((data.activity || []).map((a: { id: string; type: string; user: string; description: string; timestamp: string; status: string }) => ({
+          id: a.id, type: a.type, user: a.user,
+          description: a.description, timestamp: a.timestamp,
+          status: (a.status === 'pending' ? 'pending' : a.status === 'cancelled' ? 'warning' : 'success') as 'success' | 'pending' | 'warning',
+        })));
       }
-    } catch (error) {
-      console.error('Error fetching admin data:', error);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
-  if (!isAuthenticated || user?.role !== 'admin') {
-    return null;
-  }
+  if (!isAuthenticated || user?.role !== 'admin') return null;
 
   const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'booking':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
-      case 'driver_signup':
-        return <Car className="w-5 h-5 text-blue-600" />;
-      case 'ride_completed':
-        return <MapPin className="w-5 h-5 text-primary-600" />;
-      case 'cancellation':
-        return <XCircle className="w-5 h-5 text-red-600" />;
-      default:
-        return <AlertCircle className="w-5 h-5 text-gray-600" />;
-    }
+    const cls = 'w-4 h-4';
+    if (type === 'booking') return <CheckCircle className={`${cls} text-success`} />;
+    if (type === 'driver_signup') return <Car className={`${cls} text-primary-400`} />;
+    if (type === 'ride_completed') return <MapPin className={`${cls} text-primary-400`} />;
+    if (type === 'cancellation') return <XCircle className={`${cls} text-danger`} />;
+    return <AlertCircle className={`${cls} text-ink-muted`} />;
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center space-x-3 mb-2">
-          <div className="w-12 h-12 bg-gradient-to-br from-accent-500 to-accent-600 rounded-xl flex items-center justify-center">
-            <Shield className="w-6 h-6 text-white" />
+      <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-primary-500/10 border border-primary-500/20 rounded-xl">
+            <Shield className="w-6 h-6 text-primary-400" />
           </div>
           <div>
-            <h1 className="text-4xl font-bold text-gray-900">Dashboard Admin</h1>
-            <p className="text-gray-600">Benvenuto, {user?.name}! 👨‍✈️</p>
+            <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
+            <p className="text-ink-muted text-sm">{user?.name}</p>
           </div>
         </div>
+        {stats.pendingApprovals > 0 && (
+          <Link href="/admin/drivers/approve">
+            <div className="flex items-center gap-2 bg-warning/10 border border-warning/20 rounded-xl px-4 py-2.5">
+              <span className="w-2 h-2 bg-warning rounded-full animate-pulse" />
+              <span className="text-sm font-semibold text-warning">
+                {stats.pendingApprovals} autist{stats.pendingApprovals === 1 ? 'a' : 'i'} in attesa
+              </span>
+            </div>
+          </Link>
+        )}
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <div className="flex items-center space-x-4">
-            <div className="bg-blue-100 p-4 rounded-full">
-              <Users className="w-8 h-8 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Utenti Totali</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.totalUsers}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center space-x-4">
-            <div className="bg-primary-100 p-4 rounded-full">
-              <Car className="w-8 h-8 text-primary-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Autisti Attivi</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.totalDrivers}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center space-x-4">
-            <div className="bg-green-100 p-4 rounded-full">
-              <DollarSign className="w-8 h-8 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Revenue Totale</p>
-              <p className="text-3xl font-bold text-gray-900">€{stats.totalRevenue.toLocaleString()}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center space-x-4">
-            <div className="bg-accent-100 p-4 rounded-full">
-              <TrendingUp className="w-8 h-8 text-accent-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Corse Oggi</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.todayRides}</p>
-            </div>
-          </div>
-        </Card>
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+        {[
+          { label: 'Utenti', value: stats.totalUsers, icon: <Users className="w-4 h-4 text-ink-muted" /> },
+          { label: 'Autisti', value: stats.totalDrivers, icon: <Car className="w-4 h-4 text-ink-muted" /> },
+          { label: 'Revenue', value: `€${stats.totalRevenue.toLocaleString()}`, icon: <DollarSign className="w-4 h-4 text-primary-400" />, accent: true },
+          { label: 'Corse oggi', value: stats.todayRides, icon: <TrendingUp className="w-4 h-4 text-ink-muted" /> },
+          { label: 'Attive ora', value: stats.activeRides, icon: <Navigation className="w-4 h-4 text-success" /> },
+          { label: 'Pending', value: stats.pendingApprovals, icon: <Clock className="w-4 h-4 text-warning" /> },
+        ].map((s) => (
+          <StatCard key={s.label} label={s.label} value={s.value} icon={s.icon} accent={s.accent} />
+        ))}
       </div>
 
-      {/* Secondary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card className="bg-gradient-to-br from-primary-50 to-primary-100 border-primary-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Corse Attive</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.activeRides}</p>
-            </div>
-            <MapPin className="w-10 h-10 text-primary-500" />
-          </div>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Approvazioni Pending</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.pendingApprovals}</p>
-            </div>
-            <Clock className="w-10 h-10 text-yellow-500" />
-          </div>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Tasso Completamento</p>
-              <p className="text-3xl font-bold text-gray-900">94%</p>
-            </div>
-            <CheckCircle className="w-10 h-10 text-green-500" />
-          </div>
-        </Card>
-      </div>
-
-      {/* Tabs */}
-      <div className="mb-6 border-b border-gray-200">
-        <div className="flex space-x-6">
-          {['overview', 'users', 'drivers', 'rides'].map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab as any)}
-              className={`pb-3 px-1 border-b-2 font-medium text-sm transition-colors capitalize ${
-                activeTab === tab
-                  ? 'border-accent-600 text-accent-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Content based on active tab */}
-      {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Attività Recenti */}
-          <div className="lg:col-span-2">
-            <Card>
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Attività Recenti</h2>
-              {loading ? (
-                <p className="text-center text-gray-600 py-8">Caricamento...</p>
-              ) : (
-                <div className="space-y-4">
-                  {activities.map(activity => (
-                    <div
-                      key={activity.id}
-                      className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <div className="flex-shrink-0 mt-1">
-                        {getActivityIcon(activity.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900">
-                          {activity.user}
-                        </p>
-                        <p className="text-sm text-gray-600 truncate">
-                          {activity.description}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {new Date(activity.timestamp).toLocaleString('it-IT')}
-                        </p>
-                      </div>
-                      <Badge variant={
-                        activity.status === 'success' ? 'success' :
-                        activity.status === 'pending' ? 'warning' : 'danger'
-                      }>
-                        {activity.status}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-          </div>
-
-          {/* Quick Actions */}
-<div>
-  <Card>
-    <h2 className="text-xl font-bold text-gray-900 mb-6">Azioni Rapide</h2>
-    <div className="flex flex-col gap-4">
-      <Link href="/admin/users" className="block">
-        <Button className="w-full justify-start text-sm py-2">
-          <Users className="w-4 h-4 mr-2" />
-          Gestisci Utenti
-        </Button>
-      </Link>
-      <Link href="/admin/drivers/approve" className="block">
-        <Button variant="secondary" className="w-full justify-start text-sm py-2">
-          <Car className="w-4 h-4 mr-2" />
-          Approva Autisti
-        </Button>
-      </Link>
-      <Link href="/admin/reports" className="block">
-        <Button variant="secondary" className="w-full justify-start text-sm py-2">
-          <DollarSign className="w-4 h-4 mr-2" />
-          Report Finanziari
-        </Button>
-      </Link>
-      <Link href="/admin/rides/monitor" className="block">
-        <Button variant="secondary" className="w-full justify-start text-sm py-2">
-          <MapPin className="w-4 h-4 mr-2" />
-          Monitora Corse
-        </Button>
-      </Link>
-      <Link href="/admin/map" className="block">
-        <Button variant="secondary" className="w-full justify-start text-sm py-2">
-          <MapPin className="w-4 h-4 mr-2" />
-          Mappa Driver Live
-        </Button>
-      </Link>
-      <Link href="/admin/config" className="block">
-        <Button variant="secondary" className="w-full justify-start text-sm py-2">
-          <Shield className="w-4 h-4 mr-2" />
-          Gestione Tariffe
-        </Button>
-      </Link>
-    </div>
-  </Card>
-
-            <Card className="mt-6 bg-yellow-50 border-yellow-200">
-              <div className="flex items-start space-x-3">
-                <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-semibold text-gray-900 text-sm mb-1">
-                    Richieste in Attesa
-                  </h3>
-                  <p className="text-xs text-gray-600 mb-3">
-                    Ci sono {stats.pendingApprovals} richieste di autisti da approvare
-                  </p>
-                  <Button size="sm" onClick={() => setActiveTab('drivers')}>
-                    Rivedi Richieste
-                  </Button>
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Activity feed */}
+        <div className="lg:col-span-2">
+          <div className="bg-surface-1 border border-surface-4 rounded-2xl p-6 bg-card-gradient">
+            <h2 className="text-lg font-bold text-white mb-5">Attività recenti</h2>
+            {loading ? (
+              <div className="flex items-center justify-center py-10">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
               </div>
-            </Card>
+            ) : activities.length === 0 ? (
+              <p className="text-ink-muted text-sm text-center py-8">Nessuna attività recente</p>
+            ) : (
+              <div className="space-y-2">
+                {activities.slice(0, 8).map((a) => (
+                  <div key={a.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-surface-2 transition-all">
+                    <div className="p-1.5 bg-surface-3 rounded-lg shrink-0 mt-0.5">
+                      {getActivityIcon(a.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white truncate">{a.description}</p>
+                      <p className="text-xs text-ink-muted mt-0.5">
+                        {new Date(a.timestamp).toLocaleString('it-IT', {
+                          day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                    <Badge variant={a.status === 'success' ? 'success' : a.status === 'pending' ? 'warning' : 'danger'} dot>
+                      {a.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      )}
 
-      {activeTab !== 'overview' && (
-        <Card className="text-center py-12">
-          <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">
-            Sezione {activeTab} in sviluppo
-          </h3>
-          <p className="text-gray-600">
-            Questa funzionalità sarà disponibile a breve
-          </p>
-        </Card>
-      )}
+        {/* Quick actions */}
+        <div>
+          <div className="bg-surface-1 border border-surface-4 rounded-2xl p-6 bg-card-gradient">
+            <h2 className="text-lg font-bold text-white mb-4">Azioni rapide</h2>
+            <div className="grid grid-cols-2 gap-2">
+              {QUICK_ACTIONS.map(({ href, icon: Icon, label }) => (
+                <Link key={href} href={href}>
+                  <div className="flex flex-col items-center gap-2 p-4 bg-surface-2 border border-surface-5 rounded-xl hover:border-primary-500/30 hover:bg-surface-3 transition-all group cursor-pointer">
+                    <Icon className="w-5 h-5 text-ink-secondary group-hover:text-primary-400 transition-colors" />
+                    <span className="text-xs font-medium text-ink-secondary group-hover:text-white transition-colors text-center leading-tight">{label}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

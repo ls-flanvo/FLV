@@ -2,47 +2,27 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { 
-  Users, 
-  Search, 
-  Filter, 
-  UserCheck, 
-  UserX, 
-  Mail, 
-  Phone, 
-  Calendar,
-  MoreVertical,
-  Edit,
-  Trash2,
-  Ban,
-  CheckCircle,
-  ArrowLeft
+import {
+  Users, Search, Filter, UserCheck, Ban,
+  Mail, Phone, Calendar, MoreVertical, Trash2, ArrowLeft, CheckCircle
 } from 'lucide-react';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
+interface AdminUser {
+  id: string; name: string; email: string; phone: string;
   role: 'user' | 'driver' | 'admin';
   status: 'active' | 'suspended' | 'pending';
-  createdAt: string;
-  totalBookings?: number;
-  totalSpent?: number;
+  createdAt: string; totalBookings?: number; totalSpent?: number;
 }
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [showActionMenu, setShowActionMenu] = useState<string | null>(null);
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [actionMenu, setActionMenu] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  useEffect(() => { fetchUsers(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchUsers = async () => {
     try {
@@ -50,97 +30,22 @@ export default function AdminUsersPage() {
       const params = new URLSearchParams();
       if (searchTerm) params.set('search', searchTerm);
       if (roleFilter !== 'all') params.set('role', roleFilter);
-
-      const response = await fetch(`/api/admin/users?${params}`, {
+      const res = await fetch(`/api/admin/users?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await response.json();
-
+      const data = await res.json();
       if (data.users) {
-        setUsers(
-          data.users.map((u: { id: string; name: string; email: string; phone: string; role: string; isVerified: boolean; createdAt: string; _count: { bookings: number } }) => ({
-            id: u.id,
-            name: u.name,
-            email: u.email,
-            phone: u.phone || '',
-            role: u.role,
-            status: u.isVerified ? 'active' : 'pending',
-            createdAt: new Date(u.createdAt).toISOString().split('T')[0],
-            totalBookings: u._count?.bookings ?? 0,
-          }))
-        );
-        setLoading(false);
-        return;
+        setUsers(data.users.map((u: { id: string; name: string; email: string; phone: string; role: string; isVerified: boolean; createdAt: string; _count: { bookings: number } }) => ({
+          id: u.id, name: u.name, email: u.email, phone: u.phone || '',
+          role: u.role, status: u.isVerified ? 'active' : 'pending',
+          createdAt: u.createdAt, totalBookings: u._count?.bookings ?? 0,
+        })));
       }
-
-      // Fallback mock
-      const mockUsers: User[] = [
-        {
-          id: '1',
-          name: 'Luca Sabato',
-          email: 'luca.sabato@email.com',
-          phone: '+39 333 1234567',
-          role: 'user',
-          status: 'active',
-          createdAt: '2024-01-15',
-          totalBookings: 12,
-          totalSpent: 850.50
-        },
-        {
-          id: '2',
-          name: 'Mario Rossi',
-          email: 'mario.rossi@email.com',
-          phone: '+39 334 7654321',
-          role: 'driver',
-          status: 'active',
-          createdAt: '2024-02-20',
-          totalBookings: 45,
-          totalSpent: 0
-        },
-        {
-          id: '3',
-          name: 'Giulia Bianchi',
-          email: 'giulia.bianchi@email.com',
-          phone: '+39 335 9876543',
-          role: 'user',
-          status: 'active',
-          createdAt: '2024-03-10',
-          totalBookings: 8,
-          totalSpent: 620.00
-        },
-        {
-          id: '4',
-          name: 'Paolo Verdi',
-          email: 'paolo.verdi@email.com',
-          phone: '+39 336 5551234',
-          role: 'driver',
-          status: 'pending',
-          createdAt: '2024-10-01',
-          totalBookings: 0,
-          totalSpent: 0
-        },
-        {
-          id: '5',
-          name: 'Anna Neri',
-          email: 'anna.neri@email.com',
-          phone: '+39 337 4445678',
-          role: 'user',
-          status: 'suspended',
-          createdAt: '2024-05-22',
-          totalBookings: 3,
-          totalSpent: 180.00
-        }
-      ];
-
-      setUsers(mockUsers);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
-  const patchUser = async (userId: string, action: string) => {
+  const patch = async (userId: string, action: string) => {
     const token = localStorage.getItem('flanvo_token');
     const res = await fetch('/api/admin/users', {
       method: 'PATCH',
@@ -150,39 +55,33 @@ export default function AdminUsersPage() {
     return res.ok;
   };
 
-  const handleSuspendUser = async (userId: string) => {
-    if (!confirm('Sei sicuro di voler sospendere questo utente?')) return;
-    if (await patchUser(userId, 'suspend')) {
-      setUsers(users.map(u => u.id === userId ? { ...u, status: 'suspended' as const } : u));
-      setShowActionMenu(null);
+  const handleSuspend = async (id: string) => {
+    if (!confirm('Sospendere questo utente?')) return;
+    if (await patch(id, 'suspend')) {
+      setUsers(u => u.map(x => x.id === id ? { ...x, status: 'suspended' as const } : x));
+      setActionMenu(null);
+    }
+  };
+  const handleActivate = async (id: string) => {
+    if (await patch(id, 'activate')) {
+      setUsers(u => u.map(x => x.id === id ? { ...x, status: 'active' as const } : x));
+      setActionMenu(null);
+    }
+  };
+  const handleDelete = async (id: string) => {
+    if (!confirm('Eliminare questo utente? Azione irreversibile.')) return;
+    if (await patch(id, 'delete')) {
+      setUsers(u => u.filter(x => x.id !== id));
+      setActionMenu(null);
     }
   };
 
-  const handleActivateUser = async (userId: string) => {
-    if (await patchUser(userId, 'activate')) {
-      setUsers(users.map(u => u.id === userId ? { ...u, status: 'active' as const } : u));
-      setShowActionMenu(null);
-    }
-  };
-
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Sei sicuro di voler eliminare questo utente? Questa azione è irreversibile.')) return;
-    if (await patchUser(userId, 'delete')) {
-      setUsers(users.filter(u => u.id !== userId));
-      setShowActionMenu(null);
-    }
-  };
-
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = 
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone.includes(searchTerm);
-    
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-    
-    return matchesSearch && matchesRole && matchesStatus;
+  const filtered = users.filter(u => {
+    const s = searchTerm.toLowerCase();
+    const matchSearch = !s || u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s);
+    const matchRole = roleFilter === 'all' || u.role === roleFilter;
+    const matchStatus = statusFilter === 'all' || u.status === statusFilter;
+    return matchSearch && matchRole && matchStatus;
   });
 
   const stats = {
@@ -190,275 +89,177 @@ export default function AdminUsersPage() {
     active: users.filter(u => u.status === 'active').length,
     suspended: users.filter(u => u.status === 'suspended').length,
     pending: users.filter(u => u.status === 'pending').length,
-    drivers: users.filter(u => u.role === 'driver').length,
-    passengers: users.filter(u => u.role === 'user').length
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Caricamento utenti...</p>
-        </div>
-      </div>
-    );
-  }
+  const statusBadge = (s: string) => {
+    if (s === 'active') return 'bg-success/10 text-success border border-success/20';
+    if (s === 'suspended') return 'bg-danger/10 text-danger border border-danger/20';
+    return 'bg-warning/10 text-warning border border-warning/20';
+  };
+  const roleBadge = (r: string) => {
+    if (r === 'driver') return 'bg-primary-500/10 text-primary-400 border border-primary-500/20';
+    if (r === 'admin') return 'bg-purple-500/10 text-purple-400 border border-purple-500/20';
+    return 'bg-surface-3 text-ink-secondary border border-surface-5';
+  };
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-500" />
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-[#0B0B0B] py-8 px-4">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Link 
-            href="/admin/dashboard"
-            className="inline-flex items-center text-primary-600 hover:text-primary-700 mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Torna alla Dashboard
+        <div className="mb-6">
+          <Link href="/admin/dashboard" className="inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink-secondary mb-4">
+            <ArrowLeft className="w-3.5 h-3.5" /> Dashboard
           </Link>
-          
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-surface-2 border border-surface-5 rounded-xl">
+              <Users className="w-5 h-5 text-primary-400" />
+            </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                <Users className="w-8 h-8 mr-3 text-primary-600" />
-                Gestisci Utenti
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Visualizza e gestisci tutti gli utenti della piattaforma
-              </p>
+              <h1 className="text-xl font-bold text-white">Gestione Utenti</h1>
+              <p className="text-ink-muted text-xs">{users.length} utenti totali</p>
             </div>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-            <p className="text-sm text-gray-600 mb-1">Totale</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-          </div>
-          <div className="bg-green-50 rounded-lg p-4 shadow-sm border border-green-200">
-            <p className="text-sm text-green-700 mb-1">Attivi</p>
-            <p className="text-2xl font-bold text-green-900">{stats.active}</p>
-          </div>
-          <div className="bg-red-50 rounded-lg p-4 shadow-sm border border-red-200">
-            <p className="text-sm text-red-700 mb-1">Sospesi</p>
-            <p className="text-2xl font-bold text-red-900">{stats.suspended}</p>
-          </div>
-          <div className="bg-yellow-50 rounded-lg p-4 shadow-sm border border-yellow-200">
-            <p className="text-sm text-yellow-700 mb-1">In Attesa</p>
-            <p className="text-2xl font-bold text-yellow-900">{stats.pending}</p>
-          </div>
-          <div className="bg-blue-50 rounded-lg p-4 shadow-sm border border-blue-200">
-            <p className="text-sm text-blue-700 mb-1">Autisti</p>
-            <p className="text-2xl font-bold text-blue-900">{stats.drivers}</p>
-          </div>
-          <div className="bg-purple-50 rounded-lg p-4 shadow-sm border border-purple-200">
-            <p className="text-sm text-purple-700 mb-1">Passeggeri</p>
-            <p className="text-2xl font-bold text-purple-900">{stats.passengers}</p>
-          </div>
+        {/* Stats */}
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          {[
+            { label: 'Totale', value: stats.total, color: 'text-white' },
+            { label: 'Attivi', value: stats.active, color: 'text-success' },
+            { label: 'Sospesi', value: stats.suspended, color: 'text-danger' },
+            { label: 'In attesa', value: stats.pending, color: 'text-warning' },
+          ].map(s => (
+            <div key={s.label} className="bg-surface-1 border border-surface-4 rounded-xl p-4">
+              <p className="text-xs text-ink-muted mb-1">{s.label}</p>
+              <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+            </div>
+          ))}
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6 border border-gray-200">
-          <div className="grid md:grid-cols-3 gap-4">
-            {/* Search */}
-            <div className="md:col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Search className="w-4 h-4 inline mr-2" />
-                Cerca
-              </label>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Nome, email o telefono..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Role Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Filter className="w-4 h-4 inline mr-2" />
-                Ruolo
-              </label>
-              <select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              >
-                <option value="all">Tutti i ruoli</option>
-                <option value="user">Passeggeri</option>
-                <option value="driver">Autisti</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-
-            {/* Status Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Filter className="w-4 h-4 inline mr-2" />
-                Stato
-              </label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              >
-                <option value="all">Tutti gli stati</option>
-                <option value="active">Attivi</option>
-                <option value="suspended">Sospesi</option>
-                <option value="pending">In Attesa</option>
-              </select>
-            </div>
+        <div className="bg-surface-1 border border-surface-4 rounded-xl p-4 mb-5 flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted" />
+            <input
+              type="text" value={searchTerm}
+              onChange={e => { setSearchTerm(e.target.value); fetchUsers(); }}
+              placeholder="Nome, email..."
+              className="w-full pl-9 pr-4 py-2.5 bg-surface-2 border border-surface-5 rounded-lg text-white text-sm placeholder-ink-muted focus:outline-none focus:border-primary-500"
+            />
           </div>
+          <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
+            className="px-3 py-2.5 bg-surface-2 border border-surface-5 rounded-lg text-sm text-white focus:outline-none focus:border-primary-500">
+            <option value="all">Tutti i ruoli</option>
+            <option value="user">Passeggeri</option>
+            <option value="driver">Autisti</option>
+          </select>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+            className="px-3 py-2.5 bg-surface-2 border border-surface-5 rounded-lg text-sm text-white focus:outline-none focus:border-primary-500">
+            <option value="all">Tutti gli stati</option>
+            <option value="active">Attivi</option>
+            <option value="suspended">Sospesi</option>
+            <option value="pending">In attesa</option>
+          </select>
         </div>
 
-        {/* Users Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        {/* Table */}
+        <div className="bg-surface-1 border border-surface-4 rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-surface-2 border-b border-surface-4">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Utente</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Contatti</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Ruolo</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Stato</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Statistiche</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Registrato</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">Azioni</th>
+                  {['Utente', 'Contatti', 'Ruolo', 'Stato', 'Corse', 'Registrato', ''].map(h => (
+                    <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-ink-muted uppercase tracking-wider">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold mr-3">
-                          {user.name.charAt(0)}
+              <tbody className="divide-y divide-surface-4">
+                {filtered.map(u => (
+                  <tr key={u.id} className="hover:bg-surface-2/50 transition-colors">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-400 text-sm font-bold shrink-0">
+                          {u.name.charAt(0)}
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{user.name}</p>
-                          <p className="text-sm text-gray-500">{user.email}</p>
-                        </div>
+                        <p className="font-medium text-white text-sm">{u.name}</p>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col space-y-1">
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Mail className="w-4 h-4 mr-2" />
-                          {user.email}
+                    <td className="px-5 py-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 text-xs text-ink-secondary">
+                          <Mail className="w-3 h-3" />{u.email}
                         </div>
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Phone className="w-4 h-4 mr-2" />
-                          {user.phone}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex px-3 py-1 text-xs font-medium rounded-full ${
-                        user.role === 'driver' 
-                          ? 'bg-blue-100 text-blue-800'
-                          : user.role === 'admin'
-                          ? 'bg-purple-100 text-purple-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {user.role === 'driver' ? '🚗 Autista' : user.role === 'admin' ? '👑 Admin' : '👤 Passeggero'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full ${
-                        user.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : user.status === 'suspended'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {user.status === 'active' && <CheckCircle className="w-3 h-3 mr-1" />}
-                        {user.status === 'suspended' && <Ban className="w-3 h-3 mr-1" />}
-                        {user.status === 'active' ? 'Attivo' : user.status === 'suspended' ? 'Sospeso' : 'In Attesa'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {user.role === 'user' ? (
-                        <div className="text-sm">
-                          <p className="text-gray-900 font-medium">{user.totalBookings} corse</p>
-                          <p className="text-gray-500">€{user.totalSpent?.toFixed(2)}</p>
-                        </div>
-                      ) : (
-                        <div className="text-sm">
-                          <p className="text-gray-900 font-medium">{user.totalBookings} corse</p>
-                          <p className="text-gray-500">Completate</p>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        {new Date(user.createdAt).toLocaleDateString('it-IT')}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center relative">
-                        <button
-                          onClick={() => setShowActionMenu(showActionMenu === user.id ? null : user.id)}
-                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                          <MoreVertical className="w-5 h-5 text-gray-600" />
-                        </button>
-
-                        {showActionMenu === user.id && (
-                          <div className="absolute right-0 top-10 bg-white border border-gray-200 rounded-lg shadow-lg z-10 w-48">
-                            <button
-                              onClick={() => alert('Funzionalità in sviluppo')}
-                              className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center text-sm text-gray-700"
-                            >
-                              <Edit className="w-4 h-4 mr-2" />
-                              Modifica
-                            </button>
-                            
-                            {user.status === 'active' ? (
-                              <button
-                                onClick={() => handleSuspendUser(user.id)}
-                                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center text-sm text-orange-600"
-                              >
-                                <Ban className="w-4 h-4 mr-2" />
-                                Sospendi
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleActivateUser(user.id)}
-                                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center text-sm text-green-600"
-                              >
-                                <UserCheck className="w-4 h-4 mr-2" />
-                                Attiva
-                              </button>
-                            )}
-                            
-                            <button
-                              onClick={() => handleDeleteUser(user.id)}
-                              className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center text-sm text-red-600 border-t border-gray-200"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Elimina
-                            </button>
+                        {u.phone && (
+                          <div className="flex items-center gap-1.5 text-xs text-ink-muted">
+                            <Phone className="w-3 h-3" />{u.phone}
                           </div>
                         )}
                       </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${roleBadge(u.role)}`}>
+                        {u.role === 'driver' ? 'Autista' : u.role === 'admin' ? 'Admin' : 'Passeggero'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusBadge(u.status)}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${u.status === 'active' ? 'bg-success' : u.status === 'suspended' ? 'bg-danger' : 'bg-warning'}`} />
+                        {u.status === 'active' ? 'Attivo' : u.status === 'suspended' ? 'Sospeso' : 'In attesa'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-sm text-ink-secondary">{u.totalBookings ?? 0}</td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-1.5 text-xs text-ink-muted">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(u.createdAt).toLocaleDateString('it-IT')}
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 relative">
+                      <button
+                        onClick={() => setActionMenu(actionMenu === u.id ? null : u.id)}
+                        className="p-1.5 rounded-lg text-ink-muted hover:text-white hover:bg-surface-3 transition-all"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                      {actionMenu === u.id && (
+                        <div className="absolute right-4 top-12 bg-surface-2 border border-surface-5 rounded-xl shadow-surface z-20 w-44 overflow-hidden">
+                          {u.status === 'active' ? (
+                            <button onClick={() => handleSuspend(u.id)}
+                              className="w-full px-4 py-2.5 text-left text-sm text-warning hover:bg-surface-3 flex items-center gap-2">
+                              <Ban className="w-3.5 h-3.5" /> Sospendi
+                            </button>
+                          ) : (
+                            <button onClick={() => handleActivate(u.id)}
+                              className="w-full px-4 py-2.5 text-left text-sm text-success hover:bg-surface-3 flex items-center gap-2">
+                              <UserCheck className="w-3.5 h-3.5" /> Attiva
+                            </button>
+                          )}
+                          <div className="h-px bg-surface-4" />
+                          <button onClick={() => handleDelete(u.id)}
+                            className="w-full px-4 py-2.5 text-left text-sm text-danger hover:bg-surface-3 flex items-center gap-2">
+                            <Trash2 className="w-3.5 h-3.5" /> Elimina
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            {filtered.length === 0 && (
+              <div className="text-center py-12">
+                <Users className="w-10 h-10 text-ink-muted mx-auto mb-3" />
+                <p className="text-ink-muted text-sm">Nessun utente trovato</p>
+              </div>
+            )}
           </div>
-
-          {filteredUsers.length === 0 && (
-            <div className="text-center py-12">
-              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Nessun utente trovato</p>
-            </div>
-          )}
         </div>
       </div>
     </div>

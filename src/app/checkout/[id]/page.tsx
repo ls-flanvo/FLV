@@ -54,12 +54,29 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
 
   if (success) return (
     <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center px-4">
-      <div className="text-center animate-fade-up">
+      <div className="w-full max-w-sm text-center animate-fade-up">
         <div className="inline-flex items-center justify-center w-20 h-20 bg-success/10 border border-success/20 rounded-3xl mb-6">
           <Check className="w-10 h-10 text-success" />
         </div>
         <h2 className="text-2xl font-bold text-white mb-2">Prenotazione confermata!</h2>
-        <p className="text-ink-secondary text-sm">Reindirizzamento alla dashboard...</p>
+        <p className="text-ink-secondary text-sm mb-8">Riceverai una email di conferma a breve.</p>
+
+        <div className="bg-surface-1 border border-surface-4 rounded-2xl p-5 text-left space-y-4 mb-6">
+          <p className="text-xs font-bold text-ink-secondary mb-3">Cosa succede ora?</p>
+          {[
+            { step: '1', text: 'Il gruppo si forma con altri passeggeri del tuo volo', color: 'bg-primary-500' },
+            { step: '2', text: 'Ricevi conferma autista e van via email', color: 'bg-primary-500' },
+            { step: '3', text: 'Il driver ti aspetta al Terminal Arrivi con cartello Flanvo', color: 'bg-primary-500' },
+            { step: '4', text: 'Paghi solo quando arrivi a destinazione', color: 'bg-success' },
+          ].map(({ step, text, color }) => (
+            <div key={step} className="flex items-start gap-3">
+              <div className={`w-5 h-5 ${color} rounded-full flex items-center justify-center text-[#0B0B0B] text-xs font-bold shrink-0 mt-0.5`}>{step}</div>
+              <p className="text-sm text-ink-secondary">{text}</p>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-xs text-ink-muted">Reindirizzamento alla dashboard...</p>
       </div>
     </div>
   );
@@ -89,7 +106,22 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white">Completa la prenotazione</h1>
-          <p className="text-ink-secondary text-sm mt-1">Pre-autorizzazione — addebitato solo al drop-off</p>
+          <p className="text-ink-secondary text-sm mt-1">Pre-autorizzazione carta di credito</p>
+        </div>
+
+        {/* Pre-auth explanation — prominent */}
+        <div className="mb-6 bg-primary-500/8 border border-primary-500/20 rounded-2xl px-5 py-4 flex items-start gap-3">
+          <div className="w-8 h-8 bg-primary-500/15 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+            <ShieldCheck className="w-4 h-4 text-primary-400" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-white mb-1">La tua carta non viene addebitata ora</p>
+            <p className="text-xs text-ink-secondary leading-relaxed">
+              Autorizziamo temporaneamente l&apos;importo su Stripe per garantire il tuo posto nel gruppo.
+              L&apos;addebito reale avviene <strong className="text-white">solo quando arrivi a destinazione</strong>.
+              Se il gruppo non si forma, l&apos;autorizzazione decade automaticamente.
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store';
-import { LogOut, Menu, X, Plane, LayoutDashboard, Car, Shield } from 'lucide-react';
+import { LogOut, Menu, X, Plane, LayoutDashboard, Car, Shield, Settings } from 'lucide-react';
 import { useState } from 'react';
 
 const FlanvoLogo = () => (
@@ -51,7 +51,8 @@ export default function Navbar() {
                         Cerca corsa
                       </Link>
                       <Link href="/dashboard" className={navLink}>
-                        Le mie prenotazioni
+                        <span className="hidden lg:inline">Le mie prenotazioni</span>
+                        <span className="lg:hidden">Prenotazioni</span>
                       </Link>
                     </>
                   )}
@@ -71,12 +72,12 @@ export default function Navbar() {
                   {/* User chip */}
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2.5 bg-surface-2 border border-surface-5 rounded-xl px-3 py-1.5">
-                      <div className="w-6 h-6 rounded-lg bg-primary-500/20 flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-lg bg-primary-500/20 flex items-center justify-center shrink-0">
                         <span className="text-xs font-bold text-primary-400">
                           {user?.name?.charAt(0).toUpperCase()}
                         </span>
                       </div>
-                      <span className="text-sm font-medium text-white">{user?.name?.split(' ')[0]}</span>
+                      <span className="text-sm font-medium text-white hidden lg:inline">{user?.name?.split(' ')[0]}</span>
                     </div>
                     <button
                       onClick={handleLogout}
@@ -145,6 +146,10 @@ export default function Navbar() {
                     <Link href="/dashboard" className={mobileLink} onClick={() => setOpen(false)}>
                       <LayoutDashboard className="w-4 h-4 text-primary-500" />
                       Le mie prenotazioni
+                    </Link>
+                    <Link href="/account" className={mobileLink} onClick={() => setOpen(false)}>
+                      <Settings className="w-4 h-4 text-primary-500" />
+                      Il mio account
                     </Link>
                   </>
                 )}

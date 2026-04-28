@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Booking } from '@/lib/types';
 import { Button } from './ui';
@@ -31,6 +31,26 @@ export default function BookingCard({ booking }: { booking: Booking }) {
   const [ratingSubmitted, setRatingSubmitted] = useState(!!booking.userRating);
   const [ratingLoading, setRatingLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
+
+  const [groupStatus, setGroupStatus] = useState<{ current: number; max: number } | null>(null);
+  const isForming = ['PENDING', 'IN_MATCHING'].includes(booking.status);
+
+  useEffect(() => {
+    if (!isForming) return;
+    const poll = async () => {
+      try {
+        const token = localStorage.getItem('flanvo_token');
+        const res = await fetch(`/api/bookings/${booking.id}/status`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await res.json();
+        if (data.group) setGroupStatus({ current: data.group.current, max: data.group.max });
+      } catch { /* silent */ }
+    };
+    poll();
+    const interval = setInterval(poll, 10000);
+    return () => clearInterval(interval);
+  }, [booking.id, isForming]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const groupId = booking.groupMember?.rideGroupId ?? booking.rideGroupId ?? '';
   const status = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
@@ -136,6 +156,29 @@ export default function BookingCard({ booking }: { booking: Booking }) {
             </div>
           </div>
 
+          {/* Group formation progress */}
+          {isForming && (
+            <div className="bg-surface-2 border border-surface-5 rounded-xl px-4 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-ink-secondary">Gruppo in formazione</p>
+                {groupStatus && (
+                  <span className="text-xs font-bold text-primary-400">{groupStatus.current}/{groupStatus.max}</span>
+                )}
+              </div>
+              <div className="h-1.5 bg-surface-4 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary-500 rounded-full transition-all duration-700"
+                  style={{ width: groupStatus ? `${(groupStatus.current / groupStatus.max) * 100}%` : '20%' }}
+                />
+              </div>
+              <p className="text-xs text-ink-muted mt-1.5">
+                {groupStatus
+                  ? `${groupStatus.max - groupStatus.current} posti ancora disponibili`
+                  : 'Ricerca compagni di viaggio...'}
+              </p>
+            </div>
+          )}
+
           {/* Pickup info when active */}
           {(booking.status === 'CONFIRMED' || booking.status === 'MATCHED') && (
             <div className="bg-primary-500/8 border border-primary-500/15 rounded-xl px-4 py-3 flex items-start gap-2.5">
@@ -187,38 +230,52 @@ export default function BookingCard({ booking }: { booking: Booking }) {
           {isCompleted && (
             <div className="pt-1">
               {ratingSubmitted ? (
-                <div className="flex items-center justify-center gap-2 py-2.5 text-sm text-success">
-                  <Star className="w-4 h-4 fill-current" /> Grazie per la valutazione!
+                <div className="bg-success/8 border border-success/20 rounded-xl px-4 py-3 flex items-center gap-2.5">
+                  <Star className="w-4 h-4 text-success fill-success shrink-0" />
+                  <span className="text-sm font-semibold text-success">Grazie per la valutazione!</span>
                 </div>
               ) : (
-                <div>
-                  <p className="text-sm font-semibold text-white mb-2.5">Com&apos;è andata?</p>
-                  <div className="flex justify-center gap-2 mb-3">
+                <div className="bg-surface-2 border border-surface-5 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Star className="w-4 h-4 text-warning fill-warning" />
+                    <p className="text-sm font-bold text-white">Com&apos;è andata la corsa?</p>
+                  </div>
+                  <div className="flex justify-center gap-1.5 mb-1">
                     {[1, 2, 3, 4, 5].map((s) => (
                       <button
                         key={s}
                         onMouseEnter={() => setHoverRating(s)}
                         onMouseLeave={() => setHoverRating(0)}
                         onClick={() => setRating(s)}
-                        className="p-1"
+                        className="p-1.5 rounded-lg hover:bg-surface-3 transition-all active:scale-90"
                       >
-                        <Star className={`w-7 h-7 transition-colors ${s <= (hoverRating || rating) ? 'fill-warning text-warning' : 'text-surface-5'}`} />
+                        <Star className={`w-8 h-8 transition-all duration-150 ${
+                          s <= (hoverRating || rating)
+                            ? 'fill-warning text-warning scale-110'
+                            : 'text-surface-5 hover:text-surface-4'
+                        }`} />
                       </button>
                     ))}
                   </div>
                   {rating > 0 && (
-                    <>
+                    <div className="mt-3 animate-fade-up">
+                      <p className="text-xs text-ink-muted text-center mb-2">
+                        {['', 'Pessimo 😞', 'Scarso 😕', 'Nella norma 😐', 'Buono 😊', 'Ottimo 🌟'][rating]}
+                      </p>
                       <textarea
                         value={ratingComment}
                         onChange={(e) => setRatingComment(e.target.value)}
-                        placeholder="Commento opzionale..."
+                        placeholder="Commento opzionale per l'autista..."
                         rows={2}
-                        className="w-full text-sm bg-surface-2 border border-surface-5 rounded-xl px-3 py-2 text-white placeholder-ink-muted mb-2 focus:outline-none focus:border-primary-500 resize-none"
+                        className="w-full text-sm bg-surface-3 border border-surface-5 rounded-xl px-3 py-2 text-white placeholder-ink-muted mb-2.5 focus:outline-none focus:border-primary-500 resize-none"
                       />
-                      <Button className="w-full" disabled={ratingLoading} onClick={handleSubmitRating}>
+                      <button
+                        onClick={handleSubmitRating}
+                        disabled={ratingLoading}
+                        className="w-full py-2.5 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all disabled:opacity-40 text-sm">
                         {ratingLoading ? 'Invio...' : 'Invia valutazione'}
-                      </Button>
-                    </>
+                      </button>
+                    </div>
                   )}
                 </div>
               )}

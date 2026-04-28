@@ -22,7 +22,7 @@
     min-height: 100vh;
   }
 
-  /* Dark inputs */
+  /* Dark inputs — font-size 16px prevents iOS Safari auto-zoom */
   input[type="text"],
   input[type="email"],
   input[type="password"],
@@ -35,6 +35,7 @@
     background-color: #1A1A1A;
     color: #FFFFFF;
     border-color: #2A2A2A;
+    font-size: 16px;
   }
 
   input::placeholder,

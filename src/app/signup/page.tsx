@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Input, Button } from '@/components/ui';
 import { User, Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react';
+import SocialButtons from '@/components/SocialButtons';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
@@ -65,6 +66,20 @@ export default function SignupPage() {
           <p className="text-ink-secondary mt-1.5 text-sm">Inizia a risparmiare sui trasferimenti</p>
         </div>
 
+        {/* Social proof stat */}
+        <div className="flex items-center justify-center gap-6 mb-5">
+          {[
+            { n: '78%', l: 'risparmio medio' },
+            { n: '500+', l: 'viaggiatori' },
+            { n: '4.9★', l: 'valutazione' },
+          ].map(({ n, l }) => (
+            <div key={l} className="text-center">
+              <p className="text-lg font-black text-primary-400">{n}</p>
+              <p className="text-xs text-ink-muted">{l}</p>
+            </div>
+          ))}
+        </div>
+
         {/* Perks */}
         <div className="flex flex-col gap-1.5 mb-6">
           {perks.map((p) => (
@@ -111,7 +126,11 @@ export default function SignupPage() {
             </Button>
           </form>
 
-          <p className="text-center text-sm text-ink-secondary mt-6">
+          <div className="mt-5">
+            <SocialButtons />
+          </div>
+
+          <p className="text-center text-sm text-ink-secondary mt-5">
             Hai già un account?{' '}
             <Link href="/login" className="text-primary-400 hover:text-primary-300 font-semibold transition-colors">
               Accedi

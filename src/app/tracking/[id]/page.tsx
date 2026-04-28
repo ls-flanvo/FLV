@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Card } from '@/components/ui';
+import Link from 'next/link';
 import TrackingMap from '@/components/TrackingMap';
-import { Phone, MapPin, Clock, Navigation } from 'lucide-react';
+import { Phone, MapPin, Clock, Navigation, Car, Star } from 'lucide-react';
 
 interface TrackingData {
-  status: string;
-  message?: string;
+  status: string; message?: string;
   vehicle?: { brand: string; model: string; plate: string };
   currentLocation?: { lat: number; lng: number };
   destination?: { address: string; lat: number; lng: number };
@@ -25,11 +24,8 @@ export default function TrackingPage({ params }: { params: { id: string } }) {
     try {
       const res = await fetch(`/api/tracking/${params.id}`);
       const json = await res.json();
-      if (json.tracking) {
-        setTracking(json.tracking);
-      } else {
-        setError(json.error || 'Errore nel tracking');
-      }
+      if (json.tracking) setTracking(json.tracking);
+      else setError(json.error || 'Errore nel tracking');
     } catch {
       setError('Impossibile caricare il tracking');
     }
@@ -38,173 +34,179 @@ export default function TrackingPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     fetchTracking();
     intervalRef.current = setInterval(fetchTracking, 10000);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [params.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-12">
-        <Card className="text-center py-12">
-          <p className="text-red-600">{error}</p>
-        </Card>
+      <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center px-4">
+        <div className="text-center">
+          <Navigation className="w-12 h-12 text-ink-muted mx-auto mb-4" />
+          <p className="text-white font-semibold mb-1">Tracking non disponibile</p>
+          <p className="text-ink-muted text-sm">{error}</p>
+        </div>
       </div>
     );
   }
 
   if (!tracking) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-12">
-        <Card>
-          <div className="animate-pulse flex space-x-4">
-            <div className="flex-1 space-y-4">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-4 bg-gray-200 rounded"></div>
-            </div>
-          </div>
-        </Card>
+      <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
       </div>
     );
   }
 
   if (tracking.status === 'not_started') {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-12">
-        <Card className="text-center py-12">
-          <Navigation className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Corsa non ancora iniziata</h2>
-          <p className="text-gray-600">{tracking.message}</p>
+      <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 bg-surface-2 border border-surface-5 rounded-full flex items-center justify-center mx-auto mb-5">
+            <Clock className="w-8 h-8 text-ink-muted" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Corsa non ancora iniziata</h2>
+          <p className="text-ink-secondary text-sm mb-4">{tracking.message}</p>
           {tracking.destination && (
-            <p className="text-sm text-gray-500 mt-4">Destinazione: {tracking.destination.address}</p>
+            <div className="bg-surface-1 border border-surface-4 rounded-xl px-4 py-3 inline-flex items-center gap-2 text-sm text-ink-secondary">
+              <MapPin className="w-3.5 h-3.5 text-primary-400" />
+              {tracking.destination.address}
+            </div>
           )}
-        </Card>
+          <p className="text-xs text-ink-muted mt-6">Aggiornamento automatico ogni 10s</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-12">
-      <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl shadow-lg p-6 text-white mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Tracking Corsa</h1>
-            <p className="text-primary-100">Segui il tuo viaggio in tempo reale</p>
-          </div>
-          <div className="flex items-center bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
-            <span className="font-semibold">In viaggio</span>
+    <div className="min-h-screen bg-[#0B0B0B]">
+      {/* Header */}
+      <div className="bg-surface-1 border-b border-surface-4 px-4 py-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <svg width="14" height="19" viewBox="0 0 56 72" fill="none">
+              <path d="M8 0 L48 0 L30 30 L48 30 L8 72 L22 40 L4 40 Z" fill="#00D1B2"/>
+            </svg>
+            <span className="text-sm font-bold text-white">flanvo</span>
+          </Link>
+          <div className="flex items-center gap-2 bg-success/10 border border-success/20 rounded-full px-3 py-1.5">
+            <span className="w-2 h-2 bg-success rounded-full animate-pulse" />
+            <span className="text-xs font-semibold text-success">In viaggio</span>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="p-0 overflow-hidden">
-            {tracking.currentLocation && tracking.destination && (
-              <TrackingMap
-                currentLocation={tracking.currentLocation}
-                destination={tracking.destination}
-                route={tracking.route}
-              />
-            )}
-          </Card>
-
-          <Card>
-            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-              <MapPin className="w-5 h-5 mr-2 text-primary-600" />
-              Dettagli Percorso
-            </h3>
-            <div className="space-y-4">
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                  <div className="w-3 h-3 bg-primary-600 rounded-full"></div>
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-500 mb-1">Destinazione</p>
-                  <p className="font-semibold text-gray-900">{tracking.destination?.address}</p>
-                </div>
-              </div>
-
-              {tracking.estimatedArrival && (
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0 w-10 h-10 bg-accent-100 rounded-full flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-accent-600" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-500 mb-1">Arrivo stimato</p>
-                    <p className="font-semibold text-gray-900">
-                      {new Date(tracking.estimatedArrival).toLocaleTimeString('it-IT', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
-                  </div>
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* Map — main */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="bg-surface-1 border border-surface-4 rounded-2xl overflow-hidden h-80 lg:h-96">
+              {tracking.currentLocation && tracking.destination ? (
+                <TrackingMap
+                  currentLocation={tracking.currentLocation}
+                  destination={tracking.destination}
+                  route={tracking.route}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center text-ink-muted text-sm">
+                  Posizione non disponibile
                 </div>
               )}
             </div>
-          </Card>
-        </div>
 
-        <div className="space-y-6">
-          {tracking.driver && (
-            <Card>
-              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                <Navigation className="w-5 h-5 mr-2 text-primary-600" />
-                Il tuo autista
+            {/* Route details */}
+            <div className="bg-surface-1 border border-surface-4 rounded-2xl p-5">
+              <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-primary-400" /> Dettagli percorso
               </h3>
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                  {tracking.driver.name.split(' ').map((n) => n[0]).join('')}
+              <div className="space-y-3">
+                {tracking.destination && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-primary-500/10 border border-primary-500/20 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                      <div className="w-2 h-2 bg-primary-500 rounded-full" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-ink-muted mb-0.5">Destinazione</p>
+                      <p className="text-sm font-semibold text-white">{tracking.destination.address}</p>
+                    </div>
+                  </div>
+                )}
+                {tracking.estimatedArrival && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-warning/10 border border-warning/20 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                      <Clock className="w-4 h-4 text-warning" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-ink-muted mb-0.5">Arrivo stimato</p>
+                      <p className="text-sm font-semibold text-white">
+                        {new Date(tracking.estimatedArrival).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-4">
+            {/* Driver */}
+            {tracking.driver && (
+              <div className="bg-surface-1 border border-surface-4 rounded-2xl p-5">
+                <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                  <Navigation className="w-4 h-4 text-primary-400" /> Il tuo autista
+                </h3>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-primary-500/15 border border-primary-500/20 rounded-xl flex items-center justify-center text-primary-400 font-bold text-lg">
+                    {tracking.driver.name.split(' ').map(n => n[0]).join('')}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white text-sm">{tracking.driver.name}</p>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Star className="w-3 h-3 text-warning fill-warning" />
+                      <span className="text-xs text-warning font-medium">{tracking.driver.rating.toFixed(1)}</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-900">{tracking.driver.name}</p>
-                  <p className="text-sm text-yellow-600">★ {tracking.driver.rating.toFixed(1)}</p>
+                {tracking.driver.phone && (
+                  <a href={`tel:${tracking.driver.phone}`}
+                    className="flex items-center justify-center gap-2 w-full py-3 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all text-sm">
+                    <Phone className="w-4 h-4" /> Chiama autista
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* Vehicle */}
+            {tracking.vehicle && (
+              <div className="bg-surface-1 border border-surface-4 rounded-2xl p-5">
+                <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                  <Car className="w-4 h-4 text-primary-400" /> Veicolo
+                </h3>
+                <div className="space-y-3">
+                  <div className="bg-surface-2 rounded-xl px-4 py-3">
+                    <p className="text-xs text-ink-muted mb-1">Modello</p>
+                    <p className="text-sm font-semibold text-white">{tracking.vehicle.brand} {tracking.vehicle.model}</p>
+                  </div>
+                  <div className="bg-surface-2 rounded-xl px-4 py-3">
+                    <p className="text-xs text-ink-muted mb-1">Targa</p>
+                    <p className="font-mono font-bold text-white tracking-wider">{tracking.vehicle.plate}</p>
+                  </div>
                 </div>
               </div>
-              {tracking.driver.phone && (
-                <a
-                  href={`tel:${tracking.driver.phone}`}
-                  className="flex items-center justify-center space-x-2 w-full bg-primary-500 text-white px-4 py-3 rounded-lg hover:bg-primary-600 transition-colors"
-                >
-                  <Phone className="w-5 h-5" />
-                  <span className="font-semibold">Chiama Autista</span>
-                </a>
-              )}
-            </Card>
-          )}
+            )}
 
-          {tracking.vehicle && (
-            <Card>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Veicolo</h3>
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Modello</p>
-                  <p className="font-semibold text-gray-900">
-                    {tracking.vehicle.brand} {tracking.vehicle.model}
-                  </p>
-                </div>
-                <div className="pt-3 border-t border-gray-200">
-                  <p className="text-sm text-gray-500 mb-1">Targa</p>
-                  <p className="font-mono font-bold text-lg text-gray-900">{tracking.vehicle.plate}</p>
-                </div>
-              </div>
-            </Card>
-          )}
-
-          <Card className="bg-gradient-to-br from-accent-50 to-primary-50 border-accent-200">
-            <div className="flex items-start space-x-3">
-              <div className="flex-shrink-0 w-10 h-10 bg-accent-500 rounded-full flex items-center justify-center">
-                <MapPin className="w-5 h-5 text-white" />
+            {/* Live indicator */}
+            <div className="bg-surface-1 border border-surface-4 rounded-2xl p-4 flex items-center gap-3">
+              <div className="w-8 h-8 bg-primary-500/10 rounded-lg flex items-center justify-center shrink-0">
+                <Navigation className="w-4 h-4 text-primary-400" />
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900 mb-1">Tracking attivo</h4>
-                <p className="text-sm text-gray-600">
-                  La posizione viene aggiornata ogni 10 secondi
-                </p>
+                <p className="text-xs font-semibold text-white">Tracking live</p>
+                <p className="text-xs text-ink-muted">Posizione aggiornata ogni 10s</p>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       </div>
     </div>

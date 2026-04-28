@@ -4,6 +4,7 @@ import './globals.css';
 import Navbar from '@/components/Navbar';
 import ClientProvider from '@/components/ClientProvider';
 import { ToastContainer } from '@/components/ui/Toast';
+import SupportChat from '@/components/SupportChat';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -69,6 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </footer>
           </div>
           <ToastContainer />
+          <SupportChat />
         </ClientProvider>
         <script
           dangerouslySetInnerHTML={{
