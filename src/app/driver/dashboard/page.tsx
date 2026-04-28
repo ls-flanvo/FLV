@@ -70,7 +70,7 @@ export default function DriverDashboardPage() {
     navigator.geolocation.getCurrentPosition(sendLocation, () => {});
     const id = setInterval(() => {
       navigator.geolocation.getCurrentPosition(sendLocation, () => {});
-    }, 30000);
+    }, 10000);
     return () => clearInterval(id);
   };
 

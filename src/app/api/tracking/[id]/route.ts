@@ -24,7 +24,13 @@ export async function GET(
             ride: {
               include: {
                 driver: {
-                  include: {
+                  select: {
+                    vehicleModel: true,
+                    vehiclePlate: true,
+                    rating: true,
+                    currentLat: true,
+                    currentLng: true,
+                    lastLocationAt: true,
                     user: { select: { name: true, phone: true } },
                   },
                 },
@@ -60,9 +66,14 @@ export async function GET(
     }
 
     const routes = member.rideGroup.routes;
-    const currentLocation = routes.length > 0
-      ? { lat: routes[routes.length - 1].latitude, lng: routes[routes.length - 1].longitude }
-      : { lat: member.booking.dropoffLat, lng: member.booking.dropoffLng };
+
+    // Usa GPS live del driver se disponibile (aggiornato ogni 10s), altrimenti fallback a waypoint
+    const currentLocation =
+      driver?.currentLat && driver?.currentLng
+        ? { lat: driver.currentLat, lng: driver.currentLng }
+        : routes.length > 0
+        ? { lat: routes[routes.length - 1].latitude, lng: routes[routes.length - 1].longitude }
+        : { lat: member.booking.dropoffLat, lng: member.booking.dropoffLng };
 
     const remainingRoute = routes
       .filter((r) => !r.reached)

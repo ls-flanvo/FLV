@@ -301,6 +301,12 @@ export default function AdminDashboardPage() {
           Monitora Corse
         </Button>
       </Link>
+      <Link href="/admin/map" className="block">
+        <Button variant="secondary" className="w-full justify-start text-sm py-2">
+          <MapPin className="w-4 h-4 mr-2" />
+          Mappa Driver Live
+        </Button>
+      </Link>
       <Link href="/admin/config" className="block">
         <Button variant="secondary" className="w-full justify-start text-sm py-2">
           <Shield className="w-4 h-4 mr-2" />
