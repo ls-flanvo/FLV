@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { optimizeRoute, calculatePassengerMetrics, validateRouteConstraints, type Waypoint } from '@/lib/route-optimizer';
 import { calculatePricing, calculateSavings, type ClusterPricing } from '@/lib/pricing-calculator';
+import { getPricingRates } from '@/lib/get-pricing-rates';
 import { calculateQualityScore, type QualityScore, type ClusterQualityInput } from '@/lib/quality-scorer';
 import { rankAndFilterPools, type PoolCandidate } from '@/lib/matching-algorithm';
 
@@ -60,31 +61,29 @@ interface OptimizeAndPriceResponse {
  */
 async function calculateSoloPrices(
   bookings: Array<{ id: string; lat: number; lng: number }>,
-  airportCoordinates: { lat: number; lng: number }
+  airportCoordinates: { lat: number; lng: number },
+  rates?: { driverRatePerKm?: number; flanvoTier2Rate?: number; protectionFee?: number }
 ): Promise<Array<{ bookingId: string; soloPrice: number }>> {
-  // Importo haversineDistance
   const { haversineDistance } = await import('@/lib/dbscan-clustering');
-  
-  return bookings.map(b => {
+  const driverRate = rates?.driverRatePerKm ?? 2.0;
+  const flanvoRate = rates?.flanvoTier2Rate ?? 0.25;
+  const protectionFee = rates?.protectionFee ?? 2.50;
+
+  return bookings.map((b) => {
     const distanceKm = haversineDistance(
       airportCoordinates.lat,
       airportCoordinates.lng,
       b.lat,
       b.lng
     );
-    
-    // Prezzo solo: driver + flanvo fee tier appropriato
-    const DRIVER_RATE = 2.0;
-    const driverCost = distanceKm * DRIVER_RATE;
-    
-    // Flanvo fee per viaggio solo (usa tier medio 0.25)
-    const flanvoFee = distanceKm * 0.25;
-    
-    const soloPrice = Math.round((driverCost + flanvoFee) * 100) / 100;
-    
+
+    const soloPrice = Math.round(
+      (distanceKm * driverRate + distanceKm * flanvoRate + protectionFee) * 100
+    ) / 100;
+
     return {
       bookingId: b.id,
-      soloPrice
+      soloPrice,
     };
   });
 }
@@ -255,11 +254,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<OptimizeA
       kmOnboard: m.kmOnboard
     }));
 
-    const pricing = calculatePricing(optimizedRoute.distance, passengerKm);
+    const pricingRates = await getPricingRates();
+    const pricing = calculatePricing(optimizedRoute.distance, passengerKm, pricingRates);
     console.log(`[OptimizeAndPrice] Total pricing: €${pricing.grandTotal}`);
 
     // Calcola savings rispetto a viaggio solo
-    const soloPrices = await calculateSoloPrices(bookingsData, airportCoordinates);
+    const soloPrices = await calculateSoloPrices(bookingsData, airportCoordinates, pricingRates);
     const savings = calculateSavings(pricing, soloPrices);
 
     // Calcola quality score

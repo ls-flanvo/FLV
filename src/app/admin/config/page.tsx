@@ -6,7 +6,9 @@ import { ArrowLeft, Settings, Save, RefreshCw } from 'lucide-react';
 
 interface Config {
   driver_rate_per_km: string;
-  flanvo_fee_rate: string;
+  flanvo_tier1_rate: string;
+  flanvo_tier2_rate: string;
+  flanvo_tier3_rate: string;
   protection_fee: string;
   min_group_size: string;
   max_group_size: string;
@@ -14,14 +16,16 @@ interface Config {
   dbscan_eps_km: string;
 }
 
-const FIELD_META: { key: keyof Config; label: string; description: string; unit: string }[] = [
-  { key: 'driver_rate_per_km', label: 'Tariffa autista per km', description: 'Compenso per km percorso (€/km)', unit: '€/km' },
-  { key: 'flanvo_fee_rate', label: 'Commissione Flanvo', description: 'Percentuale sui ricavi totali (es: 0.20 = 20%)', unit: '%' },
-  { key: 'protection_fee', label: 'Costo protezione acquisto', description: 'Fee fissa per la protezione del pagamento', unit: '€' },
-  { key: 'min_group_size', label: 'Min passeggeri per gruppo', description: 'Numero minimo per confermare un gruppo', unit: 'pax' },
-  { key: 'max_group_size', label: 'Max passeggeri per gruppo', description: 'Capacità massima di un gruppo', unit: 'pax' },
-  { key: 'matching_window_hours', label: 'Finestra di matching', description: 'Ore entro cui effettuare il matching dal volo', unit: 'ore' },
-  { key: 'dbscan_eps_km', label: 'Raggio DBSCAN (eps)', description: 'Raggio in km per raggruppare destinazioni vicine', unit: 'km' },
+const FIELD_META: { key: keyof Config; label: string; description: string; unit: string; section?: string }[] = [
+  { key: 'driver_rate_per_km', label: 'Tariffa autista per km', description: 'Quota che va interamente all\'autista per ogni km percorso. Il driver riceve sempre il 100% di questa quota.', unit: '€/km', section: 'Driver' },
+  { key: 'flanvo_tier1_rate', label: 'Fee Flanvo — Tier 1 (0–50 km)', description: 'Fee Flanvo aggiunta sopra al costo driver, per corse brevi. Distribuita tra i passeggeri.', unit: '€/km', section: 'Flanvo Fee' },
+  { key: 'flanvo_tier2_rate', label: 'Fee Flanvo — Tier 2 (51–99 km)', description: 'Fee Flanvo per corse medie. Meno del Tier 1 per incentivare distanze maggiori.', unit: '€/km', section: 'Flanvo Fee' },
+  { key: 'flanvo_tier3_rate', label: 'Fee Flanvo — Tier 3 (≥100 km)', description: 'Fee Flanvo per corse lunghe. La più bassa per restare competitivi.', unit: '€/km', section: 'Flanvo Fee' },
+  { key: 'protection_fee', label: 'Costo protezione acquisto', description: 'Fee fissa aggiunta per ogni passeggero a copertura della protezione pagamento.', unit: '€', section: 'Flanvo Fee' },
+  { key: 'min_group_size', label: 'Min passeggeri per gruppo', description: 'Numero minimo di passeggeri per confermare un gruppo.', unit: 'pax', section: 'Matching' },
+  { key: 'max_group_size', label: 'Max passeggeri per gruppo', description: 'Capacità massima van (fisso a 7 posti).', unit: 'pax', section: 'Matching' },
+  { key: 'matching_window_hours', label: 'Finestra di matching', description: 'Ore entro cui effettuare il matching prima del volo.', unit: 'ore', section: 'Matching' },
+  { key: 'dbscan_eps_km', label: 'Raggio DBSCAN (eps)', description: 'Raggio in km per raggruppare destinazioni vicine. Più alto = gruppi più grandi ma meno precisi.', unit: 'km', section: 'Matching' },
 ];
 
 export default function AdminConfigPage() {
@@ -152,45 +156,66 @@ export default function AdminConfigPage() {
           </div>
         )}
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 divide-y divide-gray-100">
-          {FIELD_META.map(({ key, label, description, unit }) => (
-            <div key={key} className="p-6">
-              <div className="flex items-start justify-between gap-6">
-                <div className="flex-1">
-                  <label className="block text-sm font-semibold text-gray-900 mb-1">
-                    {label}
-                  </label>
-                  <p className="text-xs text-gray-500">{description}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={draft[key]}
-                    onChange={(e) => handleChange(key, e.target.value)}
-                    className="w-28 text-right px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-mono text-gray-900"
-                  />
-                  <span className="text-sm text-gray-500 w-10">{unit}</span>
-                </div>
+        {['Driver', 'Flanvo Fee', 'Matching'].map((section) => {
+          const fields = FIELD_META.filter((f) => f.section === section);
+          return (
+            <div key={section} className="mb-6">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 px-1">
+                {section}
+              </h2>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 divide-y divide-gray-100">
+                {fields.map(({ key, label, description, unit }) => (
+                  <div key={key} className="p-6">
+                    <div className="flex items-start justify-between gap-6">
+                      <div className="flex-1">
+                        <label className="block text-sm font-semibold text-gray-900 mb-1">
+                          {label}
+                        </label>
+                        <p className="text-xs text-gray-500">{description}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={draft[key]}
+                          onChange={(e) => handleChange(key, e.target.value)}
+                          className="w-28 text-right px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-mono text-gray-900"
+                        />
+                        <span className="text-sm text-gray-500 w-10">{unit}</span>
+                      </div>
+                    </div>
+                    {config && config[key] !== draft[key] && (
+                      <p className="mt-2 text-xs text-amber-600">
+                        Attuale: {config[key]} {unit} → Nuovo: {draft[key]} {unit}
+                      </p>
+                    )}
+                  </div>
+                ))}
               </div>
-              {config && config[key] !== draft[key] && (
-                <p className="mt-2 text-xs text-amber-600">
-                  Valore attuale: {config[key]} {unit} → Nuovo: {draft[key]} {unit}
-                </p>
-              )}
             </div>
-          ))}
-        </div>
+          );
+        })}
 
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800">
-          <strong>Formula di pricing applicata:</strong><br />
-          <code className="block mt-2 bg-blue-100 px-3 py-2 rounded font-mono text-xs">
-            prezzo_per_pax = distanza_km × tariffa_km ÷ n_passeggeri + commissione_flanvo + protezione
-          </code>
-          <p className="mt-2 text-xs text-blue-600">
-            Le modifiche hanno effetto sulle nuove prenotazioni. Le prenotazioni già confermate mantengono il prezzo originale.
-          </p>
+          <strong>Come funziona il pricing Flanvo:</strong>
+          <div className="mt-3 space-y-2 text-xs text-blue-700">
+            <div className="bg-blue-100 px-3 py-2 rounded font-mono">
+              quota_driver = (distanza_totale_km × €/km) ÷ n_passeggeri
+            </div>
+            <div className="bg-blue-100 px-3 py-2 rounded font-mono">
+              fee_flanvo = km_onboard_passeggero × tier_rate + protezione
+            </div>
+            <div className="bg-blue-100 px-3 py-2 rounded font-mono font-bold">
+              prezzo_finale = quota_driver + fee_flanvo
+            </div>
+          </div>
+          <ul className="mt-3 space-y-1 text-xs text-blue-700">
+            <li>• Il driver riceve <strong>sempre il 100%</strong> della quota driver</li>
+            <li>• Flanvo incassa solo la fee aggiunta sopra</li>
+            <li>• Più passeggeri = quota driver divisa in più persone = costo minore per ciascuno</li>
+            <li>• Le modifiche valgono per le nuove prenotazioni — quelle esistenti mantengono il prezzo originale</li>
+          </ul>
         </div>
       </div>
     </div>

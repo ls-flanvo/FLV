@@ -5,16 +5,21 @@
  * @module pricing-calculator
  */
 
-const DRIVER_RATE = 2.0; // €/km
-
-/**
- * Tariffe Flanvo tiered per km
- */
-const FLANVO_TIERS = [
-  { minKm: 0, maxKm: 50, rate: 0.30 },   // 0-50 km → 0.30 €/km
-  { minKm: 51, maxKm: 99, rate: 0.25 },  // 51-99 km → 0.25 €/km
-  { minKm: 100, maxKm: Infinity, rate: 0.20 } // ≥100 km → 0.20 €/km
+// Defaults (usati se non passati come parametro)
+const DEFAULT_DRIVER_RATE = 2.0; // €/km
+const DEFAULT_FLANVO_TIERS = [
+  { minKm: 0, maxKm: 50, rate: 0.30 },
+  { minKm: 51, maxKm: 99, rate: 0.25 },
+  { minKm: 100, maxKm: Infinity, rate: 0.20 },
 ];
+
+export interface PricingRatesInput {
+  driverRatePerKm?: number;
+  flanvoTier1Rate?: number;
+  flanvoTier2Rate?: number;
+  flanvoTier3Rate?: number;
+  protectionFee?: number;
+}
 
 export interface PassengerPricing {
   bookingId: string;
@@ -49,15 +54,19 @@ export interface ClusterPricing {
  * @param kmOnboard - Km percorsi dal passeggero
  * @returns Tariffa €/km applicabile
  */
-export function getFlanvoRate(kmOnboard: number): number {
-  for (const tier of FLANVO_TIERS) {
-    if (kmOnboard >= tier.minKm && kmOnboard <= tier.maxKm) {
-      return tier.rate;
-    }
+export function getFlanvoRate(
+  kmOnboard: number,
+  rates?: { tier1?: number; tier2?: number; tier3?: number }
+): number {
+  const tiers = [
+    { minKm: 0, maxKm: 50, rate: rates?.tier1 ?? DEFAULT_FLANVO_TIERS[0].rate },
+    { minKm: 51, maxKm: 99, rate: rates?.tier2 ?? DEFAULT_FLANVO_TIERS[1].rate },
+    { minKm: 100, maxKm: Infinity, rate: rates?.tier3 ?? DEFAULT_FLANVO_TIERS[2].rate },
+  ];
+  for (const tier of tiers) {
+    if (kmOnboard >= tier.minKm && kmOnboard <= tier.maxKm) return tier.rate;
   }
-  
-  // Fallback: ultima tier
-  return FLANVO_TIERS[FLANVO_TIERS.length - 1].rate;
+  return tiers[tiers.length - 1].rate;
 }
 
 /**
@@ -74,34 +83,41 @@ function calculatePassengerPricing(
   bookingId: string,
   kmOnboard: number,
   totalRouteKm: number,
-  totalPassengers: number
+  totalPassengers: number,
+  rates?: PricingRatesInput
 ): Omit<PassengerPricing, 'breakdown'> & { breakdown: Omit<PassengerPricing['breakdown'], 'pennyAdjustment'> } {
-  // Percentuale di route percorsa dal passeggero (per info, non per pricing)
+  const driverRate = rates?.driverRatePerKm ?? DEFAULT_DRIVER_RATE;
   const sharePercent = (kmOnboard / totalRouteKm) * 100;
-  
-  // ✅ DRIVER COST EQUO: costo totale veicolo diviso tra tutti
-  const totalVehicleCost = totalRouteKm * DRIVER_RATE;
+
+  // Driver cost: totale route diviso equamente tra tutti i passeggeri (100% al driver)
+  const totalVehicleCost = totalRouteKm * driverRate;
   const driverCost = totalVehicleCost / totalPassengers;
-  
-  // ✅ FLANVO FEE PROPORZIONALE: basata sui km effettivi del passeggero
-  const flanvoRate = getFlanvoRate(kmOnboard);
+
+  // Flanvo fee: aggiunta sopra, proporzionale ai km onboard del passeggero
+  const flanvoRate = getFlanvoRate(kmOnboard, {
+    tier1: rates?.flanvoTier1Rate,
+    tier2: rates?.flanvoTier2Rate,
+    tier3: rates?.flanvoTier3Rate,
+  });
   const flanvoFee = kmOnboard * flanvoRate;
-  
-  // Totale (arrotondato a 2 decimali)
-  const totalPrice = Math.round((driverCost + flanvoFee) * 100) / 100;
-  
+
+  // Protection fee fissa per passeggero
+  const protectionFee = rates?.protectionFee ?? 0;
+
+  const totalPrice = Math.round((driverCost + flanvoFee + protectionFee) * 100) / 100;
+
   return {
     bookingId,
     kmOnboard: Math.round(kmOnboard * 100) / 100,
     driverCost: Math.round(driverCost * 100) / 100,
-    flanvoFee: Math.round(flanvoFee * 100) / 100,
+    flanvoFee: Math.round((flanvoFee + protectionFee) * 100) / 100,
     totalPrice,
     sharePercent: Math.round(sharePercent * 100) / 100,
     breakdown: {
-      driverRate: DRIVER_RATE,
+      driverRate,
       flanvoRate,
-      originalTotal: totalPrice
-    }
+      originalTotal: totalPrice,
+    },
   };
 }
 
@@ -167,25 +183,28 @@ export function applyPennyAdjustment(
  */
 export function calculatePricing(
   totalRouteKm: number,
-  passengerKm: Array<{ bookingId: string; kmOnboard: number }>
+  passengerKm: Array<{ bookingId: string; kmOnboard: number }>,
+  rates?: PricingRatesInput
 ): ClusterPricing {
   if (passengerKm.length === 0) {
     throw new Error('No passengers provided for pricing');
   }
-  
+
+  const driverRate = rates?.driverRatePerKm ?? DEFAULT_DRIVER_RATE;
   const totalPassengers = passengerKm.length;
-  
-  // Calcola pricing individuale (senza adjustment)
-  // ✅ PASSA totalPassengers per split equo del driver cost
-  const passengersBase = passengerKm.map(pk =>
-    calculatePassengerPricing(pk.bookingId, pk.kmOnboard, totalRouteKm, totalPassengers)
+
+  const passengersBase = passengerKm.map((pk) =>
+    calculatePassengerPricing(pk.bookingId, pk.kmOnboard, totalRouteKm, totalPassengers, rates)
   );
-  
-  // Calcola totali attesi
-  const totalDriverCost = totalRouteKm * DRIVER_RATE;
+
+  const totalDriverCost = totalRouteKm * driverRate;
   const totalFlanvoFee = passengerKm.reduce((sum, pk) => {
-    const rate = getFlanvoRate(pk.kmOnboard);
-    return sum + (pk.kmOnboard * rate);
+    const rate = getFlanvoRate(pk.kmOnboard, {
+      tier1: rates?.flanvoTier1Rate,
+      tier2: rates?.flanvoTier2Rate,
+      tier3: rates?.flanvoTier3Rate,
+    });
+    return sum + pk.kmOnboard * rate + (rates?.protectionFee ?? 0);
   }, 0);
   
   const grandTotal = totalDriverCost + totalFlanvoFee;

@@ -4,10 +4,12 @@ import { requireAdmin, authErrorResponse } from '@/lib/api-auth';
 
 const DEFAULT_CONFIG = {
   driver_rate_per_km: '2.00',
-  flanvo_fee_rate: '0.20',
+  flanvo_tier1_rate: '0.30',
+  flanvo_tier2_rate: '0.25',
+  flanvo_tier3_rate: '0.20',
   protection_fee: '2.50',
   min_group_size: '2',
-  max_group_size: '4',
+  max_group_size: '7',
   matching_window_hours: '48',
   dbscan_eps_km: '8.5',
 };
