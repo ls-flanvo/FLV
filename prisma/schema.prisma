@@ -140,6 +140,7 @@ model User {
   bookings      Booking[]
   driver        Driver?
   microGroups   MicroGroup[]
+  messages      RideMessage[]
 
   @@index([email])
   @@index([role])
@@ -162,7 +163,12 @@ model Driver {
   
   // Earnings tracking
   totalEarnings             Float        @default(0)
-  
+
+  // GPS live location (aggiornato dal driver durante la corsa)
+  currentLat                Float?
+  currentLng                Float?
+  lastLocationAt            DateTime?
+
   rejectionReason           String?
 
   // Stripe Connected Account (per Agent 4 - Payments)
@@ -233,6 +239,10 @@ model Booking {
   // Detour Constraints
   maxDetourMinutes    Int            @default(10)    // Max 10 minuti extra
   maxDetourPercent    Float          @default(20.0)  // Max 20% detour
+
+  // Rating post-corsa
+  userRating          Int?           // 1-5 stelle (utente → driver)
+  ratingComment       String?
 
   // Status
   status              BookingStatus  @default(PENDING)
@@ -359,6 +369,7 @@ model RideGroup {
   ride              Ride?
   supplyChecks      SupplyCheck[]
   priceAuditLogs    PriceAuditLog[]
+  messages          RideMessage[]
   
   @@index([status])
   @@index([direction])
@@ -622,6 +633,26 @@ model SystemConfig {
   updatedAt       DateTime  @updatedAt
 
   @@map("system_config")
+}
+
+// ============================================
+// CHAT
+// ============================================
+
+model RideMessage {
+  id          String    @id @default(cuid())
+  rideGroupId String
+  userId      String
+  content     String
+  isDriver    Boolean   @default(false)
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  rideGroup   RideGroup @relation(fields: [rideGroupId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([rideGroupId, createdAt])
+  @@map("ride_messages")
 }
 
 model InsurancePool {

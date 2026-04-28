@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store';
 import { Card } from '@/components/ui';
-import { Car, Lock, Mail, AlertCircle } from 'lucide-react';
+import { Car, Lock, Mail, AlertCircle, Clock } from 'lucide-react';
 
 export default function DriverLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [pendingApproval, setPendingApproval] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const { login, setToken } = useAuthStore();
@@ -19,6 +20,7 @@ export default function DriverLoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setPendingApproval(false);
     setLoading(true);
 
     try {
@@ -31,7 +33,7 @@ export default function DriverLoginPage() {
       const data = await response.json();
 
       if (response.status === 403) {
-        setError(data.error || 'Account in attesa di approvazione');
+        setPendingApproval(true);
         return;
       }
 
@@ -100,7 +102,19 @@ export default function DriverLoginPage() {
               </div>
             </div>
 
-            {error && (
+            {pendingApproval && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start space-x-3">
+                <Clock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-amber-900">Account in attesa di approvazione</p>
+                  <p className="text-xs text-amber-700 mt-1">
+                    Il tuo profilo autista è in fase di verifica. Riceverai una email non appena sarà approvato dall&apos;amministratore.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {error && !pendingApproval && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start space-x-2">
                 <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-red-800">{error}</p>

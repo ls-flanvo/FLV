@@ -27,6 +27,7 @@ export default function DriverDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'pending' | 'accepted' | 'completed'>('pending');
   const [chatOpen, setChatOpen] = useState(false);
+  const [chatGroupId, setChatGroupId] = useState('');
   const [selectedPassenger, setSelectedPassenger] = useState<{ name: string; phone: string } | null>(null);
   const [stripeStatus, setStripeStatus] = useState<'loading' | 'not_started' | 'incomplete' | 'pending_verification' | 'active'>('loading');
   const [stats, setStats] = useState({
@@ -50,7 +51,28 @@ export default function DriverDashboardPage() {
     }
     fetchRides();
     fetchStripeStatus();
+    startLocationTracking();
   }, [isAuthenticated, user, router]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const startLocationTracking = () => {
+    if (!navigator.geolocation) return;
+    const sendLocation = (pos: GeolocationPosition) => {
+      const authToken = token || localStorage.getItem('flanvo_token');
+      fetch('/api/driver/location', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
+        body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      }).catch(() => {});
+    };
+    navigator.geolocation.getCurrentPosition(sendLocation, () => {});
+    const id = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(sendLocation, () => {});
+    }, 30000);
+    return () => clearInterval(id);
+  };
 
   const fetchStripeStatus = async () => {
     try {
@@ -365,10 +387,8 @@ export default function DriverDashboardPage() {
                             className="p-1 hover:bg-gray-200 rounded transition-colors"
                             title="Chat"
                             onClick={() => {
-                              setSelectedPassenger({
-                                name: passenger.name,
-                                phone: '+39 340 0000000' // ✅ FIX: placeholder
-                              });
+                              setSelectedPassenger({ name: passenger.name, phone: '' });
+                              setChatGroupId(ride.rideGroupId);
                               setChatOpen(true);
                             }}
                           >
@@ -476,16 +496,17 @@ export default function DriverDashboardPage() {
       </div>
 
       {/* Modal Chat con passeggero */}
-      {selectedPassenger && (
+      {selectedPassenger && chatGroupId && (
         <DriverChat
           isOpen={chatOpen}
           onClose={() => {
             setChatOpen(false);
             setSelectedPassenger(null);
+            setChatGroupId('');
           }}
           driverName={selectedPassenger.name}
           driverPhone={selectedPassenger.phone}
-          bookingId="driver-chat"
+          groupId={chatGroupId}
         />
       )}
     </div>

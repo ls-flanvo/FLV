@@ -81,6 +81,8 @@ export interface Booking {
   finalPrice?: number | null;
   // Status
   status: 'PENDING' | 'CONFIRMED' | 'IN_MATCHING' | 'MATCHED' | 'NO_MATCH' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  userRating?: number | null;
+  ratingComment?: string | null;
   createdAt: string;
   updatedAt?: string;
   // Relations (optional, from API includes)
