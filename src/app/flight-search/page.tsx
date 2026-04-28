@@ -12,7 +12,7 @@ import {
 
 type Step = 'flight' | 'destination' | 'passengers' | 'searching';
 
-const PAX_OPTIONS = [2, 3, 4, 5, 6, 7];
+const PAX_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
 const BAG_OPTIONS = [
   { value: 0, label: '0', sub: 'Solo a mano' },
   { value: 1, label: '1', sub: '1 valigia' },
@@ -93,7 +93,7 @@ export default function FlightSearchPage() {
   const [destination, setDestination] = useState('');
   const [destinationCoords, setDestinationCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [destError, setDestError] = useState('');
-  const [passengers, setPassengers] = useState(2);
+  const [passengers, setPassengers] = useState(1);
   const [luggage, setLuggage] = useState(1);
   const [aiAddressMode, setAiAddressMode] = useState(false);
   const [aiInput, setAiInput] = useState('');
@@ -433,7 +433,7 @@ export default function FlightSearchPage() {
 
             <div className="mb-8 text-center">
               <h2 className="text-2xl font-bold text-white mb-2">Quanti siete?</h2>
-              <p className="text-ink-secondary text-sm">Minimo 2 — van da 7 posti</p>
+              <p className="text-ink-secondary text-sm">Van da 7 posti — viaggi da solo o in gruppo</p>
             </div>
 
             {/* Passengers chips */}
