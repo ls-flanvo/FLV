@@ -74,15 +74,7 @@ export async function GET(
       return NextResponse.json({ flight: realFlight, source: 'live' });
     }
 
-    // In produzione senza dati reali → errore esplicito
-    if (process.env.NODE_ENV === 'production' && process.env.AVIATIONSTACK_API_KEY) {
-      return NextResponse.json(
-        { error: 'Volo non trovato. Verifica il codice e riprova.' },
-        { status: 404 }
-      );
-    }
-
-    // In sviluppo/test: fallback demo con aeroporto reale basato sul prefisso
+    // Fallback demo con aeroporto reale basato sul prefisso
     const prefix = flightCode.slice(0, 2);
     const airline = AIRLINE_MAP[prefix] || 'Test Airlines';
 
