@@ -2,22 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { getPricingRates } from '@/lib/get-pricing-rates';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16'
 });
 
-// Validation schema
 const createIntentSchema = z.object({
   memberId: z.string().cuid()
 });
-
-// GET FLANVO RATE (tiered)
-function getFlanvoRate(km: number): number {
-  if (km >= 100) return 0.20;
-  if (km >= 51) return 0.25;
-  return 0.30;
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,12 +48,11 @@ export async function POST(req: NextRequest) {
       groupStatus: member.rideGroup.status
     });
 
-    // ✅ FIXED: Permetti payment per FORMING, READY e CONFIRMED
-    const allowedStatuses = ['FORMING', 'READY', 'CONFIRMED'];
+    // Pre-auth ammessa da FORMING (prenotazione) a ASSIGNED (driver assegnato)
+    const allowedStatuses = ['FORMING', 'READY', 'CONFIRMED', 'ASSIGNED'];
     if (!allowedStatuses.includes(member.rideGroup.status)) {
-      console.log('❌ Group status non valido per payment:', member.rideGroup.status);
       return NextResponse.json(
-        { error: `Group status must be FORMING, READY or CONFIRMED. Current: ${member.rideGroup.status}` },
+        { error: `Pagamento non disponibile per gruppi in stato: ${member.rideGroup.status}` },
         { status: 400 }
       );
     }
@@ -81,35 +73,39 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ✅ Se non ci sono ancora pricing data (gruppo appena creato), calcoliamo valori temporanei
+    // Carica tariffe dinamiche dal DB
+    const rates = await getPricingRates();
+
     let driverShare = member.driverShare;
     let kmOnboard = member.kmOnboard;
-    
+
     if (!driverShare || !kmOnboard) {
-      console.log('⚠️ Pricing data non ancora calcolato, uso valori temporanei');
-      
-      // Calcola distanza diretta approssimativa (Haversine)
-      const R = 6371; // Earth radius in km
-      const lat1 = member.booking.pickupLat * Math.PI / 180;
-      const lat2 = member.booking.dropoffLat * Math.PI / 180;
-      const deltaLat = (member.booking.dropoffLat - member.booking.pickupLat) * Math.PI / 180;
-      const deltaLng = (member.booking.dropoffLng - member.booking.pickupLng) * Math.PI / 180;
-      
-      const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
-                Math.cos(lat1) * Math.cos(lat2) *
-                Math.sin(deltaLng/2) * Math.sin(deltaLng/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const distance = R * c;
-      
+      // Calcola distanza haversine tra pickup (aeroporto) e dropoff (casa utente)
+      const toRad = (d: number) => (d * Math.PI) / 180;
+      const R = 6371;
+      const dLat = toRad(member.booking.dropoffLat - member.booking.pickupLat);
+      const dLng = toRad(member.booking.dropoffLng - member.booking.pickupLng);
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(member.booking.pickupLat)) *
+          Math.cos(toRad(member.booking.dropoffLat)) *
+          Math.sin(dLng / 2) ** 2;
+      const distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
       kmOnboard = distance;
-      driverShare = distance * 2.00; // €2.00/km driver rate
-      
-      console.log('📍 Distanza calcolata:', distance, 'km');
+      // Driver share: costo totale route diviso tra i passeggeri del gruppo
+      const groupSize = member.rideGroup.members.length || 1;
+      driverShare = (distance * rates.driverRatePerKm) / groupSize;
     }
 
-    const flanvoFeeRate = getFlanvoRate(kmOnboard);
+    const flanvoFeeRate =
+      kmOnboard >= 100
+        ? rates.flanvoTier3Rate
+        : kmOnboard >= 51
+        ? rates.flanvoTier2Rate
+        : rates.flanvoTier1Rate;
     const flanvoFee = kmOnboard * flanvoFeeRate;
-    const protectionFee = 1.00;
+    const protectionFee = rates.protectionFee;
     const totalPrice = driverShare + flanvoFee + protectionFee;
 
     console.log('💰 Pricing calcolato:', {

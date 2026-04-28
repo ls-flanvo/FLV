@@ -12,7 +12,7 @@ export default function FlightSearchPage() {
   const [flightCode, setFlightCode] = useState('');
   const [destination, setDestination] = useState('');
   const [destinationCoords, setDestinationCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [passengers, setPassengers] = useState(1);
+  const [passengers, setPassengers] = useState(2); // minimo 2 passeggeri
   const [luggage, setLuggage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [flight, setFlight] = useState<Flight | null>(null);
@@ -61,19 +61,29 @@ export default function FlightSearchPage() {
 
   const handleFindMatches = async () => {
     if (!flight) return;
-    
-    // Validazione destinazione
+
     if (!destination || destination.length < 5) {
       setDestinationError('Inserisci un indirizzo di destinazione valido');
       return;
     }
 
+    // Coordinate obbligatorie — l'autocomplete deve restituirle
+    if (!destinationCoords) {
+      setDestinationError('Seleziona un indirizzo dalla lista di suggerimenti');
+      return;
+    }
+
+    if (passengers < 2) {
+      setDestinationError('Il minimo è 2 passeggeri per prenotare una corsa condivisa');
+      return;
+    }
+
     setCurrentFlight(flight);
-    
+
     const destinationObj = {
       address: destination,
-      lat: destinationCoords?.lat || 45.4642,
-      lng: destinationCoords?.lng || 9.1900,
+      lat: destinationCoords.lat,
+      lng: destinationCoords.lng,
       city: destination.split(',')[0] || destination,
     };
 
@@ -140,9 +150,9 @@ export default function FlightSearchPage() {
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
                   required
                 >
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
+                  {[2, 3, 4, 5, 6, 7].map(num => (
                     <option key={num} value={num}>
-                      {num} {num === 1 ? 'passeggero' : 'passeggeri'}
+                      {num} passeggeri
                     </option>
                   ))}
                 </select>

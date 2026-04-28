@@ -1,0 +1,17 @@
+export const AIRPORT_COORDS: Record<string, { lat: number; lng: number; name: string }> = {
+  CTA: { lat: 37.4668, lng: 15.0664, name: 'Catania Fontanarossa' },
+  PMO: { lat: 38.1754, lng: 13.0914, name: 'Palermo Falcone Borsellino' },
+  CAG: { lat: 39.2515, lng: 9.0543, name: 'Cagliari Elmas' },
+  FCO: { lat: 41.8003, lng: 12.2389, name: 'Roma Fiumicino' },
+  MXP: { lat: 45.6301, lng: 8.7233, name: 'Milano Malpensa' },
+  BGY: { lat: 45.6714, lng: 9.7042, name: 'Milano Bergamo Orio' },
+  NAP: { lat: 40.8860, lng: 14.2908, name: 'Napoli Capodichino' },
+  BRI: { lat: 41.1389, lng: 16.7606, name: 'Bari Karol Wojtyla' },
+  LGW: { lat: 51.1537, lng: -0.1821, name: 'London Gatwick' },
+  LHR: { lat: 51.4700, lng: -0.4543, name: 'London Heathrow' },
+  BCN: { lat: 41.2974, lng: 2.0833, name: 'Barcellona El Prat' },
+  CDG: { lat: 49.0097, lng: 2.5479, name: 'Parigi Charles de Gaulle' },
+  AMS: { lat: 52.3086, lng: 4.7639, name: 'Amsterdam Schiphol' },
+  FRA: { lat: 50.0379, lng: 8.5622, name: 'Francoforte' },
+  MAD: { lat: 40.4719, lng: -3.5626, name: 'Madrid Barajas' },
+};

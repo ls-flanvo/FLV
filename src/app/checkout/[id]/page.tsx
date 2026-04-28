@@ -14,6 +14,9 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [memberId, setMemberId] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [breakdown, setBreakdown] = useState<{
+    driverShare: number; flanvoFee: number; protectionFee: number; kmOnboard: number;
+  } | null>(null);
   const [success, setSuccess] = useState(false);
 
   const { user, token, setToken } = useAuthStore();
@@ -60,6 +63,7 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
       if (data.success) {
         setClientSecret(data.clientSecret);
         setPaymentAmount(data.amount);
+        if (data.breakdown) setBreakdown(data.breakdown);
       } else {
         setError(data.error || 'Failed to initialize payment');
       }
@@ -177,18 +181,32 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
             </div>
 
             <div className="border-t border-gray-200 pt-4 space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Tariffa corsa</span>
-                <span className="font-medium text-gray-900">
-                  €{paymentAmount > 0 ? (paymentAmount - 1).toFixed(2) : '0.00'}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Protection fee</span>
-                <span className="font-medium text-gray-900">€1.00</span>
-              </div>
+              {breakdown ? (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Quota trasporto driver</span>
+                    <span className="font-medium text-gray-900">€{breakdown.driverShare.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Servizio Flanvo</span>
+                    <span className="font-medium text-gray-900">€{breakdown.flanvoFee.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Protezione acquisto</span>
+                    <span className="font-medium text-gray-900">€{breakdown.protectionFee.toFixed(2)}</span>
+                  </div>
+                  {breakdown.kmOnboard > 0 && (
+                    <p className="text-xs text-gray-400">Distanza stimata: ~{Math.round(breakdown.kmOnboard)} km</p>
+                  )}
+                </>
+              ) : (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Tariffa corsa</span>
+                  <span className="font-medium text-gray-900">€{paymentAmount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-lg font-bold pt-3 border-t border-gray-200">
-                <span className="text-gray-900">Totale</span>
+                <span className="text-gray-900">Totale pre-autorizzato</span>
                 <span className="text-primary-600">€{paymentAmount.toFixed(2)}</span>
               </div>
             </div>

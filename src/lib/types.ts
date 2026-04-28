@@ -12,13 +12,16 @@ export interface Flight {
   airline: string;
   departureAirport: string;
   arrivalAirport: string;
+  arrivalAirportName?: string;
+  arrivalLat?: number | null;
+  arrivalLng?: number | null;
   scheduledTime: string;
   actualTime?: string;
   delayMins: number;
-  status: 'scheduled' | 'boarding' | 'departed' | 'landed' | 'cancelled' | 'delayed' | 'diverted'; // ← Aggiungi 'diverted'
+  status: 'scheduled' | 'boarding' | 'departed' | 'landed' | 'cancelled' | 'delayed' | 'diverted';
   terminal?: string;
   gate?: string;
-  divertedTo?: string; // ← NUOVO: aeroporto di dirottamento
+  divertedTo?: string;
 }
 
 export interface Destination {

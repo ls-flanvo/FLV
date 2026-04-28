@@ -1,19 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const AIRPORT_COORDS: Record<string, { lat: number; lng: number; name: string }> = {
-  CTA: { lat: 37.4668, lng: 15.0664, name: 'Catania Fontanarossa' },
-  PMO: { lat: 38.1754, lng: 13.0914, name: 'Palermo Falcone Borsellino' },
-  CAG: { lat: 39.2515, lng: 9.0543, name: 'Cagliari Elmas' },
-  FCO: { lat: 41.8003, lng: 12.2389, name: 'Roma Fiumicino' },
-  MXP: { lat: 45.6301, lng: 8.7233, name: 'Milano Malpensa' },
-  BGY: { lat: 45.6714, lng: 9.7042, name: 'Milano Bergamo Orio' },
-  LGW: { lat: 51.1537, lng: -0.1821, name: 'London Gatwick' },
-  BCN: { lat: 41.2974, lng: 2.0833, name: 'Barcellona El Prat' },
-};
+import { AIRPORT_COORDS } from '@/lib/airports';
 
 const AIRLINE_MAP: Record<string, string> = {
   AZ: 'ITA Airways', FR: 'Ryanair', U2: 'easyJet', VY: 'Vueling',
   W6: 'Wizz Air', BA: 'British Airways', LH: 'Lufthansa', EW: 'Eurowings',
+  IG: 'Air Italy', TO: 'Transavia', PC: 'Pegasus', SU: 'Aeroflot',
 };
 
 async function fetchFromAviationStack(flightCode: string) {
@@ -23,7 +14,7 @@ async function fetchFromAviationStack(flightCode: string) {
   try {
     const res = await fetch(
       `http://api.aviationstack.com/v1/flights?access_key=${apiKey}&flight_iata=${flightCode}&limit=1`,
-      { next: { revalidate: 300 } } // cache 5 min
+      { next: { revalidate: 180 } } // cache 3 min
     );
     if (!res.ok) return null;
     const data = await res.json();
@@ -33,9 +24,9 @@ async function fetchFromAviationStack(flightCode: string) {
     const arrivalCode = flight.arrival?.iata ?? '';
     const coords = AIRPORT_COORDS[arrivalCode];
 
-    const scheduledTime = flight.departure?.scheduled ?? new Date().toISOString();
-    const actualTime = flight.departure?.actual ?? null;
-    const delay = flight.departure?.delay ?? 0;
+    const scheduledTime = flight.arrival?.scheduled ?? new Date().toISOString();
+    const actualTime = flight.arrival?.actual ?? null;
+    const delay = flight.arrival?.delay ?? 0;
 
     const statusMap: Record<string, string> = {
       scheduled: 'scheduled', active: 'departed', landed: 'landed',
@@ -70,38 +61,63 @@ export async function GET(
   try {
     const flightCode = params.code.toUpperCase().replace(/\s/g, '');
 
-    // Prima prova AviationStack (dati reali)
+    if (!/^[A-Z0-9]{2}[0-9]{1,4}$/.test(flightCode)) {
+      return NextResponse.json(
+        { error: 'Formato codice volo non valido. Esempio: AZ1234' },
+        { status: 400 }
+      );
+    }
+
+    // Prova AviationStack (dati reali)
     const realFlight = await fetchFromAviationStack(flightCode);
     if (realFlight) {
       return NextResponse.json({ flight: realFlight, source: 'live' });
     }
 
-    // Fallback: genera volo plausibile per test
+    // In produzione senza dati reali → errore esplicito
+    if (process.env.NODE_ENV === 'production' && process.env.AVIATIONSTACK_API_KEY) {
+      return NextResponse.json(
+        { error: 'Volo non trovato. Verifica il codice e riprova.' },
+        { status: 404 }
+      );
+    }
+
+    // In sviluppo/test: fallback demo con aeroporto reale basato sul prefisso
     const prefix = flightCode.slice(0, 2);
-    const airline = AIRLINE_MAP[prefix] || 'Charter Airlines';
-    const targetAirports = ['CTA', 'PMO', 'CAG'];
-    const arrivalCode = targetAirports[Math.abs(flightCode.charCodeAt(2) - 48) % 3];
+    const airline = AIRLINE_MAP[prefix] || 'Test Airlines';
+
+    // Determina aeroporto d'arrivo in base all'airline/volo (logica demo)
+    const DEMO_ROUTES: Record<string, string> = {
+      AZ: 'CTA', FR: 'PMO', U2: 'CTA', VY: 'CAG',
+      W6: 'PMO', IG: 'CTA', TO: 'PMO',
+    };
+    const arrivalCode = DEMO_ROUTES[prefix] || 'CTA';
     const arrival = AIRPORT_COORDS[arrivalCode];
 
-    const mockFlight = {
-      id: flightCode,
-      code: flightCode,
-      airline,
-      departureAirport: 'LGW',
-      arrivalAirport: arrivalCode,
-      arrivalAirportName: arrival.name,
-      arrivalLat: arrival.lat,
-      arrivalLng: arrival.lng,
-      scheduledTime: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
-      actualTime: null,
-      delayMins: 0,
-      status: 'scheduled' as const,
-      terminal: '1',
-      gate: 'A1',
-    };
+    // Orario realistico: tra 1 e 6 ore
+    const hoursOffset = 1 + (parseInt(flightCode.slice(-1)) % 5);
+    const scheduledTime = new Date(Date.now() + hoursOffset * 3600000).toISOString();
 
-    return NextResponse.json({ flight: mockFlight, source: 'mock' });
-  } catch (error) {
+    return NextResponse.json({
+      flight: {
+        id: flightCode,
+        code: flightCode,
+        airline,
+        departureAirport: 'LGW',
+        arrivalAirport: arrivalCode,
+        arrivalAirportName: arrival.name,
+        arrivalLat: arrival.lat,
+        arrivalLng: arrival.lng,
+        scheduledTime,
+        actualTime: null,
+        delayMins: 0,
+        status: 'scheduled' as const,
+        terminal: '1',
+        gate: `A${parseInt(flightCode.slice(-2)) % 20 + 1}`,
+      },
+      source: 'demo',
+    });
+  } catch {
     return NextResponse.json({ error: 'Errore nella ricerca del volo' }, { status: 500 });
   }
 }

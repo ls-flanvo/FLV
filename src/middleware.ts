@@ -28,7 +28,8 @@ export async function middleware(request: NextRequest) {
 
   const isUserRoute = userRoutes.some((p) => pathname.startsWith(p));
   const isDriverRoute = driverRoutes.some((p) => pathname.startsWith(p));
-  const isAdminRoute = adminRoutes.some((p) => pathname.startsWith(p)) &&
+  const isAdminRoute =
+    adminRoutes.some((p) => pathname.startsWith(p)) &&
     !adminExcluded.some((p) => pathname.startsWith(p));
 
   if (!isUserRoute && !isDriverRoute && !isAdminRoute) {
@@ -36,24 +37,31 @@ export async function middleware(request: NextRequest) {
   }
 
   const payload = await getTokenPayload(request);
+  const role = payload?.role as string | undefined;
 
+  // Nessun token → redirect al login appropriato
   if (!payload) {
     if (isDriverRoute) return NextResponse.redirect(new URL('/driver/login', request.url));
     if (isAdminRoute) return NextResponse.redirect(new URL('/admin/login', request.url));
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  const role = payload.role as string;
-
+  // Route driver: solo driver
   if (isDriverRoute && role !== 'driver') {
-    return NextResponse.redirect(new URL('/login', request.url));
+    if (role === 'admin') return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+    return NextResponse.redirect(new URL('/driver/login', request.url));
   }
 
+  // Route admin: solo admin
   if (isAdminRoute && role !== 'admin') {
-    return NextResponse.redirect(new URL('/login', request.url));
+    if (role === 'driver') return NextResponse.redirect(new URL('/driver/dashboard', request.url));
+    return NextResponse.redirect(new URL('/admin/login', request.url));
   }
 
-  if (isUserRoute && !['user', 'driver', 'admin'].includes(role)) {
+  // Route utente: solo passeggeri — driver e admin hanno la loro area
+  if (isUserRoute && role !== 'user') {
+    if (role === 'driver') return NextResponse.redirect(new URL('/driver/dashboard', request.url));
+    if (role === 'admin') return NextResponse.redirect(new URL('/admin/dashboard', request.url));
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
