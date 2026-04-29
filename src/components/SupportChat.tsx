@@ -16,6 +16,23 @@ const QUICK_QUESTIONS = [
   'Come vengono verificati gli autisti?',
 ];
 
+function MessageBubble({ content, role }: { content: string; role: 'user' | 'assistant' }) {
+  // Splitta su righe vuote per creare paragrafi distinti
+  const paragraphs = content.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+
+  return (
+    <div className={`max-w-[82%] px-3.5 py-3 rounded-2xl text-sm leading-relaxed space-y-2 ${
+      role === 'user'
+        ? 'bg-primary-500 text-[#0B0B0B] font-medium rounded-br-sm'
+        : 'bg-surface-3 text-ink-secondary rounded-bl-sm'
+    }`}>
+      {paragraphs.map((para, i) => (
+        <p key={i} className="whitespace-pre-line">{para}</p>
+      ))}
+    </div>
+  );
+}
+
 export default function SupportChat() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -29,7 +46,7 @@ export default function SupportChat() {
     if (open && messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        content: 'Ciao! Sono l\'assistente di Flanvo. Come posso aiutarti? 👋',
+        content: 'Ciao, sono l\'assistente Flanvo.\nCome posso aiutarti?',
       }]);
     }
     if (open) setTimeout(() => inputRef.current?.focus(), 100);
@@ -59,7 +76,7 @@ export default function SupportChat() {
         body: JSON.stringify({ messages: newMessages }),
       });
       const data = await res.json();
-      setMessages(m => [...m, { role: 'assistant', content: data.reply || 'Mi dispiace, non ho capito. Puoi riformulare?' }]);
+      setMessages(m => [...m, { role: 'assistant', content: data.reply || 'Non ho capito. Puoi riformulare?' }]);
     } catch {
       setMessages(m => [...m, { role: 'assistant', content: 'Errore di connessione. Riprova tra poco.' }]);
     } finally {
@@ -71,9 +88,12 @@ export default function SupportChat() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); }
   };
 
+  // Mostra le quick questions quando l'ultimo messaggio è dell'assistente e non stiamo caricando
+  const lastMessage = messages[messages.length - 1];
+  const showQuickQuestions = !loading && lastMessage?.role === 'assistant';
+
   return (
     <>
-      {/* Chat panel */}
       {open && (
         <div style={{ bottom: 'max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 5.5rem))' }} className="fixed right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 max-h-[70vh] flex flex-col bg-surface-1 border border-surface-4 rounded-2xl shadow-surface overflow-hidden animate-fade-up">
           {/* Header */}
@@ -99,15 +119,10 @@ export default function SupportChat() {
           <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[82%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                  m.role === 'user'
-                    ? 'bg-primary-500 text-[#0B0B0B] font-medium rounded-br-sm'
-                    : 'bg-surface-3 text-ink-secondary rounded-bl-sm'
-                }`}>
-                  {m.content}
-                </div>
+                <MessageBubble role={m.role} content={m.content} />
               </div>
             ))}
+
             {loading && (
               <div className="flex justify-start">
                 <div className="bg-surface-3 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2">
@@ -117,15 +132,16 @@ export default function SupportChat() {
                 </div>
               </div>
             )}
+
             <div ref={bottomRef} />
           </div>
 
-          {/* Quick questions (only before first user message) */}
-          {messages.filter(m => m.role === 'user').length === 0 && (
+          {/* Quick questions — visibili dopo ogni risposta dell'assistente */}
+          {showQuickQuestions && (
             <div className="px-4 pb-2 flex flex-wrap gap-1.5">
               {QUICK_QUESTIONS.map(q => (
                 <button key={q} onClick={() => send(q)}
-                  className="text-xs px-3 py-1.5 bg-surface-2 border border-surface-5 rounded-full text-ink-secondary hover:text-white hover:border-surface-4 transition-all">
+                  className="text-xs px-3 py-1.5 bg-surface-2 border border-surface-5 rounded-full text-ink-muted hover:text-white hover:border-surface-4 transition-all">
                   {q}
                 </button>
               ))}
@@ -154,7 +170,7 @@ export default function SupportChat() {
         </div>
       )}
 
-      {/* Trigger bubble — safe area bottom per iPhone notch */}
+      {/* Trigger bubble */}
       <button
         onClick={() => setOpen(o => !o)}
         style={{ bottom: 'max(1.5rem, env(safe-area-inset-bottom, 1.5rem))' }}
