@@ -2,6 +2,7 @@
 
 import { Component, ReactNode } from 'react';
 import { AlertCircle } from 'lucide-react';
+import * as Sentry from '@sentry/nextjs';
 
 interface Props { children: ReactNode; fallback?: ReactNode }
 interface State { hasError: boolean; message: string }
@@ -14,6 +15,10 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, message: error.message };
+  }
+
+  componentDidCatch(error: Error) {
+    Sentry.captureException(error);
   }
 
   render() {

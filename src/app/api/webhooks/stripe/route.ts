@@ -157,40 +157,43 @@ async function handlePaymentIntentFailed(intent: Stripe.PaymentIntent) {
     const member = await prisma.groupMember.findFirst({
       where: { paymentIntentId: intent.id },
       include: {
-        booking: {
-          include: {
-            user: true
-          }
-        }
-      }
+        booking: { include: { user: { select: { email: true, name: true } } } },
+        rideGroup: { select: { id: true, flightNumber: true } },
+      },
     });
 
-    if (!member) {
-      console.error(`GroupMember not found for intent ${intent.id}`);
-      return;
-    }
+    if (!member) return;
 
-    // Mark as FAILED
     await prisma.groupMember.update({
       where: { id: member.id },
-      data: {
-        paymentStatus: 'FAILED',
-        status: 'CANCELLED' // Remove from pool
-      }
+      data: { paymentStatus: 'FAILED', status: 'CANCELLED' },
     });
 
     console.error(`Payment FAILED for member ${member.id}: ${intent.last_payment_error?.message}`);
 
-    // TODO: Notify passenger to update payment method
-    // await sendPaymentFailedEmail(member.booking.user.email, {
-    //   error: intent.last_payment_error?.message,
-    //   amount: intent.amount / 100
-    // });
+    // Notifica l'utente
+    const { createNotification } = await import('@/lib/notify');
+    await createNotification({
+      userId: member.booking.userId,
+      type: 'PAYMENT_FAILED',
+      title: 'Pagamento fallito',
+      body: `Il pagamento per il volo ${member.rideGroup.flightNumber} non è andato a buon fine. Aggiorna il metodo di pagamento.`,
+      data: { groupMemberId: member.id },
+    });
 
-    // TODO: Check if pool still valid (min 2 members)
-    // If pool < 2 members, cancel entire group
+    // Controlla se il gruppo ha ancora abbastanza membri (min 2)
+    const activeMembers = await prisma.groupMember.count({
+      where: { rideGroupId: member.rideGroupId, status: { not: 'CANCELLED' } },
+    });
 
-  } catch (error: any) {
+    if (activeMembers < 2) {
+      await prisma.rideGroup.update({
+        where: { id: member.rideGroupId },
+        data: { status: 'CANCELLED' },
+      });
+      console.log(`Gruppo ${member.rideGroupId} cancellato: meno di 2 membri attivi`);
+    }
+  } catch (error) {
     console.error('Error handling payment_intent.payment_failed:', error);
   }
 }
@@ -237,13 +240,25 @@ async function handleTransferCreated(transfer: Stripe.Transfer) {
 
     console.log(`Transfer created: ${transfer.id} - €${transfer.amount / 100} (${type || 'unknown'})`);
 
-    // Log successful payout
-    // Could add a PayoutLog table to track all transfers
-
-    // TODO: Notify driver about incoming payment
-    // if (type === 'driver_earnings' || type === 'no_show_compensation') {
-    //   await notifyDriverPayout(transfer);
-    // }
+    // Notifica driver del pagamento ricevuto
+    if (type === 'driver_earnings' || type === 'no_show_compensation') {
+      try {
+        const driver = await prisma.driver.findFirst({
+          where: { stripeConnectedAccountId: transfer.destination as string },
+          select: { userId: true },
+        });
+        if (driver) {
+          const { createNotification } = await import('@/lib/notify');
+          await createNotification({
+            userId: driver.userId,
+            type: 'PAYMENT_RECEIVED',
+            title: 'Pagamento ricevuto',
+            body: `Hai ricevuto €${(transfer.amount / 100).toFixed(2)} su Stripe${type === 'no_show_compensation' ? ' (compensazione no-show)' : ''}.`,
+            data: { transferId: transfer.id },
+          });
+        }
+      } catch { /* non bloccare il webhook */ }
+    }
 
   } catch (error: any) {
     console.error('Error handling transfer.created:', error);
@@ -265,12 +280,9 @@ async function handleRefundCreated(refund: Stripe.Refund) {
     const member = await prisma.groupMember.findFirst({
       where: { paymentIntentId },
       include: {
-        booking: {
-          include: {
-            user: true
-          }
-        }
-      }
+        booking: { include: { user: { select: { email: true } } } },
+        rideGroup: { select: { flightNumber: true } },
+      },
     });
 
     if (!member) {
@@ -280,11 +292,26 @@ async function handleRefundCreated(refund: Stripe.Refund) {
 
     console.log(`Refund processed: ${refund.id} - €${refund.amount / 100} for member ${member.id}`);
 
-    // TODO: Send refund confirmation email
-    // await sendRefundConfirmationEmail(member.booking.user.email, {
-    //   amount: refund.amount / 100,
-    //   reason: refund.reason
-    // });
+    await prisma.groupMember.update({
+      where: { id: member.id },
+      data: { paymentStatus: 'REFUNDED' },
+    });
+
+    const { createNotification } = await import('@/lib/notify');
+    await createNotification({
+      userId: member.booking.userId,
+      type: 'REFUND_PROCESSED',
+      title: 'Rimborso elaborato',
+      body: `Rimborso di €${(refund.amount / 100).toFixed(2)} elaborato — arriverà entro 5–7 giorni lavorativi.`,
+      data: { refundId: refund.id },
+    });
+
+    const { sendCancellationConfirmed } = await import('@/lib/email');
+    sendCancellationConfirmed(member.booking.user.email, {
+      flightNumber: member.rideGroup?.flightNumber ?? '',
+      refunded: true,
+      refundPercent: 100,
+    }).catch(() => {});
 
   } catch (error: any) {
     console.error('Error handling refund.created:', error);
