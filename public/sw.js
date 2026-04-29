@@ -1,4 +1,4 @@
-const CACHE_NAME = 'flanvo-v1';
+const CACHE_NAME = 'flanvo-v3';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
