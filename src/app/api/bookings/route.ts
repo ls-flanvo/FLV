@@ -186,6 +186,10 @@ export async function POST(request: NextRequest) {
       message: 'Richiesta registrata con successo',
     }, { status: 201 });
   } catch (error) {
+    // Auth errors (401/403) vanno restituite con il codice corretto
+    if ((error as { statusCode?: number })?.statusCode === 401 || (error as { statusCode?: number })?.statusCode === 403) {
+      return authErrorResponse(error);
+    }
     console.error('Errore creazione booking:', error);
     return NextResponse.json({ error: 'Errore nella creazione della prenotazione', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
