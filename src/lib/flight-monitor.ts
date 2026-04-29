@@ -121,7 +121,7 @@ async function checkGroup(group: any, flight: AviationFlight | null) {
       createNotification({
         userId: member.booking.userId,
         type: 'RIDE_STARTED',
-        title: `✈️ Volo ${group.flightNumber} atterrato!`,
+        title: `Volo ${group.flightNumber} atterrato`,
         body: `Il driver ti aspetta entro le ${meetingStr}. Punto di incontro: ${meetingPoint}`,
         data: { rideGroupId: group.id, meetingPoint, meetingTime: meetingTime.toISOString() },
       }).catch(() => {});
@@ -134,7 +134,7 @@ async function checkGroup(group: any, flight: AviationFlight | null) {
       createNotification({
         userId: driverRecord.userId,
         type: 'RIDE_STARTED',
-        title: `✈️ Volo ${group.flightNumber} atterrato`,
+        title: `Volo ${group.flightNumber} atterrato`,
         body: `Dirigiti al punto di incontro entro le ${meetingStr}: ${meetingPoint}`,
         data: { rideGroupId: group.id, meetingPoint, meetingTime: meetingTime.toISOString() },
       }).catch(() => {});
@@ -199,7 +199,7 @@ async function handleNoDriver(group: any) {
     createNotification({
       userId: member.booking.userId,
       type: 'BOOKING_CANCELLED',
-      title: '⚠️ Nessun driver disponibile',
+      title: 'Nessun driver disponibile',
       body: `Non è stato possibile trovare un driver per il volo ${group.flightNumber}. Rimborso completo in elaborazione.`,
       data: { rideGroupId: group.id },
     }).catch(() => {});
@@ -209,7 +209,7 @@ async function handleNoDriver(group: any) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleFlightCancelledOrDiverted(group: any, reason: 'cancelled' | 'diverted') {
   await prisma.rideGroup.update({ where: { id: group.id }, data: { flightStatus: reason, status: 'CANCELLED' } });
-  const title = reason === 'cancelled' ? '❌ Volo cancellato — rimborso completo' : '⚠️ Volo dirottato — rimborso completo';
+  const title = reason === 'cancelled' ? 'Volo cancellato — rimborso completo' : 'Volo dirottato — rimborso completo';
   const body = reason === 'cancelled'
     ? 'Il volo è stato cancellato. La prenotazione è annullata con rimborso totale.'
     : 'Il volo è stato dirottato. La prenotazione è annullata con rimborso totale.';

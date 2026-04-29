@@ -247,7 +247,7 @@ export default function BookingCard({ booking }: { booking: Booking }) {
           {/* MEETING POINT — volo atterrato, driver in arrivo */}
           {meetingLanded && (
             <div className="bg-success/8 border border-success/25 rounded-xl px-4 py-3">
-              <p className="text-xs font-bold text-success mb-1">✈️ Volo atterrato!</p>
+              <p className="text-xs font-bold text-success mb-1">Volo atterrato</p>
               <p className="text-xs text-ink-secondary mb-1">Punto di incontro:</p>
               <p className="text-xs font-semibold text-white mb-2">{rideGroup!.meetingPoint}</p>
               {rideGroup?.meetingTime && (
@@ -403,7 +403,7 @@ export default function BookingCard({ booking }: { booking: Booking }) {
                   {rating > 0 && (
                     <div className="mt-3 animate-fade-up">
                       <p className="text-xs text-ink-muted text-center mb-2">
-                        {['', 'Pessimo 😞', 'Scarso 😕', 'Nella norma 😐', 'Buono 😊', 'Ottimo 🌟'][rating]}
+                        {['', 'Pessimo', 'Scarso', 'Nella norma', 'Buono', 'Ottimo'][rating]}
                       </p>
                       <textarea
                         value={ratingComment}

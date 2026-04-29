@@ -151,7 +151,7 @@ export default function DriverDashboardPage() {
       <div className="mb-6 flex items-start justify-between flex-wrap gap-4">
         <div>
           <p className="text-ink-muted text-sm mb-0.5">Ciao,</p>
-          <h1 className="text-2xl font-bold text-white">{user?.name?.split(' ')[0]} 👋</h1>
+          <h1 className="text-2xl font-bold text-white">{user?.name?.split(' ')[0]}</h1>
         </div>
         {pendingCount > 0 && (
           <div className="flex items-center gap-2 bg-primary-500/10 border border-primary-500/20 rounded-xl px-3 py-2">
@@ -162,12 +162,21 @@ export default function DriverDashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <StatCard label="Corse oggi" value={stats.todayRides} icon={<Car className="w-4 h-4 text-ink-muted" />} />
         <StatCard label="Guadagni" value={`€${stats.earnings.toFixed(0)}`} icon={<DollarSign className="w-4 h-4 text-primary-400" />} accent />
         <StatCard label="Rating" value={stats.rating.toFixed(1)} icon={<Star className="w-4 h-4 text-warning" />} />
         <StatCard label="Corse totali" value={stats.totalTrips} icon={<TrendingUp className="w-4 h-4 text-ink-muted" />} />
       </div>
+
+      {/* Link storico guadagni */}
+      <Link href="/driver/earnings" className="flex items-center justify-between bg-surface-1 border border-surface-4 rounded-xl px-4 py-3 mb-6 hover:border-primary-500/30 transition-all group">
+        <div className="flex items-center gap-2.5">
+          <DollarSign className="w-4 h-4 text-primary-400" />
+          <span className="text-sm font-semibold text-white group-hover:text-primary-400 transition-colors">Storico guadagni</span>
+        </div>
+        <span className="text-xs text-ink-muted">Vedi dettaglio →</span>
+      </Link>
 
       {/* Tabs */}
       <div className="flex border-b border-surface-4 mb-5">

@@ -2,9 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { anthropic, FLANVO_SYSTEM } from '@/lib/claude';
 import { verifyToken } from '@/lib/jwt';
 import { prisma } from '@/lib/prisma';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limit: 20 msg/ora per IP (autenticati o no)
+    const ip = getClientIp(req);
+    if (!rateLimit(`chat:${ip}`, 20, 60 * 60_000)) {
+      return NextResponse.json({ error: 'Troppi messaggi. Riprova tra un po\'.' }, { status: 429 });
+    }
+
     const { messages } = await req.json();
     if (!Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: 'Messages richiesti' }, { status: 400 });

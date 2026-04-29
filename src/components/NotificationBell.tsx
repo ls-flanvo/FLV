@@ -127,9 +127,10 @@ export default function NotificationBell() {
                   onClick={() => setOpen(false)}
                   className={`flex gap-3 px-4 py-3 hover:bg-surface-2 transition-colors ${!n.read ? 'bg-primary-500/5' : ''}`}
                 >
-                  <span className="text-lg shrink-0 mt-0.5">
-                    {n.type === 'GROUP_READY' ? '🎉' : n.type === 'BOOKING_CANCELLED' ? '❌' : '✅'}
-                  </span>
+                  <span className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${
+                    n.type === 'BOOKING_CANCELLED' ? 'bg-danger' :
+                    n.type === 'GROUP_READY' ? 'bg-success' : 'bg-primary-500'
+                  }`} />
                   <div className="flex-1 min-w-0">
                     <p className={`text-xs font-semibold mb-0.5 ${!n.read ? 'text-white' : 'text-ink-secondary'}`}>
                       {n.title}

@@ -60,10 +60,7 @@ export default function CancellationAlertBanner({
                   <h3 className={`text-xl font-bold mb-1 ${
                     flightStatus === 'cancelled' ? 'text-red-900' : 'text-yellow-900'
                   }`}>
-                    {flightStatus === 'cancelled' 
-                      ? '⚠️ Volo Cancellato' 
-                      : '⚠️ Volo Dirottato'
-                    }
+                    {flightStatus === 'cancelled' ? 'Volo Cancellato' : 'Volo Dirottato'}
                   </h3>
                   <p className={`text-sm ${
                     flightStatus === 'cancelled' ? 'text-red-700' : 'text-yellow-700'
@@ -102,8 +99,8 @@ export default function CancellationAlertBanner({
                     Puoi scegliere tra:
                   </p>
                   <ul className="text-sm text-yellow-700 space-y-1 ml-4">
-                    <li>✈️ Cercare un nuovo trasferimento da {divertedTo}</li>
-                    <li>💰 Cancellare e ricevere il rimborso completo</li>
+                    <li>Cercare un nuovo trasferimento da {divertedTo}</li>
+                    <li>Cancellare e ricevere il rimborso completo</li>
                   </ul>
                 </div>
               )}

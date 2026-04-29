@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { createNotification } from '@/lib/notify';
 
-// Vercel Cron autentica con CRON_SECRET
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   if (
@@ -13,10 +13,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const now = new Date();
-    const windowStart = new Date(now.getTime() + 25 * 60 * 1000); // 25 min da ora
-    const windowEnd = new Date(now.getTime() + 35 * 60 * 1000);   // 35 min da ora
+    const windowStart = new Date(now.getTime() + 25 * 60 * 1000);
+    const windowEnd = new Date(now.getTime() + 35 * 60 * 1000);
 
-    // Trova gruppi con pickup imminente (25-35 min)
     const groups = await prisma.rideGroup.findMany({
       where: {
         targetPickupTime: { gte: windowStart, lte: windowEnd },
@@ -28,16 +27,14 @@ export async function GET(request: NextRequest) {
           include: {
             booking: {
               include: {
-                user: { select: { email: true, name: true } },
+                user: { select: { id: true, email: true, name: true } },
               },
             },
           },
         },
         ride: {
           include: {
-            driver: {
-              include: { user: { select: { name: true } } },
-            },
+            driver: { include: { user: { select: { name: true } } } },
           },
         },
       },
@@ -48,12 +45,21 @@ export async function GET(request: NextRequest) {
     for (const group of groups) {
       const driverName = group.ride?.driver?.user?.name ?? 'Il tuo autista';
       const pickupTime = group.targetPickupTime.toLocaleTimeString('it-IT', {
-        hour: '2-digit',
-        minute: '2-digit',
+        hour: '2-digit', minute: '2-digit',
       });
 
       for (const member of group.members) {
         try {
+          // Notifica in-app
+          await createNotification({
+            userId: member.booking.user.id,
+            type: 'DRIVER_ARRIVING',
+            title: 'Pickup tra 30 minuti',
+            body: `${driverName} arriva alle ${pickupTime}. Dirigiti verso il punto di incontro.`,
+            data: { bookingId: member.bookingId, flightNumber: group.flightNumber },
+          });
+
+          // Email di reminder
           const { sendPickupReminder } = await import('@/lib/email');
           await sendPickupReminder(member.booking.user.email, {
             userName: member.booking.user.name ?? 'Passeggero',
@@ -62,14 +68,12 @@ export async function GET(request: NextRequest) {
             driverName,
             dropoffAddress: member.booking.dropoffLocation,
           });
+
           notified++;
-        } catch {
-          // non bloccare per errori email singoli
-        }
+        } catch { /* non bloccare per errori singoli */ }
       }
     }
 
-    // (removed debug log)
     return NextResponse.json({ ok: true, notified, groups: groups.length });
   } catch (error) {
     console.error('[Cron] Pickup notification error:', error);

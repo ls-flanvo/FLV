@@ -128,7 +128,7 @@ export default function TrackingPage({ params }: { params: { id: string } }) {
           {/* Meeting point se volo atterrato */}
           {tracking.meetingPoint && (
             <div className="bg-success/8 border border-success/25 rounded-xl px-4 py-3 text-left mb-4">
-              <p className="text-xs font-bold text-success mb-1">✈️ Punto di incontro</p>
+              <p className="text-xs font-bold text-success mb-1">Punto di incontro</p>
               <p className="text-sm text-white">{tracking.meetingPoint}</p>
               {tracking.meetingTime && (
                 <p className="text-xs text-ink-muted mt-1">

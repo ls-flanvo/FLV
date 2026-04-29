@@ -119,7 +119,7 @@ async function closeGroup(group: {
     createNotification({
       userId: d.userId,
       type: 'GROUP_READY',
-      title: '🚐 Nuova corsa disponibile',
+      title: 'Nuova corsa disponibile',
       body: `Volo ${group.flightNumber} — ${totalPax} passeggeri. Accetta dalla dashboard prima che qualcun altro la prenda.`,
       data: { rideGroupId: group.id, flightNumber: group.flightNumber, totalPax },
     }).catch(() => {});
@@ -138,7 +138,7 @@ async function closeGroup(group: {
     createNotification({
       userId: member.booking.user.id,
       type: 'GROUP_READY',
-      title: '🎉 Gruppo trovato! Conferma e paga',
+      title: 'Gruppo trovato — Conferma e paga',
       body: `Il tuo gruppo per il volo ${group.flightNumber} è pronto. Sono ${totalPax} passeggeri — prezzo finale €${pricePerPerson.toFixed(2)} a persona.`,
       data: { groupMemberId: member.id, flightNumber: group.flightNumber, pricePerPerson },
     }).catch(() => {});
