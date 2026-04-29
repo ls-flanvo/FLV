@@ -46,7 +46,7 @@ export async function POST(
     
     const { bookingId, kmOnboard, pickupOrder, dropoffOrder } = validationResult.data;
     
-    console.log(`[RideGroup] Adding member ${bookingId} to group ${groupId}`);
+    // (removed debug log)
     
     // Recupera il gruppo corrente
     const group = await prisma.rideGroup.findUnique({
@@ -131,7 +131,7 @@ export async function POST(
       );
     }
     
-    console.log(`[RideGroup] Adding ${newPaxCount} passengers. New total: ${totalPaxAfterAdd}`);
+    // (removed debug log)
     
     // Ricalcola il pricing EQUO per TUTTI i membri
     const allMembers = [
@@ -220,7 +220,7 @@ export async function POST(
       console.error('[RideGroup] Error sending notifications:', err);
     });
     
-    console.log(`[RideGroup] Member added successfully. New pricing calculated for all members.`);
+    // (removed debug log)
     
     // Formatta la risposta
     const response = {

@@ -3,10 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import TrackingMap from '@/components/TrackingMap';
-import { Phone, MapPin, Clock, Navigation, Car, Star } from 'lucide-react';
+import { Phone, MapPin, Clock, Navigation, Car, Star, CheckCircle } from 'lucide-react';
+import { formatFlightTime } from '@/lib/time';
 
 interface TrackingData {
   status: string; message?: string;
+  flightStatus?: string;
+  meetingPoint?: string | null;
+  meetingTime?: string | null;
   vehicle?: { brand: string; model: string; plate: string };
   currentLocation?: { lat: number; lng: number };
   destination?: { address: string; lat: number; lng: number };
@@ -22,7 +26,10 @@ export default function TrackingPage({ params }: { params: { id: string } }) {
 
   const fetchTracking = async () => {
     try {
-      const res = await fetch(`/api/tracking/${params.id}`);
+      const token = typeof window !== 'undefined' ? localStorage.getItem('flanvo_token') : null;
+      const res = await fetch(`/api/tracking/${params.id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const json = await res.json();
       if (json.tracking) setTracking(json.tracking);
       else setError(json.error || 'Errore nel tracking');
@@ -78,17 +85,79 @@ export default function TrackingPage({ params }: { params: { id: string } }) {
     );
   }
 
+  if (tracking.status === 'driver_assigned') {
+    return (
+      <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center px-4">
+        <div className="text-center max-w-sm w-full">
+          <div className="w-16 h-16 bg-primary-500/10 border border-primary-500/20 rounded-full flex items-center justify-center mx-auto mb-5">
+            <Car className="w-8 h-8 text-primary-400" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-1">Autista in arrivo</h2>
+          <p className="text-ink-secondary text-sm mb-6">{tracking.message}</p>
+
+          {tracking.driver && (
+            <div className="bg-surface-1 border border-surface-4 rounded-2xl p-5 text-left mb-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-primary-500/15 border border-primary-500/20 rounded-xl flex items-center justify-center text-primary-400 font-bold text-lg">
+                  {tracking.driver.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="font-semibold text-white">{tracking.driver.name}</p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Star className="w-3 h-3 text-warning fill-warning" />
+                    <span className="text-xs text-warning font-medium">{tracking.driver.rating.toFixed(1)}</span>
+                  </div>
+                </div>
+              </div>
+              {tracking.vehicle && (
+                <div className="flex items-center gap-3 py-2 border-t border-surface-4">
+                  <Car className="w-4 h-4 text-ink-muted shrink-0" />
+                  <span className="text-sm text-ink-secondary">{tracking.vehicle.brand} {tracking.vehicle.model}</span>
+                  <span className="ml-auto font-mono text-sm font-bold text-white">{tracking.vehicle.plate}</span>
+                </div>
+              )}
+              {tracking.driver.phone && (
+                <a href={`tel:${tracking.driver.phone}`}
+                  className="mt-4 flex items-center justify-center gap-2 w-full py-3 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all text-sm">
+                  <Phone className="w-4 h-4" /> Chiama autista
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Meeting point se volo atterrato */}
+          {tracking.meetingPoint && (
+            <div className="bg-success/8 border border-success/25 rounded-xl px-4 py-3 text-left mb-4">
+              <p className="text-xs font-bold text-success mb-1">✈️ Punto di incontro</p>
+              <p className="text-sm text-white">{tracking.meetingPoint}</p>
+              {tracking.meetingTime && (
+                <p className="text-xs text-ink-muted mt-1">
+                  Orario: <strong className="text-white">
+                    {new Date(tracking.meetingTime).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                  </strong>
+                </p>
+              )}
+            </div>
+          )}
+
+          {tracking.destination && (
+            <div className="bg-surface-1 border border-surface-4 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-ink-secondary">
+              <MapPin className="w-3.5 h-3.5 text-primary-400 shrink-0" />
+              <span className="truncate">{tracking.destination.address}</span>
+            </div>
+          )}
+          <p className="text-xs text-ink-muted mt-4">Aggiornamento automatico ogni 10s</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0B0B0B]">
       {/* Header */}
       <div className="bg-surface-1 border-b border-surface-4 px-4 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <svg width="14" height="19" viewBox="0 0 56 72" fill="none">
-              <path d="M8 0 L48 0 L30 30 L48 30 L8 72 L22 40 L4 40 Z" fill="#00D1B2"/>
-            </svg>
-            <span className="text-sm font-bold text-white">flanvo</span>
-          </Link>
+          <Link href="/" className="text-sm font-semibold text-white tracking-tight">Flanvo</Link>
           <div className="flex items-center gap-2 bg-success/10 border border-success/20 rounded-full px-3 py-1.5">
             <span className="w-2 h-2 bg-success rounded-full animate-pulse" />
             <span className="text-xs font-semibold text-success">In viaggio</span>
@@ -137,9 +206,9 @@ export default function TrackingPage({ params }: { params: { id: string } }) {
                       <Clock className="w-4 h-4 text-warning" />
                     </div>
                     <div>
-                      <p className="text-xs text-ink-muted mb-0.5">Arrivo stimato</p>
+                      <p className="text-xs text-ink-muted mb-0.5">Arrivo stimato (ora italiana)</p>
                       <p className="text-sm font-semibold text-white">
-                        {new Date(tracking.estimatedArrival).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                        {formatFlightTime(tracking.estimatedArrival, { showTZ: false })}
                       </p>
                     </div>
                   </div>

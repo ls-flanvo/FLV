@@ -76,6 +76,7 @@ export default function MatchingPage() {
           flightNumber: flight.code,
           flightDate: flight.scheduledTime,
           direction: 'FROM_AIRPORT',
+          arrivalAirport: flight.arrivalAirport || 'CTA',
           passengers,
           luggage,
           estimatedPrice: rideGroupId

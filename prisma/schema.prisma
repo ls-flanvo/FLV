@@ -141,6 +141,8 @@ model User {
   driver        Driver?
   microGroups   MicroGroup[]
   messages      RideMessage[]
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
 
   @@index([email])
   @@index([role])
@@ -163,6 +165,9 @@ model Driver {
   
   // Earnings tracking
   totalEarnings             Float        @default(0)
+
+  // Scalo di operatività (impostato al signup)
+  homeAirport               String       @default("CTA") // Codice IATA es. CTA, PMO, CAG
 
   // GPS live location (aggiornato dal driver durante la corsa)
   currentLat                Float?
@@ -321,6 +326,7 @@ model RideGroup {
   
   // Flight & Direction
   flightNumber      String
+  arrivalAirport    String        @default("CTA") // Codice IATA scalo d'arrivo
   direction         Direction
   targetPickupTime  DateTime      // T-60: Booking close time
   
@@ -356,6 +362,14 @@ model RideGroup {
   matrixCacheId     String?       // ID della distance matrix cache
   routeVersion      Int           @default(1)  // Version del route ottimizzato
   
+  // Flight monitoring
+  flightStatus        String?     @default("scheduled") // scheduled|active|landed|cancelled|diverted|delayed
+  flightActualLanding DateTime?   // Orario atterraggio reale
+  delayNotifiedMins   Int         @default(0)           // Ultimo ritardo notificato (minuti)
+  lastFlightCheck     DateTime?   // Ultimo controllo AviationStack
+  meetingTime         DateTime?   // Orario incontro = atterraggio + 25min
+  meetingPoint        String?     // Es. "Terminal Arrivi — Uscita Bagagli, cartello Flanvo"
+
   // Pricing
   basePrice         Float
   totalPrice        Float?        // Somma di tutti i finalPrice dei membri
@@ -653,6 +667,35 @@ model RideMessage {
 
   @@index([rideGroupId, createdAt])
   @@map("ride_messages")
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // GROUP_READY | BOOKING_CONFIRMED | BOOKING_CANCELLED | RIDE_STARTED | RIDE_COMPLETED
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  data      Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@map("notifications")
 }
 
 model InsurancePool {

@@ -2,13 +2,12 @@
 
 import { useState } from 'react';
 import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
-import { Button } from '@/components/ui';
-import { Lock, CreditCard } from 'lucide-react';
+import { Lock, Loader2 } from 'lucide-react';
 
 interface PaymentFormProps {
   clientSecret: string;
   amount: number;
-  onSuccess: () => void;
+  onSuccess: (paymentIntentId: string) => void;
   onError: (error: string) => void;
 }
 
@@ -19,90 +18,79 @@ export function PaymentForm({ clientSecret, amount, onSuccess, onError }: Paymen
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!stripe || !elements) return;
 
-    if (!stripe || !elements) {
-      return;
-    }
+    const cardElement = elements.getElement(CardElement);
+    if (!cardElement) return;
 
     setProcessing(true);
-
     try {
-      const cardElement = elements.getElement(CardElement);
-      
-      if (!cardElement) {
-        throw new Error('Card element not found');
-      }
-
-      // Confirm payment with Stripe
       const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: cardElement,
-        },
+        payment_method: { card: cardElement },
       });
 
       if (error) {
-        onError(error.message || 'Payment failed');
+        onError(error.message || 'Pagamento non riuscito');
       } else if (paymentIntent?.status === 'requires_capture') {
-        // Payment authorized successfully!
-        onSuccess();
+        onSuccess(paymentIntent.id);
+      } else {
+        onError('Stato pagamento non atteso. Riprova.');
       }
-    } catch (err: any) {
-      onError(err.message || 'An error occurred');
+    } catch (err: unknown) {
+      onError(err instanceof Error ? err.message : 'Errore imprevisto');
     } finally {
       setProcessing(false);
     }
   };
 
-  const cardElementOptions = {
-    style: {
-      base: {
-        fontSize: '16px',
-        color: '#424770',
-        '::placeholder': {
-          color: '#aab7c4',
-        },
-        padding: '12px',
-      },
-      invalid: {
-        color: '#9e2146',
-      },
-    },
-  };
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-xs font-semibold text-ink-secondary mb-2 uppercase tracking-wide">
           Carta di credito o debito
         </label>
-        <div className="border border-gray-300 rounded-lg p-4 bg-white">
-          <CardElement options={cardElementOptions} />
+        <div className="border border-surface-5 rounded-xl p-4 bg-surface-2 focus-within:border-primary-500/50 transition-colors">
+          <CardElement
+            options={{
+              style: {
+                base: {
+                  fontSize: '16px',
+                  color: '#ffffff',
+                  fontFamily: 'system-ui, sans-serif',
+                  '::placeholder': { color: '#6b7280' },
+                  iconColor: '#00D1B2',
+                },
+                invalid: { color: '#f87171', iconColor: '#f87171' },
+              },
+            }}
+          />
         </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-start space-x-2">
-          <Lock className="w-5 h-5 text-blue-600 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-blue-900">Pagamento sicuro con Stripe</p>
-            <p className="text-xs text-blue-700 mt-1">
-              I tuoi dati sono protetti e crittografati. Non salviamo i dettagli della carta.
-            </p>
-          </div>
-        </div>
+      <div className="flex items-start gap-2.5 bg-surface-2 border border-surface-5 rounded-xl px-4 py-3">
+        <Lock className="w-4 h-4 text-ink-muted shrink-0 mt-0.5" />
+        <p className="text-xs text-ink-muted leading-relaxed">
+          Dati crittografati da Stripe. Non salviamo i dettagli della carta.
+        </p>
       </div>
 
-      <Button
+      <button
         type="submit"
         disabled={!stripe || processing}
-        size="lg"
-        className="w-full"
+        className="w-full py-4 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
       >
-        {processing ? 'Elaborazione...' : `Paga €${amount.toFixed(2)}`}
-      </Button>
+        {processing ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Elaborazione...
+          </>
+        ) : (
+          `Pre-autorizza €${amount.toFixed(2)}`
+        )}
+      </button>
 
-      <p className="text-xs text-gray-500 text-center">
-        Il pagamento sarà addebitato solo al completamento della corsa
+      <p className="text-xs text-ink-muted text-center">
+        La carta viene addebitata solo al completamento della corsa
       </p>
     </form>
   );

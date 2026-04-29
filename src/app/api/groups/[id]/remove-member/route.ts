@@ -43,7 +43,7 @@ export async function DELETE(
     
     const { memberId } = validationResult.data;
     
-    console.log(`[RideGroup] Removing member ${memberId} from group ${groupId}`);
+    // (removed debug log)
     
     // Recupera il gruppo e il membro
     const group = await prisma.rideGroup.findUnique({
@@ -98,7 +98,7 @@ export async function DELETE(
     const remainingPax = group.currentCapacity - paxToRemove;
     const remainingLuggage = group.currentLuggage - luggageToRemove;
     
-    console.log(`[RideGroup] Removing ${paxToRemove} passenger(s). Remaining: ${remainingPax}`);
+    // (removed debug log)
     
     // Se il membro era parte di un micro-group, rimuovi TUTTI i membri del micro-group
     let memberIdsToRemove = [memberId];
@@ -109,12 +109,12 @@ export async function DELETE(
         .filter(m => m.microGroupId === memberToRemove.microGroupId)
         .map(m => m.id);
       
-      console.log(`[RideGroup] Member is part of micro-group. Removing ${memberIdsToRemove.length} members`);
+      // (removed debug log)
     }
     
     // Se rimangono meno di 2 passeggeri, elimina il gruppo
     if (remainingPax < 2) {
-      console.log(`[RideGroup] Less than 2 passengers remaining. Marking group as NO_MATCH.`);
+      // (removed debug log)
       
       await prisma.$transaction(async (tx) => {
         // Elimina i membri
@@ -224,7 +224,7 @@ export async function DELETE(
       console.error('[RideGroup] Error sending notifications:', err);
     });
     
-    console.log(`[RideGroup] Member removed successfully. New pricing calculated for ${remainingPax} passengers.`);
+    // (removed debug log)
     
     // Formatta la risposta
     const response = {

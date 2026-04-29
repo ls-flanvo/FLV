@@ -5,6 +5,8 @@ import Navbar from '@/components/Navbar';
 import ClientProvider from '@/components/ClientProvider';
 import { ToastContainer } from '@/components/ui/Toast';
 import SupportChat from '@/components/SupportChat';
+import PushSetup from '@/components/PushSetup';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -48,19 +50,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={inter.className}>
         <ClientProvider>
+          <PushSetup />
           <div className="min-h-screen bg-[#0B0B0B] flex flex-col">
             <Navbar />
             <main className="flex-grow">
-              {children}
+              <ErrorBoundary>
+                {children}
+              </ErrorBoundary>
             </main>
             <footer className="border-t border-surface-4 py-5">
               <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <svg width="16" height="21" viewBox="0 0 56 72" fill="none">
-                    <path d="M8 0 L48 0 L30 30 L48 30 L8 72 L22 40 L4 40 Z" fill="#00D1B2"/>
-                  </svg>
-                  <span className="text-sm font-semibold text-ink-secondary">flanvo</span>
-                </div>
+                <span className="text-sm font-semibold text-ink-secondary tracking-tight">Flanvo</span>
                 <p className="text-xs text-ink-muted">&copy; 2026 Flanvo. Tutti i diritti riservati.</p>
                 <div className="flex gap-4 text-xs text-ink-muted">
                   <span>hello@flanvo.com</span>

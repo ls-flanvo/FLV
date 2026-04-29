@@ -5,9 +5,14 @@ import { haversineDistance } from '@/lib/dbscan-clustering';
 import { AIRPORT_COORDS } from '@/lib/airports';
 import { getPricingRates } from '@/lib/get-pricing-rates';
 
+import { checkAndCloseExpiredGroups } from '@/lib/group-ready';
+
 export async function POST(request: NextRequest) {
   try {
     const payload = await requireAuth(request);
+
+    // Lazy check: chiudi gruppi scaduti ad ogni ricerca
+    checkAndCloseExpiredGroups().catch(() => {});
     const { flightCode, destination, arrivalAirport } = await request.json();
 
     if (!flightCode) {
@@ -22,12 +27,13 @@ export async function POST(request: NextRequest) {
     // Rates dinamici dal DB
     const rates = await getPricingRates();
 
-    // Cerca gruppi FORMING per questo volo con posti disponibili
+    // Cerca gruppi FORMING per questo volo con posti disponibili, escludi quelli dove l'utente è già dentro
     const groups = await prisma.rideGroup.findMany({
       where: {
         flightNumber: flightCode.toUpperCase(),
         status: 'FORMING',
         currentCapacity: { lt: 7 },
+        members: { none: { booking: { userId: payload.userId } } },
       },
       include: {
         members: {

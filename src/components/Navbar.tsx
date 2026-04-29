@@ -5,16 +5,14 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store';
 import { LogOut, Menu, X, Plane, LayoutDashboard, Car, Shield, Settings } from 'lucide-react';
 import { useState } from 'react';
+import NotificationBell from './NotificationBell';
 
 const FlanvoLogo = () => (
-  <div className="flex items-center gap-2.5">
-    <div className="relative">
-      <svg width="26" height="34" viewBox="0 0 56 72" fill="none">
-        <path d="M8 0 L48 0 L30 30 L48 30 L8 72 L22 40 L4 40 Z" fill="#00D1B2"/>
-      </svg>
-    </div>
-    <span className="text-xl font-bold tracking-tight text-white">flanvo</span>
-  </div>
+  <span
+    style={{ fontWeight: 600, fontSize: '1.35rem', letterSpacing: '-0.02em', color: '#ffffff', fontFamily: 'inherit' }}
+  >
+    Flanvo
+  </span>
 );
 
 export default function Navbar() {
@@ -68,6 +66,8 @@ export default function Navbar() {
                   )}
 
                   <div className="h-5 w-px bg-surface-5" />
+
+                  <NotificationBell />
 
                   {/* User chip */}
                   <div className="flex items-center gap-3">

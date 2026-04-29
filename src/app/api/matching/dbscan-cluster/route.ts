@@ -80,8 +80,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<ClusterRe
       }, { status: 400 });
     }
 
-    console.log(`[DBSCAN] Starting clustering for flight ${flightNumber} on ${date}`);
-    console.log(`[DBSCAN] Parameters: eps=${eps}km, minSamples=${minSamples}`);
+    // (removed debug log)
+    // (removed debug log)
 
     // Query bookings dal database
     // Assumendo schema: Booking { id, flightNumber, flightDate, destinationLat, destinationLng, status }
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ClusterRe
       });
     }
 
-    console.log(`[DBSCAN] Found ${bookings.length} confirmed bookings`);
+    // (removed debug log)
 
     // Converti bookings in Points per DBSCAN
     const points: Point[] = bookings.map(b => ({
@@ -136,11 +136,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<ClusterRe
 
     // Esegui DBSCAN clustering
     const dbscanResult = dbscan(points, eps, minSamples);
-    console.log(`[DBSCAN] Raw clustering: ${dbscanResult.clusters.length} clusters, ${dbscanResult.noise.length} noise`);
+    // (removed debug log)
 
     // Applica business rules (filtra <2 pax, splitta >7 pax)
     const validClusters = filterClustersByBusinessRules(dbscanResult.clusters);
-    console.log(`[DBSCAN] After business rules: ${validClusters.length} valid clusters`);
+    // (removed debug log)
 
     // Formatta response
     const clustersFormatted = validClusters.map(cluster => ({
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ClusterRe
       parameters: { eps, minSamples }
     };
 
-    console.log(`[DBSCAN] Clustering completed successfully`);
+    // (removed debug log)
     return NextResponse.json(response);
 
   } catch (error) {

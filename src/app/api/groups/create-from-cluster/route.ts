@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     
     const { flightNumber, direction, targetPickupTime, clusterData } = validationResult.data;
     
-    console.log(`[RideGroup] Creating group for flight ${flightNumber}`);
+    // (removed debug log)
     
     // Valida che i bookings esistano
     const bookingIds = clusterData.members.map(m => m.bookingId);
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     // Calcola totale bagagli
     const totalLuggage = bookings.reduce((sum, b) => sum + (b.luggage || 0), 0);
     
-    console.log(`[RideGroup] Calculated pricing - Base price: €${basePrice}, Quality: ${qualityScore} (${stabilityTier})`);
+    // (removed debug log)
     
     // Crea il RideGroup in una transazione
     const rideGroup = await prisma.$transaction(async (tx) => {
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
       return group;
     });
     
-    console.log(`[RideGroup] Created group ${rideGroup.id} with ${rideGroup.currentCapacity} passengers`);
+    // (removed debug log)
     
     // Formatta la risposta
     const response = {

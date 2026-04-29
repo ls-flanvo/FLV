@@ -19,7 +19,7 @@ export async function PATCH(
   try {
     const { id: groupId } = params;
     
-    console.log(`[RideGroup] Confirming group: ${groupId}`);
+    // (removed debug log)
     
     // Recupera il gruppo con tutti i dettagli
     const group = await prisma.rideGroup.findUnique({
@@ -88,7 +88,7 @@ export async function PATCH(
       );
     }
     
-    console.log(`[RideGroup] All validations passed. Setting group to READY status with ${group.currentCapacity} passengers.`);
+    // (removed debug log)
     
     // Prepara il gruppo per i pagamenti in una transazione
     const readyGroup = await prisma.$transaction(async (tx) => {
@@ -126,7 +126,7 @@ export async function PATCH(
       // TODO: Trigger payment intent creation (Agent 4)
       // Agent 4 creerà Payment Intents per ogni membro
       // Dopo authorization di tutti → Agent 4 cambierà status a CONFIRMED
-      console.log(`[RideGroup] Payment intents creation needed for group ${groupId} (handled by Agent 4)`);
+      // (removed debug log)
       
       return updated;
     });
@@ -139,7 +139,7 @@ export async function PATCH(
     // TODO: Notifica Agent 4 per creare Payment Intents
     // Agent 4 manderà email ai passeggeri: "Conferma pagamento entro 10 minuti"
     
-    console.log(`[RideGroup] Group ${groupId} set to READY status. Awaiting payment authorizations.`);
+    // (removed debug log)
     
     // Formatta la risposta
     const response = {

@@ -41,14 +41,27 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({ totalRides: 0, totalSavings: 0, upcomingRides: 0 });
   const [hydrated, setHydrated] = useState(false);
   const { user, isAuthenticated } = useAuthStore();
-  const { bookings } = useBookingStore();
+  const { bookings, fetchBookings } = useBookingStore();
   const router = useRouter();
 
+  // Carica bookings e aggiorna ogni 20s per rilevare cambi di stato
   useEffect(() => {
     if (!isAuthenticated) { router.push('/login'); return; }
+    const token = localStorage.getItem('flanvo_token');
+    if (token) fetchBookings(token).then(() => setHydrated(true));
+    else setHydrated(true);
+
+    const interval = setInterval(() => {
+      const t = localStorage.getItem('flanvo_token');
+      if (t) fetchBookings(t);
+    }, 20_000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, router]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     const completed = bookings.filter((b) => b.status === 'COMPLETED').length;
     const upcoming = bookings.filter((b) =>
-      ['IN_PROGRESS', 'CONFIRMED', 'MATCHED'].includes(b.status)
+      ['IN_PROGRESS', 'CONFIRMED', 'MATCHED', 'PENDING'].includes(b.status)
     ).length;
     const savings = bookings
       .filter((b) => b.status === 'COMPLETED')
@@ -57,8 +70,7 @@ export default function DashboardPage() {
         return sum + (paid * 2.5 - paid);
       }, 0);
     setStats({ totalRides: completed, totalSavings: Math.round(savings), upcomingRides: upcoming });
-    setHydrated(true);
-  }, [isAuthenticated, bookings, router]);
+  }, [bookings]);
 
   if (!isAuthenticated) return null;
 

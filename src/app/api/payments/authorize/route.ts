@@ -2,118 +2,78 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { requireAuth, authErrorResponse } from '@/lib/api-auth';
+import { sendGroupConfirmed } from '@/lib/email';
+import { createNotification } from '@/lib/notify';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16'
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' });
 
-// Validation schema
-const authorizeSchema = z.object({
-  paymentIntentId: z.string(),
-  paymentMethodId: z.string().optional()
-});
+const schema = z.object({ paymentIntentId: z.string() });
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { paymentIntentId, paymentMethodId } = authorizeSchema.parse(body);
+    const payload = await requireAuth(req);
+    const { paymentIntentId } = schema.parse(await req.json());
 
-    // Get GroupMember by payment intent
     const member = await prisma.groupMember.findFirst({
       where: { paymentIntentId },
       include: {
-        booking: {
-          include: {
-            user: true
-          }
-        }
-      }
+        booking: { include: { user: true } },
+        rideGroup: { include: { members: true } },
+      },
     });
 
-    if (!member) {
-      return NextResponse.json(
-        { error: 'Payment intent not found' },
-        { status: 404 }
-      );
+    if (!member) return NextResponse.json({ error: 'Payment intent non trovato' }, { status: 404 });
+
+    // Verifica ownership
+    if (member.booking.userId !== payload.userId) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 });
     }
 
-    // Check if already authorized
+    // Idempotente — già autorizzato
     if (member.paymentStatus === 'AUTHORIZED') {
-      return NextResponse.json(
-        { success: true, intentId: paymentIntentId, alreadyAuthorized: true }
-      );
+      return NextResponse.json({ success: true, alreadyAuthorized: true });
     }
 
-    // Confirm Payment Intent (if paymentMethodId provided)
-    let intent;
-    if (paymentMethodId) {
-      intent = await stripe.paymentIntents.confirm(paymentIntentId, {
-        payment_method: paymentMethodId,
-        return_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-success`
-      });
-    } else {
-      // Just retrieve to verify status
-      intent = await stripe.paymentIntents.retrieve(paymentIntentId);
-    }
-
-    // Verify authorization successful
+    // Verifica che Stripe abbia davvero autorizzato
+    const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
     if (intent.status !== 'requires_capture') {
       return NextResponse.json(
-        { error: `Payment not authorized. Status: ${intent.status}` },
+        { error: `Pagamento non autorizzato. Stato Stripe: ${intent.status}` },
         { status: 400 }
       );
     }
 
-    // Update GroupMember status
+    // Aggiorna DB
     await prisma.groupMember.update({
       where: { id: member.id },
-      data: {
-        paymentStatus: 'AUTHORIZED'
-      }
+      data: { paymentStatus: 'AUTHORIZED' },
     });
 
-    // TODO: Send confirmation email
-    // await sendPaymentConfirmationEmail(member.booking.user.email, {
-    //   amount: member.totalPrice,
-    //   flightNumber: member.rideGroup.flightNumber
-    // });
+    // Notifica in-app
+    const priceLabel = member.totalPrice ? `€${member.totalPrice.toFixed(2)}` : '';
+    createNotification({
+      userId: member.booking.userId,
+      type: 'BOOKING_CONFIRMED',
+      title: 'Pagamento autorizzato ✓',
+      body: `Pre-autorizzazione ${priceLabel} confermata per il volo ${member.rideGroup.flightNumber}. Addebito solo al drop-off.`,
+      data: { paymentIntentId, flightNumber: member.rideGroup.flightNumber },
+    }).catch(() => {});
 
-    console.log(`Payment authorized for member ${member.id}: €${member.totalPrice}`);
+    // Email conferma
+    const groupSize = member.rideGroup.members.filter(m => m.status !== 'CANCELLED').length;
+    sendGroupConfirmed(member.booking.user.email, {
+      flightNumber: member.rideGroup.flightNumber,
+      pickupTime: member.booking.pickupTime.toISOString(),
+      groupSize,
+      finalPrice: member.totalPrice,
+    }).catch(() => {});
 
-    return NextResponse.json({
-      success: true,
-      authorized: true,
-      intentId: paymentIntentId,
-      amount: member.totalPrice
-    });
-
-  } catch (error: any) {
-    console.error('Authorization error:', error);
-
+    return NextResponse.json({ success: true, authorized: true, amount: member.totalPrice });
+  } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Input non valido', details: error.errors }, { status: 400 });
     }
-
-    if (error.type === 'StripeCardError') {
-      return NextResponse.json(
-        { error: 'Card declined', details: error.message },
-        { status: 402 }
-      );
-    }
-
-    if (error.type === 'StripeInvalidRequestError') {
-      return NextResponse.json(
-        { error: 'Invalid payment request', details: error.message },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'Authorization failed' },
-      { status: 500 }
-    );
+    return authErrorResponse(error);
   }
 }

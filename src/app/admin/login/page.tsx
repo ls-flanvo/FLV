@@ -50,10 +50,7 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-md animate-fade-up">
         <div className="text-center mb-10">
           <Link href="/" className="inline-flex items-center gap-2.5 mb-6">
-            <svg width="24" height="32" viewBox="0 0 56 72" fill="none">
-              <path d="M8 0 L48 0 L30 30 L48 30 L8 72 L22 40 L4 40 Z" fill="#00D1B2"/>
-            </svg>
-            <span className="text-2xl font-bold tracking-tight text-white">flanvo</span>
+            <span className="text-2xl font-bold text-white" style={{ letterSpacing: '-0.02em' }}>Flanvo</span>
           </Link>
           <div className="inline-flex items-center justify-center w-14 h-14 bg-primary-500/10 border border-primary-500/20 rounded-2xl mb-4">
             <Shield className="w-7 h-7 text-primary-400" />

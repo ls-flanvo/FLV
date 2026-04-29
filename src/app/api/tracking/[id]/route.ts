@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { haversineDistance } from '@/lib/dbscan-clustering';
+import { verifyToken } from '@/lib/jwt';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    // Auth: solo il proprietario della prenotazione o il driver assegnato
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '')
+      || request.cookies.get('flanvo_token')?.value;
+    if (!token) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+    const payload = await verifyToken(token).catch(() => null);
+    if (!payload) return NextResponse.json({ error: 'Token non valido' }, { status: 401 });
     // params.id può essere bookingId o groupMemberId
     const member = await prisma.groupMember.findFirst({
       where: {
@@ -65,6 +73,42 @@ export async function GET(
       });
     }
 
+    // Driver assegnato ma non ancora partito — mostra GPS driver se disponibile
+    if (ride.status === 'DRIVER_ASSIGNED') {
+      const driverLocation =
+        driver?.currentLat && driver?.currentLng
+          ? { lat: driver.currentLat, lng: driver.currentLng }
+          : null;
+
+      return NextResponse.json({
+        tracking: {
+          status: 'driver_assigned',
+          message: member.rideGroup.flightStatus === 'landed'
+            ? `Volo atterrato! Il driver è in arrivo al punto di incontro`
+            : 'Il driver è stato assegnato e si sta preparando',
+          flightStatus: member.rideGroup.flightStatus,
+          meetingPoint: member.rideGroup.meetingPoint,
+          meetingTime: member.rideGroup.meetingTime?.toISOString() ?? null,
+          driver: {
+            name: driver?.user?.name ?? 'Autista assegnato',
+            phone: driver?.user?.phone ?? '',
+            rating: driver?.rating ?? 5.0,
+          },
+          vehicle: {
+            brand: driver?.vehicleModel?.split(' ')[0] ?? 'Veicolo',
+            model: driver?.vehicleModel ?? 'Van',
+            plate: driver?.vehiclePlate ?? '---',
+          },
+          currentLocation: driverLocation,
+          destination: {
+            address: member.booking.dropoffLocation,
+            lat: member.booking.dropoffLat,
+            lng: member.booking.dropoffLng,
+          },
+        },
+      });
+    }
+
     const routes = member.rideGroup.routes;
 
     // Usa GPS live del driver se disponibile (aggiornato ogni 10s), altrimenti fallback a waypoint
@@ -79,9 +123,20 @@ export async function GET(
       .filter((r) => !r.reached)
       .map((r) => ({ lat: r.latitude, lng: r.longitude }));
 
-    const estimatedArrival = ride.endTime
-      ? ride.endTime.toISOString()
-      : new Date(Date.now() + 25 * 60 * 1000).toISOString();
+    // ETA basata su distanza reale driver→destinazione a ~40 km/h medi
+    let estimatedArrival: string;
+    if (ride.endTime) {
+      estimatedArrival = ride.endTime.toISOString();
+    } else if (driver?.currentLat && driver?.currentLng) {
+      const distKm = haversineDistance(
+        driver.currentLat, driver.currentLng,
+        member.booking.dropoffLat, member.booking.dropoffLng
+      );
+      const etaMs = (distKm / 40) * 3_600_000;
+      estimatedArrival = new Date(Date.now() + etaMs).toISOString();
+    } else {
+      estimatedArrival = new Date(Date.now() + 25 * 60 * 1000).toISOString();
+    }
 
     return NextResponse.json({
       tracking: {

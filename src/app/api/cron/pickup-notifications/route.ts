@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log(`[Cron] Pickup notifications: ${notified} email inviate per ${groups.length} gruppi`);
+    // (removed debug log)
     return NextResponse.json({ ok: true, notified, groups: groups.length });
   } catch (error) {
     console.error('[Cron] Pickup notification error:', error);

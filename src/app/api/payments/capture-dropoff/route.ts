@@ -2,213 +2,140 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { generateReceipt } from '@/lib/payment-helpers';
+import { requireDriver, authErrorResponse } from '@/lib/api-auth';
+import { sendRideReceipt } from '@/lib/email';
+import { createNotification } from '@/lib/notify';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16'
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' });
 
-// Validation schema
-const captureSchema = z.object({
-  memberId: z.string().cuid(),
-  actualKm: z.number().positive().optional() // Ignored (prezzo fisso)
-});
+const schema = z.object({ rideGroupId: z.string() });
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { memberId } = captureSchema.parse(body);
+    const payload = await requireDriver(req);
+    const { rideGroupId } = schema.parse(await req.json());
 
-    // Get GroupMember with all data
-    const member = await prisma.groupMember.findUnique({
-      where: { id: memberId },
+    // Carica gruppo con tutti i membri e il ride
+    const group = await prisma.rideGroup.findUnique({
+      where: { id: rideGroupId },
       include: {
-        booking: {
-          include: {
-            user: true
-          }
+        ride: { include: { driver: { include: { user: true } } } },
+        members: {
+          where: { status: { not: 'CANCELLED' } },
+          include: { booking: { include: { user: true } } },
         },
-        rideGroup: {
-          include: {
-            ride: {
-              include: {
-                driver: {
-                  include: {
-                    user: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    });
-
-    if (!member) {
-      return NextResponse.json(
-        { error: 'GroupMember not found' },
-        { status: 404 }
-      );
-    }
-
-    if (!member.paymentIntentId) {
-      return NextResponse.json(
-        { error: 'No payment intent found' },
-        { status: 400 }
-      );
-    }
-
-    if (member.paymentStatus === 'CAPTURED') {
-      return NextResponse.json(
-        { error: 'Payment already captured' },
-        { status: 400 }
-      );
-    }
-
-    if (member.paymentStatus !== 'AUTHORIZED') {
-      return NextResponse.json(
-        { error: 'Payment not authorized yet' },
-        { status: 400 }
-      );
-    }
-
-    const driver = member.rideGroup.ride?.driver;
-    if (!driver || !driver.stripeConnectedAccountId) {
-      return NextResponse.json(
-        { error: 'Driver not found or Stripe account not connected' },
-        { status: 400 }
-      );
-    }
-
-    // Idempotency key
-    const idempotencyKey = `capture-${memberId}-${Date.now()}`;
-
-    // STEP 1: Capture Payment Intent (full amount)
-    const captured = await stripe.paymentIntents.capture(
-      member.paymentIntentId,
-      {
-        amount_to_capture: Math.round(member.totalPrice! * 100)
       },
-      {
-        idempotencyKey
-      }
-    );
-
-    console.log(`Captured payment: ${captured.id} - €${member.totalPrice}`);
-
-    // STEP 2: Transfer driver share to driver
-    const transfer = await stripe.transfers.create({
-      amount: Math.round(member.driverShare! * 100),
-      currency: 'eur',
-      destination: driver.stripeConnectedAccountId,
-      transfer_group: member.rideGroupId,
-      metadata: {
-        memberId: member.id,
-        type: 'driver_earnings',
-        kmOnboard: member.kmOnboard?.toString() || '0',
-        rideDate: member.rideGroup.targetPickupTime.toISOString()
-      }
     });
 
-    console.log(`Transfer created: ${transfer.id} - €${member.driverShare} to driver ${driver.id}`);
+    if (!group) return NextResponse.json({ error: 'Gruppo non trovato' }, { status: 404 });
+    if (!group.ride) return NextResponse.json({ error: 'Nessun ride associato al gruppo' }, { status: 400 });
 
-    // STEP 3: Update GroupMember
-    await prisma.groupMember.update({
-      where: { id: memberId },
-      data: {
-        paymentStatus: 'CAPTURED',
-        capturedAt: new Date(),
-        status: 'COMPLETED',
-        actualDropoffTime: new Date()
+    const driver = group.ride.driver;
+    if (!driver) return NextResponse.json({ error: 'Driver non trovato' }, { status: 400 });
+    if (driver.userId !== payload.userId) return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 });
+    if (!driver.stripeConnectedAccountId) {
+      return NextResponse.json({ error: 'Account Stripe driver non collegato' }, { status: 400 });
+    }
+
+    let totalCaptured = 0;
+    let totalDriverPay = 0;
+    const errors: string[] = [];
+
+    for (const member of group.members) {
+      if (!member.paymentIntentId || member.paymentStatus !== 'AUTHORIZED') continue;
+
+      try {
+        const amountCents = Math.round((member.totalPrice ?? 0) * 100);
+        if (amountCents <= 0) continue;
+
+        // Cattura il PaymentIntent
+        await stripe.paymentIntents.capture(member.paymentIntentId, {
+          amount_to_capture: amountCents,
+        });
+
+        // Trasferisce la quota driver
+        const driverShareCents = Math.round((member.driverShare ?? 0) * 100);
+        if (driverShareCents > 0) {
+          await stripe.transfers.create({
+            amount: driverShareCents,
+            currency: 'eur',
+            destination: driver.stripeConnectedAccountId,
+            transfer_group: rideGroupId,
+            metadata: { memberId: member.id, type: 'driver_earnings' },
+          });
+        }
+
+        // Aggiorna member
+        await prisma.groupMember.update({
+          where: { id: member.id },
+          data: { paymentStatus: 'CAPTURED', capturedAt: new Date(), status: 'COMPLETED', actualDropoffTime: new Date() },
+        });
+
+        // Aggiorna booking
+        await prisma.booking.update({
+          where: { id: member.bookingId },
+          data: { status: 'COMPLETED' },
+        });
+
+        totalCaptured += member.totalPrice ?? 0;
+        totalDriverPay += member.driverShare ?? 0;
+
+        // Email ricevuta al passeggero
+        const receiptId = `FLV-${rideGroupId.slice(-6).toUpperCase()}-${member.id.slice(-4).toUpperCase()}`;
+        sendRideReceipt(member.booking.user.email, {
+          userName: member.booking.user.name ?? 'Passeggero',
+          flightNumber: group.flightNumber,
+          pickupTime: group.targetPickupTime.toISOString(),
+          dropoffAddress: member.booking.dropoffLocation,
+          driverName: driver.user.name,
+          vehicleModel: driver.vehicleModel,
+          vehiclePlate: driver.vehiclePlate,
+          driverShare: member.driverShare ?? 0,
+          flanvoFee: member.flanvoFee ?? 0,
+          totalPrice: member.totalPrice ?? 0,
+          receiptId,
+        }).catch(() => {});
+
+        // Notifica completamento + invito a valutare
+        createNotification({
+          userId: member.booking.userId,
+          type: 'RIDE_COMPLETED',
+          title: 'Sei arrivato! ⭐ Valuta la corsa',
+          body: `Pagamento di €${(member.totalPrice ?? 0).toFixed(2)} addebitato. Come è andata? Lascia una valutazione dalla dashboard.`,
+          data: { bookingId: member.bookingId, rideGroupId, action: 'rate' },
+        }).catch(() => {});
+      } catch (e) {
+        console.error(`Capture failed for member ${member.id}:`, e);
+        errors.push(member.id);
       }
+    }
+
+    // Aggiorna ride e gruppo a COMPLETED
+    await prisma.ride.update({
+      where: { id: group.ride.id },
+      data: { status: 'COMPLETED', endTime: new Date(), totalDriverPay, totalRevenue: totalCaptured },
+    });
+    await prisma.rideGroup.update({
+      where: { id: rideGroupId },
+      data: { status: 'COMPLETED' },
     });
 
-    // STEP 4: Update driver earnings
+    // Aggiorna stats driver
     await prisma.driver.update({
       where: { id: driver.id },
-      data: {
-        totalEarnings: {
-          increment: member.driverShare!
-        },
-        totalRides: {
-          increment: 1
-        }
-      }
-    });
-
-    // STEP 5: Generate receipt
-    const receipt = generateReceipt(member, captured);
-
-    // Invia ricevuta email al passeggero
-    const { sendRideReceipt } = await import('@/lib/email');
-    const receiptId = `FLV-${member.rideGroupId.slice(-6).toUpperCase()}-${memberId.slice(-4).toUpperCase()}`;
-    sendRideReceipt(member.booking.user.email, {
-      userName: member.booking.user.name ?? 'Passeggero',
-      flightNumber: member.rideGroup.flightNumber,
-      pickupTime: member.rideGroup.targetPickupTime.toISOString(),
-      dropoffAddress: member.booking.dropoffLocation,
-      driverName: driver.user.name,
-      vehicleModel: driver.vehicleModel,
-      vehiclePlate: driver.vehiclePlate,
-      driverShare: member.driverShare ?? 0,
-      flanvoFee: member.flanvoFee ?? 0,
-      totalPrice: member.totalPrice ?? 0,
-      receiptId,
-    }).catch(() => {});
-
-    // STEP 6: Audit log
-    await prisma.priceAuditLog.create({
-      data: {
-        rideGroupId: member.rideGroupId,
-        bookingId: member.bookingId,
-        routeVersion: member.rideGroup.routeVersion,
-        totalRouteKm: member.rideGroup.totalRouteKm || 0,
-        directKm: member.kmDirect,
-        detourKm: member.detourKm,
-        detourPercent: member.detourPercent,
-        baseFarePerKm: member.flanvoFeeRate || 0.30,
-        totalBaseFare: member.flanvoFee || 0,
-        driverRatePerKm: 2.00,
-        totalDriverPay: member.driverShare || 0,
-        flanvoFeeRate: member.flanvoFeeRate || 0.30,
-        flanvoFee: member.flanvoFee || 0,
-        finalPrice: member.totalPrice || 0,
-        maxDetourPercent: member.booking.maxDetourPercent,
-        maxDetourMinutes: member.booking.maxDetourMinutes,
-        constraintsMet: true,
-        calculatedBy: 'system',
-        notes: `Payment captured: ${captured.id}, Transfer: ${transfer.id}`
-      }
+      data: { totalEarnings: { increment: totalDriverPay }, totalRides: { increment: 1 } },
     });
 
     return NextResponse.json({
       success: true,
-      captured: true,
-      amount: member.totalPrice,
-      driverTransfer: member.driverShare,
-      receipt
+      totalCaptured: Math.round(totalCaptured * 100) / 100,
+      totalDriverPay: Math.round(totalDriverPay * 100) / 100,
+      errors: errors.length > 0 ? errors : undefined,
     });
-
-  } catch (error: any) {
-    console.error('Capture error:', error);
-
+  } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Input non valido', details: error.errors }, { status: 400 });
     }
-
-    if (error.type === 'StripeInvalidRequestError') {
-      return NextResponse.json(
-        { error: 'Capture failed', details: error.message },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'Capture failed' },
-      { status: 500 }
-    );
+    return authErrorResponse(error);
   }
 }

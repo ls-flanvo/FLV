@@ -26,6 +26,7 @@ export default function DriverSignupPage() {
     dateOfBirth: '', taxCode: '', password: '', confirmPassword: '',
     address: '', city: '', province: '', zipCode: '',
     vehicleBrand: '', vehicleModel: '', vehicleYear: '', licensePlate: '', vehicleColor: '', seats: '',
+    homeAirport: '',
     insuranceCompany: '', insuranceNumber: '', insuranceExpiry: '',
     driverLicense: '', licenseExpiry: '', cqcNumber: '', cqcExpiry: '',
     availability: 'fulltime', termsAccepted: false, privacyAccepted: false,
@@ -54,6 +55,7 @@ export default function DriverSignupPage() {
       if (!form.vehicleBrand.trim()) return 'Marca obbligatoria';
       if (!form.vehicleModel.trim()) return 'Modello obbligatorio';
       if (!form.licensePlate.trim()) return 'Targa obbligatoria';
+      if (!form.homeAirport) return 'Seleziona lo scalo di operatività';
     }
     if (step === 'documents') {
       if (!form.driverLicense.trim()) return 'Numero patente obbligatorio';
@@ -162,10 +164,7 @@ export default function DriverSignupPage() {
             <ArrowLeft className="w-3.5 h-3.5" /> Login autisti
           </Link>
           <Link href="/" className="flex items-center gap-2">
-            <svg width="16" height="22" viewBox="0 0 56 72" fill="none">
-              <path d="M8 0 L48 0 L30 30 L48 30 L8 72 L22 40 L4 40 Z" fill="#00D1B2"/>
-            </svg>
-            <span className="text-sm font-bold text-white">flanvo</span>
+            <span className="text-sm font-bold text-white" style={{ letterSpacing: '-0.02em' }}>Flanvo</span>
           </Link>
         </div>
 
@@ -303,6 +302,23 @@ export default function DriverSignupPage() {
                   <input name="vehicleColor" value={form.vehicleColor} onChange={ch} placeholder="Nero" className={inputCls()} />
                 </div>
               </div>
+              {/* Scalo di operatività */}
+              <div className="border-t border-surface-4 pt-4">
+                <label className="block text-xs font-semibold text-white mb-1.5">Scalo di operatività *</label>
+                <p className="text-xs text-ink-muted mb-2">L&apos;aeroporto dal quale operi abitualmente per i pickup</p>
+                <select name="homeAirport" value={form.homeAirport} onChange={ch} className={inputCls()}>
+                  <option value="">Seleziona aeroporto</option>
+                  <option value="CTA">CTA — Catania Fontanarossa</option>
+                  <option value="PMO">PMO — Palermo Falcone Borsellino</option>
+                  <option value="CAG">CAG — Cagliari Elmas</option>
+                  <option value="NAP">NAP — Napoli Capodichino</option>
+                  <option value="BRI">BRI — Bari Karol Wojtyla</option>
+                  <option value="FCO">FCO — Roma Fiumicino</option>
+                  <option value="MXP">MXP — Milano Malpensa</option>
+                  <option value="BGY">BGY — Milano Bergamo Orio</option>
+                </select>
+              </div>
+
               <div className="border-t border-surface-4 pt-4 mt-2">
                 <p className="text-xs text-ink-secondary mb-3">Assicurazione (opzionale)</p>
                 <div className="grid grid-cols-2 gap-3">

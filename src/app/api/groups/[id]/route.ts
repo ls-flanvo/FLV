@@ -15,7 +15,7 @@ export async function GET(
   try {
     const { id } = params;
     
-    console.log(`[RideGroup] Fetching group: ${id}`);
+    // (removed debug log)
     
     // Recupera il gruppo con tutti i dettagli
     const rideGroup = await prisma.rideGroup.findUnique({
@@ -157,7 +157,7 @@ export async function GET(
       updatedAt: rideGroup.updatedAt
     };
     
-    console.log(`[RideGroup] Found group with ${rideGroup.currentCapacity} passengers`);
+    // (removed debug log)
     
     return NextResponse.json(response);
     

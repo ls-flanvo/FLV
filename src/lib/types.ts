@@ -95,7 +95,7 @@ export interface Booking {
     totalPrice?: number | null;
     paymentStatus?: string;
     paymentIntentId?: string | null;
-    rideGroup?: { id: string; status: string; qualityScore?: number | null };
+    rideGroup?: { id: string; status: string; qualityScore?: number | null; totalPrice?: number | null; currentCapacity?: number | null; maxCapacity?: number | null; flightStatus?: string | null; meetingPoint?: string | null; meetingTime?: string | null; members?: Array<{ id: string; booking: { passengerName: string; passengers: number } }> };
   } | null;
   // Legacy compat
   sharePrice?: number;

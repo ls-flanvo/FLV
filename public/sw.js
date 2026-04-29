@@ -1,7 +1,7 @@
-const CACHE_NAME = 'flanvo-v3';
+const CACHE_NAME = 'flanvo-v5';
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
+  '/icons/icon.svg',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
 ];
@@ -26,11 +26,27 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Solo cache per risorse statiche — le API vanno sempre alla rete
   if (url.pathname.startsWith('/api/') || request.method !== 'GET') {
     return;
   }
 
+  // Network-first per le pagine HTML — così i nuovi deploy si vedono subito senza hard refresh
+  if (request.mode === 'navigate' || (request.headers.get('accept') || '').includes('text/html')) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Cache-first per asset statici (immagini, font, JS/CSS con hash)
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;

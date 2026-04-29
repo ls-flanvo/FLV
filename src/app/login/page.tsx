@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store';
@@ -14,8 +14,17 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login, setToken } = useAuthStore();
+  const { login, setToken, isAuthenticated, user } = useAuthStore();
   const router = useRouter();
+
+  // Se già loggato → redirect immediato
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.role === 'driver') router.replace('/driver/dashboard');
+      else if (user.role === 'admin') router.replace('/admin/dashboard');
+      else router.replace('/dashboard');
+    }
+  }, [isAuthenticated, user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,10 +63,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-10">
           <Link href="/" className="inline-flex items-center gap-2.5 mb-6">
-            <svg width="32" height="42" viewBox="0 0 56 72" fill="none">
-              <path d="M8 0 L48 0 L30 30 L48 30 L8 72 L22 40 L4 40 Z" fill="#00D1B2"/>
-            </svg>
-            <span className="text-3xl font-bold tracking-tight text-white">flanvo</span>
+            <span className="text-3xl font-bold text-white" style={{ letterSpacing: '-0.02em' }}>Flanvo</span>
           </Link>
           <h1 className="text-2xl font-bold text-white">Bentornato</h1>
           <p className="text-ink-secondary mt-1.5 text-sm">Accedi al tuo account</p>

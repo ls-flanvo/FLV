@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { requireDriver, authErrorResponse } from '@/lib/api-auth';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16'
@@ -13,10 +14,11 @@ const noShowSchema = z.object({
   reason: z.string().optional()
 });
 
-const WAIT_TIME_MS = 20 * 60 * 1000; // 20 minutes
+const WAIT_AFTER_MEETING_MS = 20 * 60 * 1000; // 20 min dal meeting time
 
 export async function POST(req: NextRequest) {
   try {
+    await requireDriver(req);
     const body = await req.json();
     const { memberId, reason } = noShowSchema.parse(body);
 
@@ -66,22 +68,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify wait time exceeded (20 min after pickup window end)
-    const ride = member.rideGroup.ride;
-    if (!ride || !ride.pickupWindowEnd) {
-      return NextResponse.json(
-        { error: 'Pickup window not set' },
-        { status: 400 }
-      );
+    // Verifica che siano trascorsi 20 min dal meeting time (landing + 25 min + 20 min attesa)
+    const meetingTime = member.rideGroup.meetingTime;
+    if (!meetingTime) {
+      // Se meetingTime non è settato (volo non ancora atterrato), usa targetPickupTime
+      const pickupRef = member.rideGroup.targetPickupTime;
+      const elapsed = Date.now() - pickupRef.getTime();
+      if (elapsed < WAIT_AFTER_MEETING_MS) {
+        const remaining = Math.ceil((WAIT_AFTER_MEETING_MS - elapsed) / 60000);
+        return NextResponse.json(
+          { error: `Attendi ancora ${remaining} minuti prima di marcare il no-show` },
+          { status: 400 }
+        );
+      }
+    } else {
+      const elapsed = Date.now() - meetingTime.getTime();
+      if (elapsed < WAIT_AFTER_MEETING_MS) {
+        const remaining = Math.ceil((WAIT_AFTER_MEETING_MS - elapsed) / 60000);
+        return NextResponse.json(
+          { error: `Attendi ancora ${remaining} minuti al punto di incontro prima di marcare il no-show` },
+          { status: 400 }
+        );
+      }
     }
 
-    const waitTimeElapsed = Date.now() - ride.pickupWindowEnd.getTime();
-    if (waitTimeElapsed < WAIT_TIME_MS) {
-      const remainingMinutes = Math.ceil((WAIT_TIME_MS - waitTimeElapsed) / 60000);
-      return NextResponse.json(
-        { error: `Wait time not exceeded. ${remainingMinutes} minutes remaining.` },
-        { status: 400 }
-      );
+    const ride = member.rideGroup.ride;
+    if (!ride) {
+      return NextResponse.json({ error: 'Corsa non ancora iniziata' }, { status: 400 });
     }
 
     const driver = ride.driver;
@@ -186,26 +199,10 @@ export async function POST(req: NextRequest) {
       reason: 'No-show after 20 min wait. Driver share charged, service fee refunded.'
     });
 
-  } catch (error: any) {
-    console.error('No-show handling error:', error);
-
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Input non valido', details: error.errors }, { status: 400 });
     }
-
-    if (error.type === 'StripeInvalidRequestError') {
-      return NextResponse.json(
-        { error: 'Payment processing failed', details: error.message },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'No-show handling failed' },
-      { status: 500 }
-    );
+    return authErrorResponse(error);
   }
 }

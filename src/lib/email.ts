@@ -3,6 +3,51 @@ import { Resend } from 'resend';
 const FROM = 'Flanvo <noreply@flanvo.com>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://flv-psi.vercel.app';
 
+const logoWordmark = `
+  <div style="margin-bottom:28px">
+    <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:28px;font-weight:700;letter-spacing:-0.04em;color:#ffffff">Flanvo</span>
+  </div>
+`;
+
+const logoWordmarkLight = `
+  <div style="margin-bottom:28px">
+    <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:28px;font-weight:700;letter-spacing:-0.04em;color:#0a0a0a">Flanvo</span>
+  </div>
+`;
+
+const footerDark = `
+  <hr style="border:none;border-top:1px solid #2a2a2a;margin:28px 0"/>
+  <p style="color:#555;font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+    Flanvo — Shared Airport Transfers<br/>
+    <a href="${APP_URL}" style="color:#00D1B2;text-decoration:none">flanvo.com</a> ·
+    <a href="mailto:hello@flanvo.com" style="color:#00D1B2;text-decoration:none">hello@flanvo.com</a>
+  </p>
+`;
+
+const footerLight = `
+  <hr style="border:none;border-top:1px solid #e5e5e5;margin:28px 0"/>
+  <p style="color:#888;font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+    Flanvo — Shared Airport Transfers<br/>
+    <a href="${APP_URL}" style="color:#00C2B5;text-decoration:none">flanvo.com</a> ·
+    <a href="mailto:hello@flanvo.com" style="color:#00C2B5;text-decoration:none">hello@flanvo.com</a>
+  </p>
+`;
+
+function wrapEmail(content: string, dark = false): string {
+  const bg = dark ? '#0B0B0B' : '#ffffff';
+  const logo = dark ? logoWordmark : logoWordmarkLight;
+  const footer = dark ? footerDark : footerLight;
+  return `
+    <div style="background:${bg};padding:0;margin:0">
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px 32px">
+        ${logo}
+        ${content}
+        ${footer}
+      </div>
+    </div>
+  `;
+}
+
 async function send(to: string, subject: string, html: string) {
   if (!process.env.RESEND_API_KEY) {
     console.log(`[Email mock] To: ${to} | Subject: ${subject}`);
@@ -16,29 +61,19 @@ async function send(to: string, subject: string, html: string) {
   }
 }
 
-const footer = `
-  <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
-  <p style="color:#999;font-size:12px">
-    Flanvo — Shared Airport Transfers<br/>
-    <a href="${APP_URL}" style="color:#00C2B5">flv-psi.vercel.app</a> ·
-    <a href="mailto:hello@flanvo.com" style="color:#00C2B5">hello@flanvo.com</a>
-  </p>
-`;
-
 export async function sendWelcome(to: string, name: string) {
   await send(
     to,
     'Benvenuto su Flanvo!',
-    `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
-      <h1 style="color:#0a0a0a">Benvenuto, ${name}!</h1>
-      <p>Il tuo account Flanvo è pronto. Ora puoi prenotare corse condivise dall'aeroporto e risparmiare fino al 78% rispetto a taxi e NCC privati.</p>
+    wrapEmail(`
+      <h1 style="color:#0a0a0a;font-size:24px;font-weight:700;margin:0 0 12px">Benvenuto, ${name}!</h1>
+      <p style="color:#444;line-height:1.6">Il tuo account è pronto. Prenota corse condivise dall'aeroporto e risparmia fino al <strong>78%</strong> rispetto a taxi e NCC privati.</p>
       <a href="${APP_URL}/flight-search"
-         style="display:inline-block;background:#00C2B5;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0">
-        Cerca la tua prima corsa
+         style="display:inline-block;background:#00D1B2;color:#0a0a0a;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:20px 0;font-size:15px">
+        Cerca la tua prima corsa →
       </a>
-      <p style="color:#666">Inserisci il codice volo, la tua destinazione e il sistema ti troverà compagni di viaggio sullo stesso volo.</p>
-      ${footer}
-    </div>`
+      <p style="color:#888;font-size:13px">Inserisci il codice volo, la tua destinazione e il sistema ti troverà compagni di viaggio sullo stesso volo.</p>
+    `)
   );
 }
 
@@ -49,39 +84,48 @@ export async function sendBookingConfirmation(
   await send(
     to,
     `Prenotazione confermata — Volo ${params.flightNumber}`,
-    `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
-      <h1 style="color:#0a0a0a">Prenotazione confermata!</h1>
-      <p>La tua corsa per il volo <strong>${params.flightNumber}</strong> è stata prenotata con successo.</p>
-      <div style="background:#f5f5f5;padding:16px;border-radius:8px;margin:16px 0">
-        <p style="margin:4px 0"><strong>Volo:</strong> ${params.flightNumber}</p>
-        <p style="margin:4px 0"><strong>Pickup:</strong> ${new Date(params.pickupTime).toLocaleString('it-IT')}</p>
-        ${params.estimatedPrice ? `<p style="margin:4px 0"><strong>Prezzo stimato:</strong> €${params.estimatedPrice.toFixed(2)}</p>` : ''}
+    wrapEmail(`
+      <h1 style="color:#0a0a0a;font-size:24px;font-weight:700;margin:0 0 12px">Prenotazione confermata!</h1>
+      <p style="color:#444;line-height:1.6">La tua corsa per il volo <strong>${params.flightNumber}</strong> è stata prenotata con successo. Ti avviseremo quando il gruppo sarà pronto.</p>
+      <div style="background:#f5f5f5;border-radius:10px;padding:20px;margin:20px 0">
+        <p style="margin:6px 0;color:#333"><strong>Volo:</strong> ${params.flightNumber}</p>
+        <p style="margin:6px 0;color:#333"><strong>Pickup stimato:</strong> ${new Date(params.pickupTime).toLocaleString('it-IT')}</p>
+        ${params.estimatedPrice ? `<p style="margin:6px 0;color:#333"><strong>Prezzo stimato:</strong> €${params.estimatedPrice.toFixed(2)}</p>` : ''}
       </div>
+      <p style="color:#666;font-size:13px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px">
+        ✓ Nessun addebito ora — il pagamento avviene solo al drop-off.
+      </p>
       <a href="${APP_URL}/dashboard"
-         style="display:inline-block;background:#00C2B5;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">
-        Vai alla dashboard
+         style="display:inline-block;background:#00D1B2;color:#0a0a0a;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:20px 0;font-size:15px">
+        Vai alla Dashboard →
       </a>
-      ${footer}
-    </div>`
+    `)
   );
 }
 
 export async function sendCancellationConfirmed(
   to: string,
-  params: { flightNumber: string; refunded: boolean }
+  params: { flightNumber: string; refunded: boolean; refundPercent?: number }
 ) {
+  const refundNote = params.refunded
+    ? `<p style="color:#16a34a;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px">
+        ✓ ${params.refundPercent === 100 ? 'Rimborso completo' : `Rimborso del ${params.refundPercent ?? 50}%`} — elaborato automaticamente entro 5–7 giorni lavorativi.
+       </p>`
+    : `<p style="color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px">
+        Cancellazione entro 12h dal volo — nessun rimborso previsto secondo la Policy Flanvo.
+       </p>`;
   await send(
     to,
-    'Prenotazione cancellata — Flanvo',
-    `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
-      <h1 style="color:#0a0a0a">Prenotazione cancellata</h1>
-      <p>La tua prenotazione per il volo <strong>${params.flightNumber}</strong> è stata cancellata.</p>
-      ${params.refunded
-        ? '<p style="color:#16a34a">Il rimborso della pre-autorizzazione sarà elaborato automaticamente entro 5-7 giorni lavorativi.</p>'
-        : '<p style="color:#dc2626">Cancellazione post-match: nessun rimborso previsto secondo la policy Flanvo.</p>'
-      }
-      ${footer}
-    </div>`
+    `Prenotazione cancellata — Volo ${params.flightNumber}`,
+    wrapEmail(`
+      <h1 style="color:#0a0a0a;font-size:24px;font-weight:700;margin:0 0 12px">Prenotazione cancellata</h1>
+      <p style="color:#444;line-height:1.6">La tua prenotazione per il volo <strong>${params.flightNumber}</strong> è stata cancellata.</p>
+      ${refundNote}
+      <a href="${APP_URL}/dashboard"
+         style="display:inline-block;background:#00D1B2;color:#0a0a0a;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:20px 0;font-size:15px">
+        Torna alla Dashboard →
+      </a>
+    `)
   );
 }
 
@@ -92,35 +136,21 @@ export async function sendGroupConfirmed(
   await send(
     to,
     `Gruppo confermato — Volo ${params.flightNumber}`,
-    `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
-      <h1 style="color:#0a0a0a">Gruppo di viaggio confermato!</h1>
-      <div style="background:#f0fdf4;border:1px solid #86efac;padding:16px;border-radius:8px;margin:16px 0">
-        <p style="margin:4px 0"><strong>Volo:</strong> ${params.flightNumber}</p>
-        <p style="margin:4px 0"><strong>Pickup:</strong> ${new Date(params.pickupTime).toLocaleString('it-IT')}</p>
-        <p style="margin:4px 0"><strong>Passeggeri:</strong> ${params.groupSize}</p>
-        ${params.driverName ? `<p style="margin:4px 0"><strong>Autista:</strong> ${params.driverName}</p>` : ''}
-        ${params.finalPrice ? `<p style="margin:4px 0;font-size:18px"><strong>Il tuo prezzo: €${params.finalPrice.toFixed(2)}</strong></p>` : ''}
+    wrapEmail(`
+      <h1 style="color:#0a0a0a;font-size:24px;font-weight:700;margin:0 0 12px">Gruppo di viaggio confermato!</h1>
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:20px;margin:20px 0">
+        <p style="margin:6px 0;color:#333"><strong>Volo:</strong> ${params.flightNumber}</p>
+        <p style="margin:6px 0;color:#333"><strong>Pickup:</strong> ${new Date(params.pickupTime).toLocaleString('it-IT')}</p>
+        <p style="margin:6px 0;color:#333"><strong>Passeggeri nel gruppo:</strong> ${params.groupSize}</p>
+        ${params.driverName ? `<p style="margin:6px 0;color:#333"><strong>Autista:</strong> ${params.driverName}</p>` : ''}
+        ${params.finalPrice ? `<p style="margin:10px 0 0;font-size:20px;font-weight:700;color:#00C2B5">Il tuo prezzo: €${params.finalPrice.toFixed(2)}</p>` : ''}
       </div>
-      <p>Il pagamento verrà addebitato solo al momento del drop-off.</p>
-      ${footer}
-    </div>`
-  );
-}
-
-export async function sendDriverApproved(to: string, driverName: string) {
-  await send(
-    to,
-    'Account autista approvato — Flanvo',
-    `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
-      <h1 style="color:#0a0a0a">Benvenuto, ${driverName}!</h1>
-      <p>La tua candidatura è stata <strong style="color:#16a34a">approvata</strong>.</p>
-      <p>Ora puoi accedere alla dashboard autista, accettare corse e configurare i pagamenti tramite Stripe.</p>
-      <a href="${APP_URL}/driver/login"
-         style="display:inline-block;background:#00C2B5;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0">
-        Accedi come autista
+      <p style="color:#666;font-size:13px">Il pagamento verrà addebitato solo al momento del drop-off a destinazione.</p>
+      <a href="${APP_URL}/dashboard"
+         style="display:inline-block;background:#00D1B2;color:#0a0a0a;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:20px 0;font-size:15px">
+        Segui la tua corsa →
       </a>
-      ${footer}
-    </div>`
+    `)
   );
 }
 
@@ -131,21 +161,40 @@ export async function sendGroupReady(to: string, data: {
   await send(
     to,
     `Gruppo trovato per il volo ${data.flightNumber}! Conferma entro 24h — Flanvo`,
-    `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#0B0B0B;color:#fff;padding:32px;border-radius:16px">
-      <h2 style="color:#00D1B2;margin-bottom:8px">Gruppo trovato! 🎉</h2>
-      <p style="color:#A1A1AA">Ciao ${data.userName},</p>
+    wrapEmail(`
+      <h2 style="color:#00D1B2;font-size:22px;margin:0 0 16px">Gruppo trovato!</h2>
+      <p style="color:#A1A1AA;margin:0 0 8px">Ciao ${data.userName},</p>
       <p style="color:#A1A1AA">Abbiamo trovato <strong style="color:#fff">${data.groupSize} passeggeri</strong> compatibili per il volo <strong style="color:#fff">${data.flightNumber}</strong>.</p>
-      <div style="background:#141414;border:1px solid #2A2A2A;border-radius:12px;padding:20px;margin:24px 0;text-align:center">
-        <p style="color:#A1A1AA;margin:0 0 4px">Il tuo prezzo finale</p>
-        <p style="font-size:36px;font-weight:900;color:#00D1B2;margin:0">€${data.pricePerPerson.toFixed(2)}</p>
-        <p style="color:#71717A;font-size:12px;margin:4px 0 0">Pagamento solo al drop-off</p>
+      <div style="background:#141414;border:1px solid #2A2A2A;border-radius:12px;padding:24px;margin:24px 0;text-align:center">
+        <p style="color:#A1A1AA;margin:0 0 4px;font-size:13px">Il tuo prezzo finale</p>
+        <p style="font-size:42px;font-weight:900;color:#00D1B2;margin:0;letter-spacing:-0.02em">€${data.pricePerPerson.toFixed(2)}</p>
+        <p style="color:#555;font-size:12px;margin:6px 0 0">Pagamento solo al drop-off</p>
       </div>
-      <p style="color:#A1A1AA">Hai <strong style="color:#fff">24 ore</strong> per confermare. Dopo questo tempo il tuo posto nel gruppo potrebbe essere liberato.</p>
-      <a href="${data.appUrl}/checkout/${data.groupMemberId}" style="display:inline-block;margin:16px 0;padding:16px 32px;background:#00D1B2;color:#0B0B0B;font-weight:700;border-radius:12px;text-decoration:none;font-size:16px">
+      <p style="color:#A1A1AA">Hai <strong style="color:#fff">24 ore</strong> per confermare il tuo posto.</p>
+      <a href="${data.appUrl}/checkout/${data.groupMemberId}" style="display:block;margin:20px 0;padding:16px 32px;background:#00D1B2;color:#0B0B0B;font-weight:700;border-radius:12px;text-decoration:none;font-size:16px;text-align:center">
         Conferma e paga →
       </a>
-      ${footer}
-    </div>`
+    `, true)
+  );
+}
+
+export async function sendDriverApproved(to: string, driverName: string) {
+  await send(
+    to,
+    'Account autista approvato — Flanvo',
+    wrapEmail(`
+      <h1 style="color:#0a0a0a;font-size:24px;font-weight:700;margin:0 0 12px">Benvenuto, ${driverName}!</h1>
+      <p style="color:#444;line-height:1.6">La tua candidatura è stata <strong style="color:#16a34a">approvata</strong>. Puoi ora accedere alla dashboard autista e accettare corse.</p>
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:16px;margin:20px 0">
+        <p style="margin:6px 0;color:#333;font-size:14px">✓ Configura Stripe Connect per ricevere i pagamenti</p>
+        <p style="margin:6px 0;color:#333;font-size:14px">✓ Attiva le notifiche push per le nuove corse</p>
+        <p style="margin:6px 0;color:#333;font-size:14px">✓ Accetta le corse disponibili dal tuo aeroporto</p>
+      </div>
+      <a href="${APP_URL}/driver/login"
+         style="display:inline-block;background:#00D1B2;color:#0a0a0a;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:20px 0;font-size:15px">
+        Accedi come Autista →
+      </a>
+    `)
   );
 }
 
@@ -153,13 +202,16 @@ export async function sendDriverRejected(to: string, driverName: string, reason?
   await send(
     to,
     'Aggiornamento candidatura — Flanvo',
-    `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
-      <h1 style="color:#0a0a0a">Ciao ${driverName},</h1>
-      <p>Purtroppo la tua candidatura non è stata accettata in questo momento.</p>
-      ${reason ? `<p><strong>Motivo:</strong> ${reason}</p>` : ''}
-      <p>Puoi ripresentare la candidatura in futuro. Per domande scrivi a <a href="mailto:hello@flanvo.com">hello@flanvo.com</a>.</p>
-      ${footer}
-    </div>`
+    wrapEmail(`
+      <h1 style="color:#0a0a0a;font-size:24px;font-weight:700;margin:0 0 12px">Ciao ${driverName},</h1>
+      <p style="color:#444;line-height:1.6">Purtroppo la tua candidatura non è stata accettata in questo momento.</p>
+      ${reason ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px;margin:16px 0"><p style="margin:0;color:#7f1d1d"><strong>Motivo:</strong> ${reason}</p></div>` : ''}
+      <p style="color:#666;font-size:14px">Puoi ripresentare la candidatura in futuro o contattarci per chiarimenti.</p>
+      <a href="mailto:hello@flanvo.com"
+         style="display:inline-block;background:#f5f5f5;color:#0a0a0a;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0;font-size:14px">
+        Contatta il supporto
+      </a>
+    `)
   );
 }
 
@@ -186,26 +238,28 @@ export async function sendRideReceipt(
   await send(
     to,
     `Ricevuta corsa — Volo ${params.flightNumber}`,
-    `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
-      <h1 style="color:#0a0a0a">Ricevuta di pagamento</h1>
-      <p>Ciao ${params.userName}, la tua corsa è stata completata.</p>
-      <div style="background:#f5f5f5;padding:16px;border-radius:8px;margin:16px 0">
-        <p style="margin:4px 0;font-size:12px;color:#666">Ricevuta n°</p>
-        <p style="margin:4px 0;font-weight:bold">${params.receiptId}</p>
+    wrapEmail(`
+      <h1 style="color:#0a0a0a;font-size:24px;font-weight:700;margin:0 0 12px">Ricevuta di pagamento</h1>
+      <p style="color:#444;line-height:1.6">Ciao ${params.userName}, la tua corsa è stata completata.</p>
+      <div style="background:#f5f5f5;border-radius:8px;padding:12px 16px;margin:16px 0">
+        <p style="margin:0;font-size:12px;color:#666">Ricevuta n°</p>
+        <p style="margin:4px 0;font-weight:700;color:#0a0a0a">${params.receiptId}</p>
       </div>
       <table style="width:100%;border-collapse:collapse;margin:16px 0">
-        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#666">Data</td><td style="padding:10px 0;text-align:right;font-weight:bold">${date}</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#666">Volo</td><td style="padding:10px 0;text-align:right;font-weight:bold">${params.flightNumber}</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#666">Destinazione</td><td style="padding:10px 0;text-align:right">${params.dropoffAddress}</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#666">Autista</td><td style="padding:10px 0;text-align:right">${params.driverName} · ${params.vehiclePlate}</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#666">Quota trasporto</td><td style="padding:10px 0;text-align:right">€${params.driverShare.toFixed(2)}</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#666">Servizio Flanvo</td><td style="padding:10px 0;text-align:right">€${params.flanvoFee.toFixed(2)}</td></tr>
-        <tr><td style="padding:12px 0;font-weight:bold;font-size:16px">Totale addebitato</td><td style="padding:12px 0;text-align:right;font-weight:bold;font-size:18px;color:#00C2B5">€${params.totalPrice.toFixed(2)}</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#666">Data</td><td style="padding:10px 0;text-align:right;font-weight:600;color:#0a0a0a">${date}</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#666">Volo</td><td style="padding:10px 0;text-align:right;font-weight:600;color:#0a0a0a">${params.flightNumber}</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#666">Destinazione</td><td style="padding:10px 0;text-align:right;color:#0a0a0a">${params.dropoffAddress}</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#666">Autista</td><td style="padding:10px 0;text-align:right;color:#0a0a0a">${params.driverName} · ${params.vehiclePlate}</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#666">Quota trasporto</td><td style="padding:10px 0;text-align:right;color:#0a0a0a">€${params.driverShare.toFixed(2)}</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#666">Servizio Flanvo</td><td style="padding:10px 0;text-align:right;color:#0a0a0a">€${params.flanvoFee.toFixed(2)}</td></tr>
+        <tr><td style="padding:14px 0;font-weight:700;font-size:16px;color:#0a0a0a">Totale addebitato</td><td style="padding:14px 0;text-align:right;font-weight:700;font-size:20px;color:#00C2B5">€${params.totalPrice.toFixed(2)}</td></tr>
       </table>
-      <p style="color:#666;font-size:13px">Questa ricevuta è valida come documento di spesa.</p>
-      <a href="${APP_URL}/dashboard" style="display:inline-block;background:#00C2B5;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0">Vai alla Dashboard</a>
-      ${footer}
-    </div>`
+      <p style="color:#888;font-size:13px">Questa ricevuta è valida come documento di spesa.</p>
+      <a href="${APP_URL}/dashboard"
+         style="display:inline-block;background:#00D1B2;color:#0a0a0a;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:16px 0;font-size:15px">
+        Vai alla Dashboard →
+      </a>
+    `)
   );
 }
 
@@ -216,17 +270,16 @@ export async function sendCancellationPenalty(
   await send(
     to,
     `Addebito cancellazione — Volo ${params.flightNumber}`,
-    `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
-      <h1 style="color:#0a0a0a">Conferma cancellazione</h1>
-      <p>Ciao ${params.userName}, la prenotazione per il volo <strong>${params.flightNumber}</strong> è stata cancellata.</p>
-      <div style="background:#fef2f2;border:1px solid #fecaca;padding:16px;border-radius:8px;margin:16px 0">
-        <p style="margin:4px 0;font-weight:bold;color:#dc2626">Cancellazione post-match — nessun rimborso</p>
-        <p style="margin:8px 0;color:#7f1d1d;font-size:14px">Secondo la Policy Flanvo §5.1, l'importo di <strong>€${params.amount.toFixed(2)}</strong> è stato addebitato sulla tua carta.</p>
-        <p style="margin:4px 0;font-size:12px;color:#991b1b">Ricevuta n° ${params.receiptId}</p>
+    wrapEmail(`
+      <h1 style="color:#0a0a0a;font-size:24px;font-weight:700;margin:0 0 12px">Conferma cancellazione</h1>
+      <p style="color:#444;line-height:1.6">Ciao ${params.userName}, la prenotazione per il volo <strong>${params.flightNumber}</strong> è stata cancellata.</p>
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:20px;margin:20px 0">
+        <p style="margin:0 0 8px;font-weight:700;color:#dc2626">Cancellazione entro 12h dal volo — nessun rimborso</p>
+        <p style="margin:0;color:#7f1d1d;font-size:14px;line-height:1.5">Secondo la Policy Flanvo §5.1, l'importo di <strong>€${params.amount.toFixed(2)}</strong> è stato addebitato sulla tua carta.</p>
+        <p style="margin:8px 0 0;font-size:12px;color:#991b1b">Ricevuta n° ${params.receiptId}</p>
       </div>
       <p style="color:#666;font-size:13px">Per contestazioni scrivi a <a href="mailto:hello@flanvo.com" style="color:#00C2B5">hello@flanvo.com</a> entro 14 giorni.</p>
-      ${footer}
-    </div>`
+    `)
   );
 }
 
@@ -243,23 +296,45 @@ export async function sendPickupReminder(
   await send(
     to,
     `Pickup tra 30 minuti — Volo ${params.flightNumber}`,
-    `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
-      <h1 style="color:#0a0a0a">Il tuo van arriva tra 30 minuti!</h1>
-      <p>Ciao ${params.userName}, preparati — il pickup è alle <strong>${params.pickupTime}</strong>.</p>
-      <div style="background:#f0fdf4;border:1px solid #86efac;padding:16px;border-radius:8px;margin:16px 0">
-        <p style="margin:4px 0"><strong>Volo:</strong> ${params.flightNumber}</p>
-        <p style="margin:4px 0"><strong>Pickup:</strong> ${params.pickupTime}</p>
-        <p style="margin:4px 0"><strong>Autista:</strong> ${params.driverName}</p>
-        <p style="margin:4px 0"><strong>Destinazione:</strong> ${params.dropoffAddress}</p>
+    wrapEmail(`
+      <h1 style="color:#0a0a0a;font-size:24px;font-weight:700;margin:0 0 12px">Il tuo van arriva tra 30 minuti!</h1>
+      <p style="color:#444;line-height:1.6">Ciao ${params.userName}, preparati — il pickup è alle <strong>${params.pickupTime}</strong>.</p>
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:20px;margin:20px 0">
+        <p style="margin:6px 0;color:#333"><strong>Volo:</strong> ${params.flightNumber}</p>
+        <p style="margin:6px 0;color:#333"><strong>Pickup:</strong> ${params.pickupTime}</p>
+        <p style="margin:6px 0;color:#333"><strong>Autista:</strong> ${params.driverName}</p>
+        <p style="margin:6px 0;color:#333"><strong>Destinazione:</strong> ${params.dropoffAddress}</p>
       </div>
-      <p style="background:#fef9c3;border:1px solid #fde047;padding:12px;border-radius:8px;font-size:14px">
-        📍 Dirigiti verso l'uscita Arrivi del terminal. Cerca il cartello con il logo Flanvo.
-      </p>
+      <div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:14px;margin:16px 0;font-size:14px;color:#713f12">
+        Dirigiti verso l'uscita Arrivi del terminal. Cerca il nome "Flanvo" sul display del driver.
+      </div>
       <a href="${APP_URL}/dashboard"
-         style="display:inline-block;background:#00C2B5;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0">
-        Apri Tracking Live
+         style="display:inline-block;background:#00D1B2;color:#0a0a0a;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:20px 0;font-size:15px">
+        Apri Tracking Live →
       </a>
-      ${footer}
-    </div>`
+    `)
+  );
+}
+
+export async function sendNewRideAvailable(
+  to: string,
+  params: { driverName: string; flightNumber: string; pax: number; airportName: string }
+) {
+  await send(
+    to,
+    `Nuova corsa disponibile — Volo ${params.flightNumber}`,
+    wrapEmail(`
+      <h1 style="color:#fff;font-size:22px;font-weight:700;margin:0 0 8px">Ciao ${params.driverName}, nuova corsa disponibile!</h1>
+      <p style="color:#A1A1AA;margin:0 0 20px">Accetta prima che un altro driver la prenda.</p>
+      <div style="background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:20px;margin:20px 0">
+        <p style="margin:6px 0;color:#A1A1AA"><strong style="color:#fff">Volo:</strong> ${params.flightNumber}</p>
+        <p style="margin:6px 0;color:#A1A1AA"><strong style="color:#fff">Aeroporto:</strong> ${params.airportName}</p>
+        <p style="margin:6px 0;color:#A1A1AA"><strong style="color:#fff">Passeggeri:</strong> ${params.pax}</p>
+      </div>
+      <a href="${APP_URL}/driver/dashboard"
+         style="display:block;background:#00D1B2;color:#0B0B0B;padding:16px 24px;border-radius:8px;text-decoration:none;font-weight:700;text-align:center;margin:20px 0;font-size:15px">
+        Vai alla Dashboard Driver →
+      </a>
+    `, true)
   );
 }

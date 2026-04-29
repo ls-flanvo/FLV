@@ -3,6 +3,8 @@ import Stripe from 'stripe';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getPricingRates } from '@/lib/get-pricing-rates';
+import { requireAuth, authErrorResponse } from '@/lib/api-auth';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16'
@@ -14,32 +16,30 @@ const createIntentSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    if (!rateLimit(`create-intent:${ip}`, 5, 60_000)) {
+      return NextResponse.json({ error: 'Troppi tentativi. Riprova tra un minuto.' }, { status: 429 });
+    }
+    const payload = await requireAuth(req);
     const body = await req.json();
     const { memberId } = createIntentSchema.parse(body);
-    console.log('✅ MemberId ricevuto:', memberId);
 
     // Get GroupMember with pricing data
     const member = await prisma.groupMember.findUnique({
       where: { id: memberId },
       include: {
-        booking: {
-          include: {
-            user: true
-          }
-        },
-        rideGroup: {
-          include: {
-            members: true
-          }
-        }
-      }
+        booking: { include: { user: true } },
+        rideGroup: { include: { members: true } },
+      },
     });
 
     if (!member) {
-      return NextResponse.json(
-        { error: 'GroupMember not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'GroupMember not found' }, { status: 404 });
+    }
+
+    // Verifica che il member appartenga all'utente autenticato
+    if (member.booking.userId !== payload.userId) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 });
     }
 
     console.log('✅ Member trovato:', {
@@ -57,19 +57,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if payment intent already exists
+    // Se payment intent già esiste, restituiscilo
     if (member.paymentIntentId) {
-      console.log('ℹ️ Payment intent già esistente:', member.paymentIntentId);
-      
-      // Recupera il payment intent esistente da Stripe
       const existingIntent = await stripe.paymentIntents.retrieve(member.paymentIntentId);
-      
       return NextResponse.json({
         success: true,
         clientSecret: existingIntent.client_secret,
         intentId: existingIntent.id,
         amount: existingIntent.amount / 100,
-        message: 'Payment intent already exists'
+        flightNumber: member.rideGroup.flightNumber,
+        groupSize: member.rideGroup.members.filter(m => m.status !== 'CANCELLED').length,
+        dropoffLocation: member.booking.dropoffLocation,
       });
     }
 
@@ -108,14 +106,6 @@ export async function POST(req: NextRequest) {
     const protectionFee = rates.protectionFee;
     const totalPrice = driverShare + flanvoFee + protectionFee;
 
-    console.log('💰 Pricing calcolato:', {
-      driverShare,
-      kmOnboard,
-      flanvoFeeRate,
-      flanvoFee,
-      protectionFee,
-      totalPrice
-    });
 
     // Create Stripe Payment Intent
     const paymentIntent = await stripe.paymentIntents.create({
@@ -137,7 +127,6 @@ export async function POST(req: NextRequest) {
       description: `Flanvo Pool - Flight ${member.rideGroup.flightNumber}`
     });
 
-    console.log('✅ Payment Intent creato:', paymentIntent.id);
 
     // Save intentId in GroupMember
     await prisma.groupMember.update({
@@ -179,25 +168,20 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    console.log('✅ Tutto salvato! Ritorno risposta.');
-
     return NextResponse.json({
       success: true,
       clientSecret: paymentIntent.client_secret,
       intentId: paymentIntent.id,
       amount: totalPrice,
-      breakdown: {
-        driverShare,
-        flanvoFee,
-        flanvoFeeRate,
-        protectionFee,
-        totalPrice,
-        kmOnboard
-      }
+      flightNumber: member.rideGroup.flightNumber,
+      groupSize: member.rideGroup.members.filter(m => m.status !== 'CANCELLED').length,
+      dropoffLocation: member.booking.dropoffLocation,
+      breakdown: { driverShare, flanvoFee, flanvoFeeRate, protectionFee, totalPrice, kmOnboard },
     });
 
-  } catch (error: any) {
-    console.error('❌ Create intent error:', error);
+  } catch (error: unknown) {
+    if ((error as { name?: string })?.name === 'AuthError') return authErrorResponse(error);
+    console.error('Create intent error:', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -206,9 +190,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (error.type === 'StripeInvalidRequestError') {
+    const stripeErr = error as { type?: string; message?: string };
+    if (stripeErr.type === 'StripeInvalidRequestError') {
       return NextResponse.json(
-        { error: 'Invalid payment request', details: error.message },
+        { error: 'Invalid payment request', details: stripeErr.message },
         { status: 400 }
       );
     }

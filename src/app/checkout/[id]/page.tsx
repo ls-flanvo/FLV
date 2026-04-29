@@ -16,10 +16,13 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
   const [breakdown, setBreakdown] = useState<{
     driverShare: number; flanvoFee: number; protectionFee: number; kmOnboard: number;
   } | null>(null);
+  const [rideInfo, setRideInfo] = useState<{
+    flightNumber: string; groupSize: number; dropoffLocation: string;
+  } | null>(null);
   const [success, setSuccess] = useState(false);
 
   const { token, setToken } = useAuthStore();
-  const { selectedMatch, currentFlight } = useBookingStore();
+  const { currentFlight } = useBookingStore(); // fallback se store già idratato
   const router = useRouter();
 
   useEffect(() => {
@@ -42,6 +45,11 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
         setClientSecret(data.clientSecret);
         setPaymentAmount(data.amount);
         if (data.breakdown) setBreakdown(data.breakdown);
+        if (data.flightNumber) setRideInfo({
+          flightNumber: data.flightNumber,
+          groupSize: data.groupSize ?? 0,
+          dropoffLocation: data.dropoffLocation ?? '',
+        });
       } else {
         setError(data.error || 'Impossibile inizializzare il pagamento');
       }
@@ -64,10 +72,10 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
         <div className="bg-surface-1 border border-surface-4 rounded-2xl p-5 text-left space-y-4 mb-6">
           <p className="text-xs font-bold text-ink-secondary mb-3">Cosa succede ora?</p>
           {[
-            { step: '1', text: 'Il gruppo si forma con altri passeggeri del tuo volo', color: 'bg-primary-500' },
-            { step: '2', text: 'Ricevi conferma autista e van via email', color: 'bg-primary-500' },
+            { step: '1', text: 'Il tuo posto nel gruppo è confermato', color: 'bg-success' },
+            { step: '2', text: 'Riceverai i dettagli dell\'autista e del van via email', color: 'bg-primary-500' },
             { step: '3', text: 'Il driver ti aspetta al Terminal Arrivi con cartello Flanvo', color: 'bg-primary-500' },
-            { step: '4', text: 'Paghi solo quando arrivi a destinazione', color: 'bg-success' },
+            { step: '4', text: 'La carta viene addebitata solo quando arrivi a destinazione', color: 'bg-primary-500' },
           ].map(({ step, text, color }) => (
             <div key={step} className="flex items-start gap-3">
               <div className={`w-5 h-5 ${color} rounded-full flex items-center justify-center text-[#0B0B0B] text-xs font-bold shrink-0 mt-0.5`}>{step}</div>
@@ -134,7 +142,20 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
                   <PaymentForm
                     clientSecret={clientSecret}
                     amount={paymentAmount}
-                    onSuccess={() => { setSuccess(true); setTimeout(() => router.push('/dashboard'), 2000); }}
+                    onSuccess={async (paymentIntentId) => {
+                      // Notifica il backend che il pagamento è stato autorizzato
+                      const authToken = typeof window !== 'undefined' ? localStorage.getItem('flanvo_token') : null;
+                      await fetch('/api/payments/authorize', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+                        },
+                        body: JSON.stringify({ paymentIntentId }),
+                      }).catch(() => {});
+                      setSuccess(true);
+                      setTimeout(() => router.push('/dashboard'), 3000);
+                    }}
                     onError={setError}
                   />
                 </StripeProvider>
@@ -147,23 +168,32 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
             <div className="bg-surface-1 border border-surface-4 rounded-2xl p-5 lg:sticky lg:top-24 bg-card-gradient">
               <h3 className="font-bold text-white mb-4">Riepilogo</h3>
 
-              {/* Flight info */}
+              {/* Flight info — da API, non dallo store */}
               <div className="space-y-3 mb-5">
-                {currentFlight && (
-                  <div className="flex items-center gap-3 text-sm">
-                    <div className="p-1.5 bg-surface-3 rounded-lg shrink-0">
-                      <Plane className="w-3.5 h-3.5 text-primary-400" />
-                    </div>
-                    <span className="text-white font-medium">{currentFlight.code}</span>
-                    <span className="text-ink-muted">{currentFlight.arrivalAirport}</span>
+                <div className="flex items-center gap-3 text-sm">
+                  <div className="p-1.5 bg-surface-3 rounded-lg shrink-0">
+                    <Plane className="w-3.5 h-3.5 text-primary-400" />
                   </div>
-                )}
-                {selectedMatch && (
+                  <span className="text-white font-medium">
+                    {rideInfo?.flightNumber ?? currentFlight?.code ?? '—'}
+                  </span>
+                </div>
+                {(rideInfo?.groupSize ?? 0) > 0 && (
                   <div className="flex items-center gap-3 text-sm">
                     <div className="p-1.5 bg-surface-3 rounded-lg shrink-0">
                       <Users className="w-3.5 h-3.5 text-ink-secondary" />
                     </div>
-                    <span className="text-ink-secondary">{selectedMatch.passengers?.length || 0} compagni · Van 7 posti</span>
+                    <span className="text-ink-secondary">
+                      {rideInfo!.groupSize} {rideInfo!.groupSize === 1 ? 'passeggero' : 'passeggeri'} · Van 7 posti
+                    </span>
+                  </div>
+                )}
+                {rideInfo?.dropoffLocation && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="p-1.5 bg-surface-3 rounded-lg shrink-0">
+                      <MapPin className="w-3.5 h-3.5 text-ink-secondary" />
+                    </div>
+                    <span className="text-ink-secondary truncate">{rideInfo.dropoffLocation}</span>
                   </div>
                 )}
               </div>
@@ -204,7 +234,7 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
               <div className="space-y-2">
                 {[
                   'Addebito solo al drop-off',
-                  'Cancellazione pre-match gratuita',
+                  'Rimborso 100% se cancelli >24h dal volo',
                   'Pagamento sicuro Stripe',
                 ].map((t) => (
                   <div key={t} className="flex items-center gap-2 text-xs text-ink-muted">

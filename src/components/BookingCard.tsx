@@ -6,6 +6,7 @@ import { Booking } from '@/lib/types';
 import { Button } from './ui';
 import DriverChat from './DriverChat';
 import CancellationModal from './CancellationModal';
+import { formatFlightTime, formatCountdown } from '@/lib/time';
 import {
   Plane, MapPin, DollarSign, MessageCircle, Navigation,
   Luggage, Clock, Users, XCircle, Star, Share2, ChevronRight,
@@ -52,10 +53,17 @@ export default function BookingCard({ booking }: { booking: Booking }) {
     return () => clearInterval(interval);
   }, [booking.id, isForming]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const groupId = booking.groupMember?.rideGroupId ?? booking.rideGroupId ?? '';
+  const groupId = booking.groupMember?.id ?? booking.rideGroupId ?? '';
+  const rideGroupId = booking.groupMember?.rideGroupId ?? booking.rideGroupId ?? '';
+  const paymentStatus = booking.groupMember?.paymentStatus;
+  const isPaid = paymentStatus === 'AUTHORIZED' || paymentStatus === 'CAPTURED';
+  const rideGroup = booking.groupMember?.rideGroup;
+  const chatEnabled = ['ASSIGNED', 'ACTIVE', 'COMPLETED'].includes(rideGroup?.status ?? '');
+  const meetingLanded = rideGroup?.flightStatus === 'landed' && rideGroup?.meetingPoint;
   const status = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
   const isActive = ['IN_PROGRESS'].includes(booking.status);
-  const isMatched = booking.status === 'MATCHED';
+  const isMatched = booking.status === 'MATCHED' && !isPaid;
+  const isAuthorized = booking.status === 'MATCHED' && isPaid;
   const isPending = booking.status === 'PENDING';
   const isCompleted = booking.status === 'COMPLETED';
   const passengers = booking.passengers ?? 1;
@@ -140,6 +148,38 @@ export default function BookingCard({ booking }: { booking: Booking }) {
             </div>
           </div>
 
+          {/* Flight timing */}
+          <div className="flex items-center gap-2 text-xs text-ink-muted">
+            <Clock className="w-3.5 h-3.5 shrink-0" />
+            <span>
+              Arrivo previsto: <strong className="text-white">{formatFlightTime(booking.pickupTime, { showDate: true })}</strong>
+              {' '}·{' '}{formatCountdown(booking.pickupTime)}
+            </span>
+          </div>
+
+          {/* Group avatars — compagni di viaggio */}
+          {rideGroup?.members && rideGroup.members.length > 1 && (
+            <div className="flex items-center gap-2">
+              <div className="flex -space-x-2">
+                {rideGroup.members.slice(0, 5).map((m, i) => (
+                  <div key={m.id}
+                    className="w-7 h-7 rounded-full bg-primary-500/20 border-2 border-surface-1 flex items-center justify-center text-[10px] font-bold text-primary-400"
+                    title={m.booking.passengerName}>
+                    {m.booking.passengerName?.charAt(0)?.toUpperCase() ?? '?'}
+                  </div>
+                ))}
+                {rideGroup.members.length > 5 && (
+                  <div className="w-7 h-7 rounded-full bg-surface-3 border-2 border-surface-1 flex items-center justify-center text-[10px] text-ink-muted">
+                    +{rideGroup.members.length - 5}
+                  </div>
+                )}
+              </div>
+              <span className="text-xs text-ink-muted">
+                {rideGroup.members.length} {rideGroup.members.length === 1 ? 'passeggero' : 'passeggeri'} nel gruppo
+              </span>
+            </div>
+          )}
+
           {/* Passengers + luggage + price row */}
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-4 text-sm text-ink-secondary">
@@ -151,14 +191,16 @@ export default function BookingCard({ booking }: { booking: Booking }) {
               </span>
             </div>
             <div className="text-right">
-              <p className="text-xs text-ink-muted">Prezzo stimato</p>
+              <p className="text-xs text-ink-muted">
+                {isAuthorized ? 'Pagato' : 'Stimato'}
+              </p>
               <p className="text-xl font-black text-primary-400">
                 €{booking.estimatedPrice?.toFixed(2) ?? '—'}
               </p>
             </div>
           </div>
 
-          {/* MATCHED — gruppo pronto, chiede pagamento */}
+          {/* MATCHED — gruppo pronto, in attesa di pagamento */}
           {isMatched && (
             <div className="bg-success/8 border border-success/25 rounded-xl px-4 py-3">
               <p className="text-xs font-bold text-success mb-1">Gruppo trovato!</p>
@@ -173,15 +215,86 @@ export default function BookingCard({ booking }: { booking: Booking }) {
             </div>
           )}
 
+          {/* IN_PROGRESS — link tracking live */}
+          {booking.status === 'IN_PROGRESS' && (
+            <Link href={`/tracking/${booking.id}`}>
+              <div className="bg-success/8 border border-success/25 rounded-xl px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2 h-2 bg-success rounded-full animate-pulse shrink-0" />
+                  <div>
+                    <p className="text-xs font-bold text-success">In viaggio</p>
+                    <p className="text-xs text-ink-muted">Tocca per seguire il percorso live</p>
+                  </div>
+                </div>
+                <Navigation className="w-4 h-4 text-success" />
+              </div>
+            </Link>
+          )}
+
+          {/* MATCHED + AUTHORIZED — pagamento già autorizzato */}
+          {isAuthorized && (
+            <div className="bg-primary-500/8 border border-primary-500/25 rounded-xl px-4 py-3 flex items-center gap-3">
+              <div className="w-7 h-7 bg-primary-500/15 rounded-lg flex items-center justify-center shrink-0">
+                <span className="text-primary-400 text-sm">✓</span>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-primary-400">Pagamento autorizzato</p>
+                <p className="text-xs text-ink-muted">Verrai addebitato solo al drop-off</p>
+              </div>
+            </div>
+          )}
+
+          {/* MEETING POINT — volo atterrato, driver in arrivo */}
+          {meetingLanded && (
+            <div className="bg-success/8 border border-success/25 rounded-xl px-4 py-3">
+              <p className="text-xs font-bold text-success mb-1">✈️ Volo atterrato!</p>
+              <p className="text-xs text-ink-secondary mb-1">Punto di incontro:</p>
+              <p className="text-xs font-semibold text-white mb-2">{rideGroup!.meetingPoint}</p>
+              {rideGroup?.meetingTime && (
+                <p className="text-xs text-ink-muted">
+                  Orario incontro: <strong className="text-white">
+                    {new Date(rideGroup.meetingTime).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                  </strong>
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* CHAT CON DRIVER — disponibile dal momento ASSIGNED */}
+          {chatEnabled && rideGroupId && (
+            <button
+              onClick={() => setIsChatOpen(true)}
+              className="w-full flex items-center justify-center gap-2 py-2.5 bg-surface-2 border border-surface-5 rounded-xl text-sm text-ink-secondary hover:text-white hover:border-primary-500/30 transition-all"
+            >
+              <MessageCircle className="w-4 h-4 text-primary-400" />
+              Scrivi al driver
+            </button>
+          )}
+
           {/* PENDING — in attesa di compagni */}
           {isPending && (
             <div className="bg-surface-2 border border-surface-5 rounded-xl px-4 py-3">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="w-2 h-2 bg-warning rounded-full animate-pulse shrink-0" />
-                <p className="text-xs font-semibold text-warning">Cerchiamo compagni di viaggio...</p>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-warning rounded-full animate-pulse shrink-0" />
+                  <p className="text-xs font-semibold text-warning">Cerchiamo compagni...</p>
+                </div>
+                {booking.groupMember?.rideGroup?.currentCapacity && (
+                  <span className="text-xs text-ink-muted">
+                    {booking.groupMember.rideGroup.currentCapacity} in attesa
+                  </span>
+                )}
               </div>
+              {booking.estimatedPrice && (
+                <p className="text-xs text-ink-secondary mb-1">
+                  Stima attuale: <strong className="text-white">~€{booking.estimatedPrice.toFixed(0)}</strong> a persona
+                  {booking.groupMember?.rideGroup?.currentCapacity && booking.groupMember.rideGroup.currentCapacity < 7 && (
+                    <span className="text-success ml-1">· più siete, meno pagate</span>
+                  )}
+                </p>
+              )}
               <p className="text-xs text-ink-muted">
-                Ti avvisiamo via email quando il gruppo è pronto. Nessun pagamento finché non confermi.
+                Nessun pagamento ora. Ricevi email quando il gruppo è pronto.
               </p>
             </div>
           )}
@@ -322,9 +435,9 @@ export default function BookingCard({ booking }: { booking: Booking }) {
         </div>
       </div>
 
-      {groupId && (
+      {chatEnabled && rideGroupId && (
         <DriverChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)}
-          driverName="Autista" driverPhone="" groupId={groupId} />
+          driverName="Driver Flanvo" driverPhone="" groupId={rideGroupId} />
       )}
       <CancellationModal
         isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)}
