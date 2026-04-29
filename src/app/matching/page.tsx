@@ -5,16 +5,17 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore, useBookingStore } from '@/store';
 import { RideMatch } from '@/lib/types';
 import RideMatchCard from '@/components/RideMatchCard';
-import { Loader2, Search, Plane, ArrowLeft } from 'lucide-react';
+import { Loader2, Search, Plane, ArrowLeft, CheckCircle } from 'lucide-react';
 
 export default function MatchingPage() {
   const [matches, setMatches] = useState<RideMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [creatingBooking, setCreatingBooking] = useState(false);
+  const [registering, setRegistering] = useState(false);
+  const [registered, setRegistered] = useState(false);
 
   const { isAuthenticated, token } = useAuthStore();
-  const { currentFlight, setSelectedMatch } = useBookingStore();
+  const { currentFlight } = useBookingStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -24,22 +25,16 @@ export default function MatchingPage() {
   }, [isAuthenticated, currentFlight, router]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const findMatches = async () => {
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
       const destinationStr = localStorage.getItem('flanvo_destination');
       const destination = destinationStr ? JSON.parse(destinationStr) : null;
       if (!destination) { router.push('/flight-search'); return; }
-
       const authToken = token || localStorage.getItem('flanvo_token');
       const res = await fetch('/api/matching', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({
-          flightCode: currentFlight?.code,
-          destination,
-          arrivalAirport: currentFlight?.arrivalAirport,
-        }),
+        body: JSON.stringify({ flightCode: currentFlight?.code, destination, arrivalAirport: currentFlight?.arrivalAirport }),
       });
       if (!res.ok) throw new Error('Errore server');
       const data = await res.json();
@@ -51,18 +46,22 @@ export default function MatchingPage() {
     }
   };
 
-  const handleCreateGroup = async () => {
-    setCreatingBooking(true);
+  // Registra richiesta (con o senza rideGroupId) — NESSUN checkout immediato
+  const registerRequest = async (rideGroupId?: string) => {
+    setRegistering(true);
     try {
       const destinationStr = localStorage.getItem('flanvo_destination');
       const destination = destinationStr ? JSON.parse(destinationStr) : null;
-      if (!destination) { setError('Destinazione mancante'); setCreatingBooking(false); return; }
+      if (!destination) { setError('Destinazione mancante'); setRegistering(false); return; }
+
       const bookingInfoStr = localStorage.getItem('flanvo_booking_info');
       const bookingInfo = bookingInfoStr ? JSON.parse(bookingInfoStr) : {};
       const passengers = bookingInfo.passengers ?? 1;
       const luggage = bookingInfo.luggage ?? 1;
+
       const authToken = token || localStorage.getItem('flanvo_token');
       const flight = currentFlight!;
+
       const res = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
@@ -79,81 +78,54 @@ export default function MatchingPage() {
           direction: 'FROM_AIRPORT',
           passengers,
           luggage,
-          estimatedPrice: null,
+          estimatedPrice: rideGroupId
+            ? matches.find(m => m.id === rideGroupId)?.pricePerPerson ?? null
+            : null,
+          ...(rideGroupId ? { rideGroupId } : {}),
         }),
       });
+
       const data = await res.json();
-      if (!data.success || !data.groupMember?.id) {
-        setError(data.error || 'Errore nella prenotazione');
-        setCreatingBooking(false);
+      if (!data.success) {
+        setError(data.error || 'Errore nella registrazione');
+        setRegistering(false);
         return;
       }
-      router.push(`/checkout/${data.groupMember.id}`);
+
+      // Mostra conferma e vai alla dashboard
+      setRegistered(true);
+      setTimeout(() => router.push('/dashboard'), 2000);
     } catch {
-      setError('Errore nella creazione del gruppo');
-      setCreatingBooking(false);
-    }
-  };
-
-  const handleSelectMatch = async (match: RideMatch) => {
-    setCreatingBooking(true);
-    setSelectedMatch(match);
-    try {
-      const destinationStr = localStorage.getItem('flanvo_destination');
-      const destination = destinationStr ? JSON.parse(destinationStr) : null;
-      if (!destination) { setError('Destinazione mancante'); setCreatingBooking(false); return; }
-
-      const bookingInfoStr = localStorage.getItem('flanvo_booking_info');
-      const bookingInfo = bookingInfoStr ? JSON.parse(bookingInfoStr) : {};
-      const passengers = bookingInfo.passengers ?? 1;
-      const luggage = bookingInfo.luggage ?? 1;
-
-      const authToken = token || localStorage.getItem('flanvo_token');
-      const flight = currentFlight!;
-      const res = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({
-          pickupLocation: flight.arrivalAirportName || flight.arrivalAirport || 'Aeroporto',
-          pickupLat: flight.arrivalLat ?? 37.4668,
-          pickupLng: flight.arrivalLng ?? 15.0664,
-          dropoffLocation: destination.address,
-          dropoffLat: destination.lat,
-          dropoffLng: destination.lng,
-          pickupTime: flight.scheduledTime,
-          flightNumber: flight.code,
-          flightDate: flight.scheduledTime,
-          direction: 'FROM_AIRPORT',
-          passengers,
-          luggage,
-          estimatedPrice: match.pricePerPerson,
-          rideGroupId: match.id,
-        }),
-      });
-      const data = await res.json();
-      if (!data.success || !data.groupMember?.id) {
-        setError(data.error || 'Errore nella prenotazione');
-        setCreatingBooking(false);
-        return;
-      }
-      router.push(`/checkout/${data.groupMember.id}`);
-    } catch {
-      setError('Errore nella creazione della prenotazione');
-      setCreatingBooking(false);
+      setError('Errore nella registrazione della richiesta');
+      setRegistering(false);
     }
   };
 
   if (!isAuthenticated || !currentFlight) return null;
+
+  if (registered) {
+    return (
+      <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center px-4">
+        <div className="text-center animate-fade-up">
+          <div className="w-20 h-20 bg-success/10 border border-success/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-success" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Richiesta registrata!</h2>
+          <p className="text-ink-secondary text-sm">
+            Ti avvisiamo via email appena il gruppo è completo.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0B0B0B]">
       {/* Sticky header */}
       <div className="sticky top-0 z-10 bg-[#0B0B0B]/90 backdrop-blur border-b border-surface-4 px-4 py-4">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <button
-            onClick={() => router.push('/flight-search')}
-            className="p-2 rounded-xl text-ink-secondary hover:text-white hover:bg-surface-2 transition-all"
-          >
+          <button onClick={() => router.push('/flight-search')}
+            className="p-2 rounded-xl text-ink-secondary hover:text-white hover:bg-surface-2 transition-all">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2.5">
@@ -176,16 +148,11 @@ export default function MatchingPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Creating booking overlay */}
-        {creatingBooking && (
+        {registering && (
           <div className="fixed inset-0 z-50 bg-[#0B0B0B]/90 backdrop-blur flex items-center justify-center">
             <div className="text-center">
-              <div className="relative inline-flex items-center justify-center w-16 h-16 mb-5">
-                <div className="absolute inset-0 rounded-full bg-primary-500/10 animate-pulse" />
-                <Loader2 className="w-8 h-8 text-primary-400 animate-spin relative z-10" />
-              </div>
-              <p className="text-white font-bold text-lg">Creando prenotazione...</p>
-              <p className="text-ink-secondary text-sm mt-1">Un momento</p>
+              <Loader2 className="w-10 h-10 text-primary-400 animate-spin mx-auto mb-4" />
+              <p className="text-white font-bold">Registrazione in corso...</p>
             </div>
           </div>
         )}
@@ -204,10 +171,8 @@ export default function MatchingPage() {
             <Search className="w-12 h-12 text-ink-muted mb-4" />
             <p className="text-white font-semibold mb-1">Qualcosa è andato storto</p>
             <p className="text-ink-secondary text-sm mb-5">{error}</p>
-            <button
-              onClick={findMatches}
-              className="px-5 py-2.5 bg-surface-2 border border-surface-5 rounded-xl text-sm text-white font-medium hover:border-primary-500/30 transition-all"
-            >
+            <button onClick={findMatches}
+              className="px-5 py-2.5 bg-surface-2 border border-surface-5 rounded-xl text-sm text-white font-medium hover:border-primary-500/30 transition-all">
               Riprova
             </button>
           </div>
@@ -216,38 +181,40 @@ export default function MatchingPage() {
             <div className="w-16 h-16 bg-primary-500/10 border border-primary-500/20 rounded-2xl flex items-center justify-center mb-5">
               <Plane className="w-8 h-8 text-primary-400" />
             </div>
-            <p className="text-white font-bold text-xl mb-2">Nessun gruppo disponibile</p>
+            <p className="text-white font-bold text-xl mb-2">Nessun gruppo disponibile ora</p>
             <p className="text-ink-secondary text-sm mb-1 max-w-xs">
-              Sei il primo per il volo <strong className="text-white">{currentFlight.code}</strong>.<br />
-              Crea il gruppo — altri si aggiungeranno!
+              Sei tra i primi per il volo <strong className="text-white">{currentFlight.code}</strong>.
+              Registra la tua richiesta — ti avvisiamo quando il gruppo è pronto.
             </p>
-            <p className="text-xs text-ink-muted mt-4 mb-6 max-w-xs">
-              La tua prenotazione resterà attiva finché non viene trovato un match.
+            <p className="text-xs text-ink-muted mt-2 mb-8 max-w-xs">
+              Nessun pagamento ora. Paghi solo dopo aver visto e accettato il gruppo.
             </p>
-            <button
-              onClick={handleCreateGroup}
-              disabled={creatingBooking}
+            <button onClick={() => registerRequest()} disabled={registering}
               className="px-8 py-4 bg-primary-500 text-[#0B0B0B] font-bold rounded-2xl hover:bg-primary-400 active:scale-[0.98] transition-all shadow-teal disabled:opacity-40">
-              Crea il gruppo e prenota →
+              Registra la mia richiesta — è gratis
             </button>
           </div>
         ) : (
           <>
-            <p className="text-sm text-ink-secondary mb-4">
-              Scegli il gruppo che preferisci — prezzo, tempo, compagni
-            </p>
+            <div className="mb-5 bg-surface-2 border border-surface-5 rounded-xl px-4 py-3 flex items-start gap-3">
+              <div className="w-2 h-2 bg-success rounded-full mt-1.5 shrink-0 animate-pulse" />
+              <p className="text-xs text-ink-secondary leading-relaxed">
+                <strong className="text-white">Unisciti al gruppo</strong> — nessun pagamento ora.
+                Riceverai una email di conferma con il prezzo finale. Paghi solo al drop-off.
+              </p>
+            </div>
             <div className="space-y-4">
               {matches.map((match) => (
                 <RideMatchCard
                   key={match.id}
                   match={match}
-                  onSelect={handleSelectMatch}
-                  disabled={creatingBooking}
+                  onSelect={(m) => registerRequest(m.id)}
+                  disabled={registering}
                 />
               ))}
             </div>
             <p className="text-center text-xs text-ink-muted mt-6">
-              Il pagamento avviene solo al drop-off · Pre-autorizzazione richiesta
+              Il pagamento avviene solo al drop-off · Nessun addebito immediato
             </p>
           </>
         )}

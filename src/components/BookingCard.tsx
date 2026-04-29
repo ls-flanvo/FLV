@@ -12,14 +12,14 @@ import {
 } from 'lucide-react';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
-  PENDING:      { label: 'In attesa',    color: 'text-warning',     dot: 'bg-warning' },
-  CONFIRMED:    { label: 'Confermato',   color: 'text-primary-400', dot: 'bg-primary-500' },
-  IN_MATCHING:  { label: 'Matching...',  color: 'text-primary-400', dot: 'bg-primary-500' },
-  MATCHED:      { label: 'Gruppo trovato', color: 'text-success',   dot: 'bg-success' },
-  IN_PROGRESS:  { label: 'In viaggio',   color: 'text-success',     dot: 'bg-success' },
-  COMPLETED:    { label: 'Completata',   color: 'text-ink-muted',   dot: 'bg-ink-muted' },
-  CANCELLED:    { label: 'Cancellata',   color: 'text-danger',      dot: 'bg-danger' },
-  NO_MATCH:     { label: 'Nessun match', color: 'text-ink-muted',   dot: 'bg-ink-muted' },
+  PENDING:      { label: 'Cerchiamo compagni...',  color: 'text-warning',     dot: 'bg-warning' },
+  CONFIRMED:    { label: 'Confermato',             color: 'text-primary-400', dot: 'bg-primary-500' },
+  IN_MATCHING:  { label: 'Matching...',            color: 'text-primary-400', dot: 'bg-primary-500' },
+  MATCHED:      { label: 'Gruppo pronto! Paga',    color: 'text-success',     dot: 'bg-success' },
+  IN_PROGRESS:  { label: 'In viaggio',             color: 'text-success',     dot: 'bg-success' },
+  COMPLETED:    { label: 'Completata',             color: 'text-ink-muted',   dot: 'bg-ink-muted' },
+  CANCELLED:    { label: 'Cancellata',             color: 'text-danger',      dot: 'bg-danger' },
+  NO_MATCH:     { label: 'Nessun match',           color: 'text-ink-muted',   dot: 'bg-ink-muted' },
 };
 
 export default function BookingCard({ booking }: { booking: Booking }) {
@@ -54,7 +54,9 @@ export default function BookingCard({ booking }: { booking: Booking }) {
 
   const groupId = booking.groupMember?.rideGroupId ?? booking.rideGroupId ?? '';
   const status = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
-  const isActive = ['IN_PROGRESS', 'MATCHED'].includes(booking.status);
+  const isActive = ['IN_PROGRESS'].includes(booking.status);
+  const isMatched = booking.status === 'MATCHED';
+  const isPending = booking.status === 'PENDING';
   const isCompleted = booking.status === 'COMPLETED';
   const passengers = booking.passengers ?? 1;
   const luggage = booking.luggage ?? booking.luggageCount ?? 1;
@@ -155,6 +157,34 @@ export default function BookingCard({ booking }: { booking: Booking }) {
               </p>
             </div>
           </div>
+
+          {/* MATCHED — gruppo pronto, chiede pagamento */}
+          {isMatched && (
+            <div className="bg-success/8 border border-success/25 rounded-xl px-4 py-3">
+              <p className="text-xs font-bold text-success mb-1">Gruppo trovato!</p>
+              <p className="text-xs text-ink-secondary mb-3">
+                Conferma e pre-autorizza il pagamento per assicurarti il posto. Paghi solo al drop-off.
+              </p>
+              <Link href={`/checkout/${groupId}`}>
+                <button className="w-full py-3 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all text-sm">
+                  Conferma e paga →
+                </button>
+              </Link>
+            </div>
+          )}
+
+          {/* PENDING — in attesa di compagni */}
+          {isPending && (
+            <div className="bg-surface-2 border border-surface-5 rounded-xl px-4 py-3">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-2 h-2 bg-warning rounded-full animate-pulse shrink-0" />
+                <p className="text-xs font-semibold text-warning">Cerchiamo compagni di viaggio...</p>
+              </div>
+              <p className="text-xs text-ink-muted">
+                Ti avvisiamo via email quando il gruppo è pronto. Nessun pagamento finché non confermi.
+              </p>
+            </div>
+          )}
 
           {/* Group formation progress */}
           {isForming && (

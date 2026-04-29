@@ -1,8 +1,6 @@
 import { Resend } from 'resend';
 
-// Usa onboarding@resend.dev finché il dominio non è verificato su Resend
-// Dopo aver verificato flanvo.com su resend.com, cambia in: 'Flanvo <hello@flanvo.com>'
-const FROM = 'Flanvo <onboarding@resend.dev>';
+const FROM = 'Flanvo <noreply@flanvo.com>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://flv-psi.vercel.app';
 
 async function send(to: string, subject: string, html: string) {
@@ -120,6 +118,31 @@ export async function sendDriverApproved(to: string, driverName: string) {
       <a href="${APP_URL}/driver/login"
          style="display:inline-block;background:#00C2B5;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0">
         Accedi come autista
+      </a>
+      ${footer}
+    </div>`
+  );
+}
+
+export async function sendGroupReady(to: string, data: {
+  userName: string; flightNumber: string; groupSize: number;
+  pricePerPerson: number; groupMemberId: string; appUrl: string;
+}) {
+  await send(
+    to,
+    `Gruppo trovato per il volo ${data.flightNumber}! Conferma entro 24h — Flanvo`,
+    `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#0B0B0B;color:#fff;padding:32px;border-radius:16px">
+      <h2 style="color:#00D1B2;margin-bottom:8px">Gruppo trovato! 🎉</h2>
+      <p style="color:#A1A1AA">Ciao ${data.userName},</p>
+      <p style="color:#A1A1AA">Abbiamo trovato <strong style="color:#fff">${data.groupSize} passeggeri</strong> compatibili per il volo <strong style="color:#fff">${data.flightNumber}</strong>.</p>
+      <div style="background:#141414;border:1px solid #2A2A2A;border-radius:12px;padding:20px;margin:24px 0;text-align:center">
+        <p style="color:#A1A1AA;margin:0 0 4px">Il tuo prezzo finale</p>
+        <p style="font-size:36px;font-weight:900;color:#00D1B2;margin:0">€${data.pricePerPerson.toFixed(2)}</p>
+        <p style="color:#71717A;font-size:12px;margin:4px 0 0">Pagamento solo al drop-off</p>
+      </div>
+      <p style="color:#A1A1AA">Hai <strong style="color:#fff">24 ore</strong> per confermare. Dopo questo tempo il tuo posto nel gruppo potrebbe essere liberato.</p>
+      <a href="${data.appUrl}/checkout/${data.groupMemberId}" style="display:inline-block;margin:16px 0;padding:16px 32px;background:#00D1B2;color:#0B0B0B;font-weight:700;border-radius:12px;text-decoration:none;font-size:16px">
+        Conferma e paga →
       </a>
       ${footer}
     </div>`
