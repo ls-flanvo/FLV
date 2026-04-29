@@ -8,7 +8,7 @@ describe('Airport data', () => {
 
   it('all airports have required fields', () => {
     for (const [code, a] of Object.entries(AIRPORT_COORDS)) {
-      expect(code).toMatch(/^[A-Z]{3}$/, `${code} deve essere IATA 3 lettere`);
+      expect(code, `${code} deve essere IATA 3 lettere`).toMatch(/^[A-Z]{3}$/);
       expect(a.name).toBeTruthy();
       expect(typeof a.lat).toBe('number');
       expect(typeof a.lng).toBe('number');

@@ -8,26 +8,25 @@ export default function AppleIcon() {
     (
       <div
         style={{
-          background: '#00D1B2',
+          background: '#000000',
           width: '100%',
           height: '100%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          borderRadius: '38px',
+          borderRadius: '40px',
         }}
       >
         <span
           style={{
-            color: '#0B0B0B',
-            fontSize: 118,
+            color: '#ffffff',
+            fontSize: 72,
             fontWeight: 800,
-            letterSpacing: '-8px',
+            letterSpacing: '-4px',
             fontFamily: 'system-ui',
-            marginRight: '-8px',
           }}
         >
-          F
+          Flanvo
         </span>
       </div>
     ),

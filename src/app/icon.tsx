@@ -8,7 +8,7 @@ export default function Icon() {
     (
       <div
         style={{
-          background: '#00D1B2',
+          background: '#000000',
           width: '100%',
           height: '100%',
           display: 'flex',
@@ -19,12 +19,11 @@ export default function Icon() {
       >
         <span
           style={{
-            color: '#0B0B0B',
-            fontSize: 21,
+            color: '#ffffff',
+            fontSize: 19,
             fontWeight: 800,
             letterSpacing: '-1.5px',
             fontFamily: 'system-ui',
-            marginTop: '1px',
           }}
         >
           F

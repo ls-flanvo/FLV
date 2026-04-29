@@ -6,7 +6,12 @@ export type NotificationType =
   | 'BOOKING_CONFIRMED'
   | 'BOOKING_CANCELLED'
   | 'RIDE_STARTED'
-  | 'RIDE_COMPLETED';
+  | 'RIDE_COMPLETED'
+  | 'PAYMENT_FAILED'
+  | 'PAYMENT_RECEIVED'
+  | 'REFUND_PROCESSED'
+  | 'DRIVER_ARRIVING'
+  | 'RIDE_ASSIGNED';
 
 export async function createNotification(params: {
   userId: string;
