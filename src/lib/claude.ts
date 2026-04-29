@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 export const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
 
 export const FLANVO_SYSTEM = `Sei l'assistente virtuale di Flanvo, un'app italiana di carpooling aeroportuale.

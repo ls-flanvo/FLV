@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     }
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-haiku-4-5',
       max_tokens: 100,
       system: `Sei un assistente che converte descrizioni di luoghi in indirizzi italiani precisi per una ricerca su Mapbox.
 Restituisci SOLO l'indirizzo/query da cercare, senza spiegazioni.

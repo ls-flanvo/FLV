@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const code = req.nextUrl.searchParams.get('code');
     if (!code) return NextResponse.redirect(`${appUrl}/login?error=oauth-cancelled`);
 
-    const redirectUri = `${appUrl}/api/auth/google/callback`;
+    const redirectUri = `${new URL(req.url).origin}/api/auth/google/callback`;
 
     // Scambia il code per un access token
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {

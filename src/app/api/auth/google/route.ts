@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google/callback`;
+  const redirectUri = `${req.nextUrl.origin}/api/auth/google/callback`;
 
   if (!clientId) return NextResponse.json({ error: 'Google OAuth non configurato' }, { status: 503 });
 

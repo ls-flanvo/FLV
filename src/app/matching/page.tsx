@@ -51,6 +51,50 @@ export default function MatchingPage() {
     }
   };
 
+  const handleCreateGroup = async () => {
+    setCreatingBooking(true);
+    try {
+      const destinationStr = localStorage.getItem('flanvo_destination');
+      const destination = destinationStr ? JSON.parse(destinationStr) : null;
+      if (!destination) { setError('Destinazione mancante'); setCreatingBooking(false); return; }
+      const bookingInfoStr = localStorage.getItem('flanvo_booking_info');
+      const bookingInfo = bookingInfoStr ? JSON.parse(bookingInfoStr) : {};
+      const passengers = bookingInfo.passengers ?? 1;
+      const luggage = bookingInfo.luggage ?? 1;
+      const authToken = token || localStorage.getItem('flanvo_token');
+      const flight = currentFlight!;
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          pickupLocation: flight.arrivalAirportName || flight.arrivalAirport || 'Aeroporto',
+          pickupLat: flight.arrivalLat ?? 37.4668,
+          pickupLng: flight.arrivalLng ?? 15.0664,
+          dropoffLocation: destination.address,
+          dropoffLat: destination.lat,
+          dropoffLng: destination.lng,
+          pickupTime: flight.scheduledTime,
+          flightNumber: flight.code,
+          flightDate: flight.scheduledTime,
+          direction: 'FROM_AIRPORT',
+          passengers,
+          luggage,
+          estimatedPrice: null,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success || !data.groupMember?.id) {
+        setError(data.error || 'Errore nella prenotazione');
+        setCreatingBooking(false);
+        return;
+      }
+      router.push(`/checkout/${data.groupMember.id}`);
+    } catch {
+      setError('Errore nella creazione del gruppo');
+      setCreatingBooking(false);
+    }
+  };
+
   const handleSelectMatch = async (match: RideMatch) => {
     setCreatingBooking(true);
     setSelectedMatch(match);
@@ -61,7 +105,7 @@ export default function MatchingPage() {
 
       const bookingInfoStr = localStorage.getItem('flanvo_booking_info');
       const bookingInfo = bookingInfoStr ? JSON.parse(bookingInfoStr) : {};
-      const passengers = Math.max(2, bookingInfo.passengers ?? 2);
+      const passengers = bookingInfo.passengers ?? 1;
       const luggage = bookingInfo.luggage ?? 1;
 
       const authToken = token || localStorage.getItem('flanvo_token');
@@ -177,9 +221,15 @@ export default function MatchingPage() {
               Sei il primo per il volo <strong className="text-white">{currentFlight.code}</strong>.<br />
               Crea il gruppo — altri si aggiungeranno!
             </p>
-            <p className="text-xs text-ink-muted mt-4 max-w-xs">
+            <p className="text-xs text-ink-muted mt-4 mb-6 max-w-xs">
               La tua prenotazione resterà attiva finché non viene trovato un match.
             </p>
+            <button
+              onClick={handleCreateGroup}
+              disabled={creatingBooking}
+              className="px-8 py-4 bg-primary-500 text-[#0B0B0B] font-bold rounded-2xl hover:bg-primary-400 active:scale-[0.98] transition-all shadow-teal disabled:opacity-40">
+              Crea il gruppo e prenota →
+            </button>
           </div>
         ) : (
           <>
