@@ -43,6 +43,12 @@ export default function SupportChat() {
   const { token } = useAuthStore();
 
   useEffect(() => {
+    const handler = () => setOpen(true);
+    window.addEventListener('open-support-chat', handler);
+    return () => window.removeEventListener('open-support-chat', handler);
+  }, []);
+
+  useEffect(() => {
     if (open && messages.length === 0) {
       setMessages([{
         role: 'assistant',

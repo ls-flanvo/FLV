@@ -54,7 +54,7 @@ export default function LandingPage() {
       </section>
 
       {/* Stats */}
-      <section className="border-y border-surface-4 bg-surface-1">
+      <section id="prezzi" className="border-y border-surface-4 bg-surface-1">
         <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-3 gap-8 text-center">
           {[
             { value: '40–78%', label: 'Risparmio vs taxi privato' },
@@ -70,7 +70,7 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section className="max-w-7xl mx-auto px-4 py-20">
+      <section id="come-funziona" className="max-w-7xl mx-auto px-4 py-20">
         <div className="text-center mb-14">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Come funziona</h2>
           <p className="text-ink-secondary">Tre passi. Nessuna sorpresa.</p>
@@ -100,7 +100,7 @@ export default function LandingPage() {
       </section>
 
       {/* Why Flanvo */}
-      <section className="bg-surface-1 border-t border-surface-4 py-20">
+      <section id="aeroporti" className="bg-surface-1 border-t border-surface-4 py-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Perché scegliere Flanvo</h2>

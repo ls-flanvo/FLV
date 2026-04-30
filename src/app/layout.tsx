@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import ClientProvider from '@/components/ClientProvider';
 import { ToastContainer } from '@/components/ui/Toast';
 import SupportChat from '@/components/SupportChat';
@@ -58,16 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {children}
               </ErrorBoundary>
             </main>
-            <footer className="border-t border-surface-4 py-5">
-              <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <span className="text-sm font-semibold text-ink-secondary tracking-tight">Flanvo</span>
-                <p className="text-xs text-ink-muted">&copy; 2026 Flanvo. Tutti i diritti riservati.</p>
-                <div className="flex gap-4 text-xs text-ink-muted">
-                  <span>hello@flanvo.com</span>
-                  <span>flanvo.com</span>
-                </div>
-              </div>
-            </footer>
+            <Footer />
           </div>
           <ToastContainer />
           <SupportChat />
