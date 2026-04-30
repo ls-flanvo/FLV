@@ -336,22 +336,21 @@ export default function GuidaConNoiPage() {
           {/* Steps data */}
           {(() => {
             const steps = [
-              { n: '1', title: 'Il gruppo si forma',       body: 'Flanvo raggruppa automaticamente i passeggeri dello stesso volo verso destinazioni simili e crea il gruppo.' },
-              { n: '2', title: 'Notifica push',             body: 'Ricevi volo, destinazione e guadagno stimato. Hai qualche minuto per decidere se accettare.' },
-              { n: '3', title: 'Accetti in 1 tap',          body: 'Confermi la corsa con un tap. I passeggeri vengono avvisati automaticamente.' },
-              { n: '4', title: 'Volo atterrato',            body: "Ricevi notifica all'atterraggio. L'app ti guida al punto Flanvo dell'aeroporto." },
-              { n: '5', title: 'Chat con i passeggeri',     body: 'Comunicazione live con il gruppo durante l\'attesa al ritiro bagagli.' },
-              { n: '6', title: 'Ritiri i passeggeri',       body: 'I passeggeri ti trovano al punto di incontro. Inizia il percorso ottimizzato verso i drop-off.' },
-              { n: '7', title: 'Pagamento automatico',      body: "All'ultimo drop-off il pagamento viene trasferito su Stripe Connect. Zero attese." },
+              { n: '1', title: 'Il gruppo si forma',         body: 'Flanvo raggruppa automaticamente i passeggeri dello stesso volo verso destinazioni simili.' },
+              { n: '2', title: 'Notifica e accettazione',    body: 'Ricevi volo, destinazione e guadagno stimato. Accetti in 1 tap — hai qualche minuto per decidere.' },
+              { n: '3', title: 'Volo atterrato',             body: "Ricevi notifica all'atterraggio. L'app ti guida al punto di incontro Flanvo dell'aeroporto." },
+              { n: '4', title: 'Chat con i passeggeri',      body: 'Comunicazione live con il gruppo durante l\'attesa al ritiro bagagli.' },
+              { n: '5', title: 'Ritiri i passeggeri',        body: 'I passeggeri ti trovano al punto Flanvo. L\'app calcola il percorso ottimizzato tra i drop-off.' },
+              { n: '6', title: 'Pagamento automatico',       body: "All'ultimo drop-off il pagamento viene trasferito su Stripe Connect. Zero attese." },
             ];
             const last = steps.length - 1;
             return (
               <>
                 {/* Desktop: orizzontale scrollabile */}
                 <div className="hidden md:block overflow-x-auto pb-2">
-                  <div className="relative min-w-[900px]">
-                    <div className="absolute top-6 left-[6%] right-[6%] h-px bg-gradient-to-r from-primary-500/10 via-primary-500/50 to-primary-500" />
-                    <div className="grid grid-cols-7 gap-3">
+                  <div className="relative">
+                    <div className="absolute top-6 left-[8%] right-[8%] h-px bg-gradient-to-r from-primary-500/10 via-primary-500/50 to-primary-500" />
+                    <div className="grid grid-cols-6 gap-4">
                       {steps.map((step, i) => (
                         <div key={i} className="flex flex-col items-center text-center px-1">
                           <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 relative z-10 border-2 shrink-0 ${
