@@ -74,15 +74,15 @@ export default function RideMatchCard({ match, onSelect, disabled = false }: Rid
             <div className="flex items-center justify-center gap-1 mb-0.5">
               <Users className="w-3.5 h-3.5 text-ink-muted" />
             </div>
-            <p className="text-base font-bold text-white">{match.passengers.length}</p>
-            <p className="text-xs text-ink-muted">con te</p>
+            <p className="text-base font-bold text-white">{match.totalPassengers ?? match.passengers.length}</p>
+            <p className="text-xs text-ink-muted">nel van</p>
           </div>
           <div className="bg-surface-3 rounded-xl px-3 py-2.5 text-center">
             <div className="flex items-center justify-center gap-1 mb-0.5">
               <Clock className="w-3.5 h-3.5 text-ink-muted" />
             </div>
-            <p className="text-base font-bold text-white">{match.estimatedDuration}'</p>
-            <p className="text-xs text-ink-muted">durata</p>
+            <p className="text-base font-bold text-white">{match.estimatedKm ?? '—'} km</p>
+            <p className="text-xs text-ink-muted">~{match.estimatedDuration}'</p>
           </div>
           <div className="bg-surface-3 rounded-xl px-3 py-2.5 text-center">
             <div className="flex items-center justify-center gap-1 mb-0.5">

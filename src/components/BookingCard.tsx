@@ -195,11 +195,16 @@ export default function BookingCard({ booking }: { booking: Booking }) {
             </div>
             <div className="text-right">
               <p className="text-xs text-ink-muted">
-                {isAuthorized ? 'Pagato' : 'Stimato'}
+                {isAuthorized ? 'Pagato' : passengers > 1 ? `Totale (${passengers} pax)` : 'Stimato'}
               </p>
               <p className="text-xl font-black text-primary-400">
                 €{booking.estimatedPrice?.toFixed(2) ?? '—'}
               </p>
+              {!isAuthorized && passengers > 1 && booking.estimatedPrice && (
+                <p className="text-xs text-ink-muted mt-0.5">
+                  ~€{(booking.estimatedPrice / passengers).toFixed(2)} a persona
+                </p>
+              )}
             </div>
           </div>
 
@@ -290,7 +295,10 @@ export default function BookingCard({ booking }: { booking: Booking }) {
               </div>
               {booking.estimatedPrice && (
                 <p className="text-xs text-ink-secondary mb-1">
-                  Stima attuale: <strong className="text-white">~€{booking.estimatedPrice.toFixed(0)}</strong> a persona
+                  {passengers > 1
+                ? <>Totale stimato: <strong className="text-white">~€{booking.estimatedPrice.toFixed(2)}</strong> · ~€{(booking.estimatedPrice / passengers).toFixed(2)} a persona</>
+                : <>Stima: <strong className="text-white">~€{booking.estimatedPrice.toFixed(2)}</strong> a persona</>
+              }
                   {booking.groupMember?.rideGroup?.currentCapacity && booking.groupMember.rideGroup.currentCapacity < 7 && (
                     <span className="text-success ml-1">· più siete, meno pagate</span>
                   )}

@@ -119,6 +119,8 @@ export async function POST(request: NextRequest) {
           departureTime: group.targetPickupTime.toISOString(),
           seats: group.maxCapacity - group.currentCapacity,
           score: group.qualityScore ?? 75,
+          totalPassengers: group.currentCapacity,
+          estimatedKm: Math.round(estimatedKm),
         };
       })
       .filter(Boolean);

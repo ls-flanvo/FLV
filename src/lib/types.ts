@@ -33,7 +33,7 @@ export interface Destination {
 
 export interface RideMatch {
   id: string;
-  memberId?: string; // ← AGGIUNGI QUESTA RIGA
+  memberId?: string;
   flightId: string;
   passengers: User[];
   destinations: Destination[];
@@ -45,6 +45,8 @@ export interface RideMatch {
   departureTime: string;
   seats: number;
   score: number;
+  totalPassengers: number;
+  estimatedKm: number;
 }
 
 export interface RideGroup {
