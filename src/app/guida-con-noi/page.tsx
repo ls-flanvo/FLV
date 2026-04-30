@@ -27,7 +27,7 @@ const DriverHeroIllustration = () => (
     <rect x="44" y="173" width="12" height="12" rx="3" fill="#00D1B2"/>
 
     <text x="66" y="145" fontFamily="system-ui" fontSize="12" fill="#A1A1AA">Aeroporto di Catania (CTA)</text>
-    <text x="66" y="180" fontFamily="system-ui" fontSize="12" fontWeight="600" fill="#FFFFFF">Via Roma 14, Palermo</text>
+    <text x="66" y="180" fontFamily="system-ui" fontSize="12" fontWeight="600" fill="#FFFFFF">Taormina, Via Teatro Greco</text>
 
     {/* Passeggeri */}
     <rect x="50" y="196" width="60" height="18" rx="9" fill="#1F1F1F" stroke="#2A2A2A" strokeWidth="1"/>
@@ -213,7 +213,7 @@ const faqs = [
   },
   {
     q: 'Come vengo pagato e quanto ricevo?',
-    a: 'Ricevi il 100% della tariffa di trasporto (2€/km percorso con passeggeri). Flanvo applica una quota di servizio separata direttamente ai passeggeri — tu non cedi nulla del tuo guadagno. Il pagamento arriva sul tuo conto via Stripe Connect entro 2 giorni lavorativi dal drop-off.',
+    a: 'Ricevi il 100% della tariffa di trasporto. Flanvo applica una quota di servizio separata direttamente ai passeggeri — tu non cedi nulla del tuo guadagno. Il pagamento arriva sul tuo conto via Stripe Connect entro 2 giorni lavorativi dal drop-off.',
   },
   {
     q: 'Posso scegliere quali corse accettare?',
@@ -225,7 +225,7 @@ const faqs = [
   },
   {
     q: 'Quanto posso guadagnare in media?',
-    a: 'Dipende dalla distanza e dal numero di passeggeri. Una corsa Catania–Palermo con 4 passeggeri vale circa 200€. Un driver attivo su Catania può guadagnare tra 1.500€ e 3.500€ al mese, a seconda delle ore lavorate.',
+    a: 'Dipende dalla distanza e dalla frequenza con cui accetti le corse. Integrando Flanvo nella tua operatività puoi aumentare significativamente il numero di corse mensili, mantenendo sempre il 100% della tariffa su ogni tratta.',
   },
 ];
 
@@ -306,7 +306,7 @@ export default function GuidaConNoiPage() {
               <EarningsIllustration />
               <h3 className="text-lg font-bold text-white mt-5 mb-2">Ricevi il 100% della tariffa</h3>
               <p className="text-ink-secondary text-sm leading-relaxed">
-                Guadagni 2€ per ogni km percorso con passeggeri a bordo. Più persone nel van, più guadagni per la stessa tratta. Una Catania–Palermo con 4 pax vale oltre 200€.
+                Integrando Flanvo nella tua operatività ricevi più corse ogni mese, sempre al 100% della tariffa. Nessuna commissione sul tuo guadagno, coordinamento ottimale al punto di pick-up.
               </p>
             </div>
             <div className="text-center">
