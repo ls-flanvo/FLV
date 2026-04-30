@@ -23,13 +23,6 @@ const DROPDOWNS = {
       { label: 'Prezzi', href: '/#prezzi', desc: 'Quanto costa e come si calcola' },
     ],
   },
-  guida: {
-    label: 'Guida con noi',
-    links: [
-      { label: 'Registrati come autista', href: '/driver/signup', desc: 'Unisciti alla rete di driver Flanvo' },
-      { label: 'Accedi', href: '/driver/login', desc: 'Entra nella tua dashboard autista' },
-    ],
-  },
   info: {
     label: 'Info',
     links: [
@@ -50,10 +43,9 @@ export default function Navbar() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<DropdownKey | null>(null);
-  const [mobileSection, setMobileSection] = useState<DropdownKey | null>(null);
+  const [mobileSection, setMobileSection] = useState<string | null>(null);
   const navRef = useRef<HTMLDivElement>(null);
 
-  // Chiudi dropdown su click esterno
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(e.target as Node)) {
@@ -92,10 +84,13 @@ export default function Navbar() {
               <FlanvoLogo />
             </Link>
 
-            {/* Desktop — non autenticato: dropdowns */}
+            {/* Desktop — non autenticato */}
             {!isAuthenticated && (
               <div className="hidden md:flex items-center gap-1 flex-1">
+
+                {/* VIAGGIA dropdown */}
                 {(Object.keys(DROPDOWNS) as DropdownKey[]).map((key) => {
+                  if (key !== 'viaggia') return null;
                   const d = DROPDOWNS[key];
                   const isOpen = activeDropdown === key;
                   return (
@@ -109,19 +104,12 @@ export default function Navbar() {
                         {d.label}
                         <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
                       </button>
-
                       {isOpen && (
                         <div className="absolute top-full left-0 mt-2 w-64 bg-surface-1 border border-surface-4 rounded-2xl shadow-2xl overflow-hidden animate-fade-up z-50">
                           {d.links.map((link) => (
-                            <Link
-                              key={link.label}
-                              href={link.href}
-                              onClick={closeAll}
-                              className="flex flex-col px-4 py-3 hover:bg-surface-2 transition-colors group border-b border-surface-4 last:border-0"
-                            >
-                              <span className="text-sm font-semibold text-white group-hover:text-primary-400 transition-colors">
-                                {link.label}
-                              </span>
+                            <Link key={link.label} href={link.href} onClick={closeAll}
+                              className="flex flex-col px-4 py-3 hover:bg-surface-2 transition-colors group border-b border-surface-4 last:border-0">
+                              <span className="text-sm font-semibold text-white group-hover:text-primary-400 transition-colors">{link.label}</span>
                               <span className="text-xs text-ink-muted mt-0.5">{link.desc}</span>
                             </Link>
                           ))}
@@ -130,10 +118,51 @@ export default function Navbar() {
                     </div>
                   );
                 })}
+
+                {/* GUIDA CON NOI — link diretto */}
+                <Link
+                  href="/guida-con-noi"
+                  onClick={closeAll}
+                  className="px-3 py-2 rounded-xl text-sm font-medium text-ink-secondary hover:text-white hover:bg-surface-2 transition-all"
+                >
+                  Guida con noi
+                </Link>
+
+                {/* INFO dropdown */}
+                {(Object.keys(DROPDOWNS) as DropdownKey[]).map((key) => {
+                  if (key !== 'info') return null;
+                  const d = DROPDOWNS[key];
+                  const isOpen = activeDropdown === key;
+                  return (
+                    <div key={key} className="relative">
+                      <button
+                        onClick={() => toggleDropdown(key)}
+                        className={`flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                          isOpen ? 'text-white bg-surface-2' : 'text-ink-secondary hover:text-white hover:bg-surface-2'
+                        }`}
+                      >
+                        {d.label}
+                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {isOpen && (
+                        <div className="absolute top-full left-0 mt-2 w-64 bg-surface-1 border border-surface-4 rounded-2xl shadow-2xl overflow-hidden animate-fade-up z-50">
+                          {d.links.map((link) => (
+                            <Link key={link.label} href={link.href} onClick={closeAll}
+                              className="flex flex-col px-4 py-3 hover:bg-surface-2 transition-colors group border-b border-surface-4 last:border-0">
+                              <span className="text-sm font-semibold text-white group-hover:text-primary-400 transition-colors">{link.label}</span>
+                              <span className="text-xs text-ink-muted mt-0.5">{link.desc}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
               </div>
             )}
 
-            {/* Desktop — autenticato: link ruolo */}
+            {/* Desktop — autenticato */}
             {isAuthenticated && (
               <div className="hidden md:flex items-center gap-5 flex-1">
                 {user?.role === 'user' && (
@@ -163,36 +192,22 @@ export default function Navbar() {
                     </div>
                     <span className="text-sm font-medium text-white hidden lg:inline">{user?.name?.split(' ')[0]}</span>
                   </div>
-                  <button
-                    onClick={handleLogout}
-                    className="p-2 rounded-lg text-ink-muted hover:text-danger hover:bg-danger/10 transition-all"
-                    title="Logout"
-                  >
+                  <button onClick={handleLogout} className="p-2 rounded-lg text-ink-muted hover:text-danger hover:bg-danger/10 transition-all" title="Logout">
                     <LogOut className="w-4 h-4" />
                   </button>
                 </>
               ) : (
                 <>
-                  {/* IT statico */}
                   <span className="text-xs font-semibold text-ink-muted border border-surface-5 rounded-lg px-2 py-1">IT</span>
-
-                  {/* Assistenza */}
                   <button
                     onClick={() => { window.dispatchEvent(new Event('open-support-chat')); closeAll(); }}
                     className="text-sm font-medium text-ink-secondary hover:text-white transition-colors"
                   >
                     Assistenza
                   </button>
-
                   <div className="h-5 w-px bg-surface-5" />
-
-                  <Link href="/login" className="text-sm font-medium text-ink-secondary hover:text-white transition-colors">
-                    Accedi
-                  </Link>
-                  <Link
-                    href="/signup"
-                    className="bg-primary-500 text-[#0B0B0B] font-semibold text-sm px-4 py-2 rounded-xl hover:bg-primary-400 transition-all shadow-teal"
-                  >
+                  <Link href="/login" className="text-sm font-medium text-ink-secondary hover:text-white transition-colors">Accedi</Link>
+                  <Link href="/signup" className="bg-primary-500 text-[#0B0B0B] font-semibold text-sm px-4 py-2 rounded-xl hover:bg-primary-400 transition-all shadow-teal">
                     Inizia gratis
                   </Link>
                 </>
@@ -200,10 +215,7 @@ export default function Navbar() {
             </div>
 
             {/* Mobile hamburger */}
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 rounded-lg text-ink-secondary hover:text-white hover:bg-surface-2 transition-all"
-            >
+            <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-2 rounded-lg text-ink-secondary hover:text-white hover:bg-surface-2 transition-all">
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
@@ -214,10 +226,7 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="fixed inset-0 z-30 md:hidden" onClick={() => setMobileOpen(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div
-            className="absolute top-16 left-0 right-0 bottom-0 bg-surface-1 border-t border-surface-4 overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="absolute top-16 left-0 right-0 bottom-0 bg-surface-1 border-t border-surface-4 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 space-y-1">
               {isAuthenticated ? (
                 <>
@@ -251,16 +260,46 @@ export default function Navbar() {
                 </>
               ) : (
                 <>
-                  {/* Sezioni accordion */}
+                  {/* Dropdown Viaggia mobile */}
                   {(Object.keys(DROPDOWNS) as DropdownKey[]).map((key) => {
+                    if (key === 'info') return null;
                     const d = DROPDOWNS[key];
                     const isOpen = mobileSection === key;
                     return (
                       <div key={key}>
-                        <button
-                          onClick={() => setMobileSection(isOpen ? null : key)}
-                          className="flex items-center justify-between w-full px-4 py-3 rounded-xl text-sm font-semibold text-white hover:bg-surface-2 transition-all"
-                        >
+                        <button onClick={() => setMobileSection(isOpen ? null : key)}
+                          className="flex items-center justify-between w-full px-4 py-3 rounded-xl text-sm font-semibold text-white hover:bg-surface-2 transition-all">
+                          {d.label}
+                          <ChevronDown className={`w-4 h-4 text-ink-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        {isOpen && (
+                          <div className="ml-4 mb-1 space-y-0.5">
+                            {d.links.map((link) => (
+                              <Link key={link.label} href={link.href} onClick={closeAll}
+                                className="block px-4 py-2.5 rounded-xl text-sm text-ink-secondary hover:text-white hover:bg-surface-2 transition-all">
+                                {link.label}
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Guida con noi — link diretto mobile */}
+                  <Link href="/guida-con-noi" className={mobileLink} onClick={closeAll}>
+                    <Car className="w-4 h-4 text-primary-500" />Guida con noi
+                  </Link>
+
+                  {/* Info dropdown mobile */}
+                  {(Object.keys(DROPDOWNS) as DropdownKey[]).map((key) => {
+                    if (key !== 'info') return null;
+                    const d = DROPDOWNS[key];
+                    const isOpen = mobileSection === key;
+                    return (
+                      <div key={key}>
+                        <button onClick={() => setMobileSection(isOpen ? null : key)}
+                          className="flex items-center justify-between w-full px-4 py-3 rounded-xl text-sm font-semibold text-white hover:bg-surface-2 transition-all">
                           {d.label}
                           <ChevronDown className={`w-4 h-4 text-ink-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                         </button>
@@ -279,22 +318,12 @@ export default function Navbar() {
                   })}
 
                   <div className="h-px bg-surface-4 mx-4 my-3" />
-
-                  <button
-                    onClick={() => { window.dispatchEvent(new Event('open-support-chat')); closeAll(); }}
-                    className={mobileLink + ' w-full'}
-                  >
+                  <button onClick={() => { window.dispatchEvent(new Event('open-support-chat')); closeAll(); }} className={mobileLink + ' w-full'}>
                     Assistenza
                   </button>
-
                   <div className="h-px bg-surface-4 mx-4 my-2" />
-
                   <Link href="/login" className={mobileLink} onClick={closeAll}>Accedi</Link>
-                  <Link
-                    href="/signup"
-                    onClick={closeAll}
-                    className="flex items-center justify-center mx-4 py-3 bg-primary-500 text-[#0B0B0B] font-semibold rounded-xl hover:bg-primary-400 transition-all text-sm mt-1"
-                  >
+                  <Link href="/signup" onClick={closeAll} className="flex items-center justify-center mx-4 py-3 bg-primary-500 text-[#0B0B0B] font-semibold rounded-xl hover:bg-primary-400 transition-all text-sm mt-1">
                     Inizia gratis
                   </Link>
                 </>
