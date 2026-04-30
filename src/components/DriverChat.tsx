@@ -186,7 +186,7 @@ export default function DriverChat({
                 }}
                 placeholder="Scrivi un messaggio..."
                 rows={1}
-                className="flex-1 resize-none rounded-lg border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
+                className="flex-1 resize-none rounded-lg border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 bg-white"
                 style={{ maxHeight: '120px' }}
               />
               <button

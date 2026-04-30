@@ -34,10 +34,10 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Corse disponibili (CONFIRMED o READY, nessun driver)
+    // Corse disponibili: solo READY (tutti i passeggeri hanno pagato), senza driver
     const availableGroups = await prisma.rideGroup.findMany({
       where: {
-        status: { in: ['CONFIRMED', 'READY'] },
+        status: 'READY',
         ride: { is: null },
       },
       include: {
@@ -141,7 +141,7 @@ export async function PATCH(request: NextRequest) {
             where: { id: rideId },
             select: { status: true },
           });
-          if (!fresh || !['CONFIRMED', 'READY'].includes(fresh.status)) {
+          if (!fresh || fresh.status !== 'READY') {
             throw new Error('ALREADY_TAKEN');
           }
           await tx.rideGroup.update({ where: { id: rideId }, data: { status: 'ASSIGNED' } });

@@ -4,28 +4,34 @@ import { haversineDistance } from '@/lib/dbscan-clustering';
 import { sendGroupReady, sendNewRideAvailable } from '@/lib/email';
 import { createNotification } from '@/lib/notify';
 
-/**
- * Controlla i gruppi FORMING scaduti o pieni → li marca READY e notifica i membri.
- * Da chiamare in lazy-eval ad ogni nuova richiesta di booking o matching.
- */
+const bookingSelect = {
+  dropoffLat: true,
+  dropoffLng: true,
+  pickupLat: true,
+  pickupLng: true,
+  passengers: true,
+  user: { select: { id: true, name: true, email: true } },
+} as const;
+
+const membersInclude = {
+  include: { booking: { select: bookingSelect } },
+} as const;
+
 export async function checkAndCloseExpiredGroups() {
   try {
     const rates = await getPricingRates();
     const windowMs = rates.matchingWindowHours * 60 * 60 * 1000;
 
-    // Gruppi scaduti: finestra di accumulo chiusa (volo entro windowHours) + min 2 pax
     const expiredGroups = await prisma.rideGroup.findMany({
       where: {
         status: 'FORMING',
         currentCapacity: { gte: 2 },
         targetPickupTime: { lte: new Date(Date.now() + windowMs) },
       },
-      include: {
-        members: {
-          include: {
-            booking: { include: { user: { select: { id: true, name: true, email: true } } } },
-          },
-        },
+      select: {
+        id: true, currentCapacity: true, targetPickupTime: true,
+        flightNumber: true, arrivalAirport: true,
+        members: membersInclude,
       },
     });
 
@@ -37,34 +43,30 @@ export async function checkAndCloseExpiredGroups() {
   }
 }
 
-/**
- * Chiudi immediatamente un gruppo (es. van pieno a 7 pax).
- */
 export async function closeGroupImmediately(groupId: string) {
   try {
     const rates = await getPricingRates();
     const group = await prisma.rideGroup.findUnique({
       where: { id: groupId },
-      include: {
-        members: {
-          include: {
-            booking: { include: { user: { select: { id: true, name: true, email: true } } } },
-          },
-        },
+      select: {
+        id: true, currentCapacity: true, targetPickupTime: true,
+        flightNumber: true, arrivalAirport: true, status: true,
+        members: membersInclude,
       },
     });
     if (!group || group.status !== 'FORMING') return;
-    await closeGroup(group as Parameters<typeof closeGroup>[0], rates);
+    await closeGroup(group, rates);
   } catch (e) {
     console.error('closeGroupImmediately error:', e);
   }
 }
 
-async function closeGroup(group: {
+type GroupForClose = {
   id: string;
   currentCapacity: number;
   targetPickupTime: Date;
   flightNumber: string;
+  arrivalAirport?: string | null;
   members: Array<{
     id: string;
     booking: {
@@ -72,84 +74,126 @@ async function closeGroup(group: {
       dropoffLng: number;
       pickupLat: number;
       pickupLng: number;
+      passengers: number;
       user: { id: string; name: string; email: string };
     };
   }>;
-}, rates: Awaited<ReturnType<typeof getPricingRates>>) {
-  const memberBookings = group.members.map(m => m.booking);
-  if (memberBookings.length === 0) return;
+};
 
-  // Calcola prezzo per persona basato su distanza media
-  const avgDropLat = memberBookings.reduce((s, b) => s + b.dropoffLat, 0) / memberBookings.length;
-  const avgDropLng = memberBookings.reduce((s, b) => s + b.dropoffLng, 0) / memberBookings.length;
-  const pickupLat = memberBookings[0].pickupLat;
-  const pickupLng = memberBookings[0].pickupLng;
-  const estimatedKm = haversineDistance(pickupLat, pickupLng, avgDropLat, avgDropLng);
+async function closeGroup(group: GroupForClose, rates: Awaited<ReturnType<typeof getPricingRates>>) {
+  if (group.members.length === 0) return;
 
+  const pickupLat = group.members[0].booking.pickupLat;
+  const pickupLng = group.members[0].booking.pickupLng;
   const totalPax = group.currentCapacity;
-  const driverShare = (estimatedKm * rates.driverRatePerKm) / totalPax;
-  const flanvoRate = estimatedKm >= 100 ? rates.flanvoTier3Rate : estimatedKm >= 51 ? rates.flanvoTier2Rate : rates.flanvoTier1Rate;
-  const pricePerPerson = Math.round((driverShare + estimatedKm * flanvoRate + rates.protectionFee) * 100) / 100;
 
-  // Marca gruppo CONFIRMED (READY → CONFIRMED automatico per MVP, visibile ai driver)
-  await prisma.rideGroup.update({
-    where: { id: group.id },
-    data: { status: 'CONFIRMED', totalPrice: pricePerPerson * totalPax },
-  });
+  // Prezzo individuale per ogni prenotazione: distanza effettiva × passeggeri della prenotazione
+  let totalGroupPrice = 0;
+  const memberPrices: {
+    memberId: string;
+    bookingUserId: string;
+    price: number;
+    userName: string;
+    userEmail: string;
+  }[] = [];
 
-  // Aggiorna tutti i booking a MATCHED con prezzo finale
   for (const member of group.members) {
-    await prisma.booking.updateMany({
-      where: { groupMember: { id: member.id } },
-      data: { status: 'MATCHED', estimatedPrice: pricePerPerson },
+    const kmOnboard = haversineDistance(
+      pickupLat, pickupLng,
+      member.booking.dropoffLat, member.booking.dropoffLng
+    );
+    const driverSharePerPerson = (kmOnboard * rates.driverRatePerKm) / totalPax;
+    const flanvoRate = kmOnboard >= 100
+      ? rates.flanvoTier3Rate
+      : kmOnboard >= 51
+        ? rates.flanvoTier2Rate
+        : rates.flanvoTier1Rate;
+    const pricePerPerson = driverSharePerPerson + kmOnboard * flanvoRate + rates.protectionFee;
+    const totalPriceForBooking = Math.round(pricePerPerson * member.booking.passengers * 100) / 100;
+
+    totalGroupPrice += totalPriceForBooking;
+    memberPrices.push({
+      memberId: member.id,
+      bookingUserId: member.booking.user.id,
+      price: totalPriceForBooking,
+      userName: member.booking.user.name,
+      userEmail: member.booking.user.email,
     });
   }
 
-  // Notifica i driver disponibili nello stesso scalo del gruppo
-  const availableDrivers = await prisma.driver.findMany({
-    where: {
-      isVerified: true,
-      isAvailable: true,
-      homeAirport: (group as { arrivalAirport?: string }).arrivalAirport ?? 'CTA',
-    },
-    select: { userId: true, user: { select: { email: true, name: true } } },
+  // Gruppo CONFIRMED — passeggeri invitati a pagare, driver non ancora notificato
+  await prisma.rideGroup.update({
+    where: { id: group.id },
+    data: { status: 'CONFIRMED', totalPrice: Math.round(totalGroupPrice * 100) / 100 },
   });
-  const airportName = (group as { arrivalAirport?: string }).arrivalAirport ?? 'CTA';
-  for (const d of availableDrivers) {
-    createNotification({
-      userId: d.userId,
-      type: 'GROUP_READY',
-      title: 'Nuova corsa disponibile',
-      body: `Volo ${group.flightNumber} — ${totalPax} passeggeri. Accetta dalla dashboard prima che qualcun altro la prenda.`,
-      data: { rideGroupId: group.id, flightNumber: group.flightNumber, totalPax },
-    }).catch(() => {});
 
-    sendNewRideAvailable(d.user.email, {
-      driverName: d.user.name ?? 'Driver',
-      flightNumber: group.flightNumber,
-      pax: totalPax,
-      airportName,
-    }).catch(() => {});
+  // Ogni booking riceve il proprio prezzo effettivo
+  for (const { memberId, price } of memberPrices) {
+    await prisma.booking.updateMany({
+      where: { groupMember: { id: memberId } },
+      data: { status: 'MATCHED', estimatedPrice: price },
+    });
   }
 
-  // Notifica in-app + email per tutti i membri
+  // Notifica passeggeri: vai a pagare
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://flv-psi.vercel.app';
-  for (const member of group.members) {
+  for (const { bookingUserId, memberId, price, userName, userEmail } of memberPrices) {
     createNotification({
-      userId: member.booking.user.id,
+      userId: bookingUserId,
       type: 'GROUP_READY',
       title: 'Gruppo trovato — Conferma e paga',
-      body: `Il tuo gruppo per il volo ${group.flightNumber} è pronto. Sono ${totalPax} passeggeri — prezzo finale €${pricePerPerson.toFixed(2)} a persona.`,
-      data: { groupMemberId: member.id, flightNumber: group.flightNumber, pricePerPerson },
+      body: `Il tuo gruppo per il volo ${group.flightNumber} è pronto (${totalPax} passeggeri). Il tuo totale: €${price.toFixed(2)}. Vai nella dashboard per confermare.`,
+      data: { groupMemberId: memberId, flightNumber: group.flightNumber, price },
     }).catch(() => {});
 
-    sendGroupReady(member.booking.user.email, {
-      userName: member.booking.user.name,
+    sendGroupReady(userEmail, {
+      userName,
       flightNumber: group.flightNumber,
       groupSize: totalPax,
-      pricePerPerson,
-      groupMemberId: member.id,
+      pricePerPerson: price,
+      groupMemberId: memberId,
       appUrl,
     }).catch(() => {});
+  }
+}
+
+// Chiamata da payments/authorize dopo che TUTTI i passeggeri hanno pagato
+export async function notifyDriversGroupReady(rideGroupId: string) {
+  try {
+    const group = await prisma.rideGroup.findUnique({
+      where: { id: rideGroupId },
+      select: {
+        flightNumber: true, currentCapacity: true, arrivalAirport: true,
+        members: { select: { totalPrice: true } },
+      },
+    });
+    if (!group) return;
+
+    const totalEarnings = group.members.reduce((s, m) => s + (m.totalPrice ?? 0), 0);
+    const airportCode = group.arrivalAirport ?? 'CTA';
+
+    const drivers = await prisma.driver.findMany({
+      where: { isVerified: true, isAvailable: true },
+      select: { userId: true, user: { select: { email: true, name: true } } },
+    });
+
+    for (const d of drivers) {
+      createNotification({
+        userId: d.userId,
+        type: 'GROUP_READY',
+        title: 'Nuova corsa disponibile',
+        body: `Volo ${group.flightNumber} — ${group.currentCapacity} passeggeri. Compenso totale: €${totalEarnings.toFixed(2)}. Accetta dalla dashboard.`,
+        data: { rideGroupId, flightNumber: group.flightNumber, totalPax: group.currentCapacity, totalEarnings },
+      }).catch(() => {});
+
+      sendNewRideAvailable(d.user.email, {
+        driverName: d.user.name ?? 'Driver',
+        flightNumber: group.flightNumber,
+        pax: group.currentCapacity,
+        airportName: airportCode,
+      }).catch(() => {});
+    }
+  } catch (e) {
+    console.error('notifyDriversGroupReady error:', e);
   }
 }

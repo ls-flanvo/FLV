@@ -58,7 +58,10 @@ export default function BookingCard({ booking }: { booking: Booking }) {
   const paymentStatus = booking.groupMember?.paymentStatus;
   const isPaid = paymentStatus === 'AUTHORIZED' || paymentStatus === 'CAPTURED';
   const rideGroup = booking.groupMember?.rideGroup;
-  const chatEnabled = ['ASSIGNED', 'ACTIVE', 'COMPLETED'].includes(rideGroup?.status ?? '');
+  const chatEnabled =
+    rideGroup?.status === 'ACTIVE' ||
+    rideGroup?.status === 'COMPLETED' ||
+    (rideGroup?.status === 'ASSIGNED' && rideGroup?.flightStatus === 'landed');
   const meetingLanded = rideGroup?.flightStatus === 'landed' && rideGroup?.meetingPoint;
   const status = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
   const isActive = ['IN_PROGRESS'].includes(booking.status);

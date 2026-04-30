@@ -111,7 +111,8 @@ export default function RideMatchCard({ match, onSelect, disabled = false }: Rid
             )}
           </div>
           <div className="text-xs text-ink-muted">
-            <span className="text-white font-medium">{match.seats} posto{match.seats !== 1 ? 'i' : ''}</span> disponibile{match.seats !== 1 ? '' : ''}
+            <span className="text-white font-medium">{match.seats} {match.seats !== 1 ? 'posti' : 'posto'}</span>{' '}
+            {match.seats !== 1 ? 'disponibili' : 'disponibile'}
             {' · '}pickup {departureTime}
           </div>
         </div>
