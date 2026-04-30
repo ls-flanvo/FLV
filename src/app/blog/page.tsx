@@ -5,6 +5,38 @@ export const metadata = { title: 'Blog — Flanvo' };
 
 const posts = [
   {
+    slug: 'ncc-vs-taxi-differenze',
+    category: 'Come funziona',
+    date: 'aprile 2026',
+    title: 'NCC vs taxi: perché un autista verificato fa la differenza',
+    excerpt: 'Non tutti i conducenti fuori dagli aeroporti sono uguali. CQC, licenza NCC, assicurazione professionale: ecco cosa distingue un autista Flanvo da un taxi di piazza — e perché conta per la tua sicurezza.',
+    readTime: '6 min',
+  },
+  {
+    slug: 'aeroporti-senza-metro',
+    category: 'Come funziona',
+    date: 'aprile 2026',
+    title: 'Aeroporti senza metro: gli scali dove il taxi è quasi obbligatorio (e come evitarlo)',
+    excerpt: 'Catania, Palermo, Bari, Cagliari. Aeroporti italiani senza collegamento diretto in metro o treno. Cosa succede davvero quando esci dal terminal e come puoi organizzarti meglio.',
+    readTime: '6 min',
+  },
+  {
+    slug: 'tratte-lunghe-risparmio-massimo',
+    category: 'Risparmio',
+    date: 'aprile 2026',
+    title: 'Le tratte lunghe dove il carpooling fa la differenza vera',
+    excerpt: 'Milano Malpensa–centro: €100 in taxi, ~€24 con Flanvo. Su queste tratte il risparmio non è marginale — è strutturale. Tabella completa con 8 tratte e confronto prezzi.',
+    readTime: '5 min',
+  },
+  {
+    slug: 'aeroporto-di-notte-trasporti-pubblici',
+    category: 'Consigli',
+    date: 'aprile 2026',
+    title: 'Aeroporto di notte: quando i trasporti pubblici non esistono',
+    excerpt: 'Ryanair alle 23:40. Wizz Air alle 06:10. Voli economici con orari impossibili, bus già finiti e taxi con maggiorazione notturna. Cosa fare quando atterri fuori orario.',
+    readTime: '5 min',
+  },
+  {
     slug: 'quanto-costa-taxi-aeroporto',
     category: 'Risparmio',
     date: 'aprile 2026',
@@ -31,9 +63,9 @@ const posts = [
 ];
 
 const categoryColors: Record<string, string> = {
-  'Risparmio':       'text-primary-400 bg-primary-500/10 border-primary-500/20',
-  'Come funziona':   'text-blue-400 bg-blue-500/10 border-blue-500/20',
-  'Consigli':        'text-warning bg-warning/10 border-warning/20',
+  'Risparmio':     'text-primary-400 bg-primary-500/10 border-primary-500/20',
+  'Come funziona': 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+  'Consigli':      'text-warning bg-warning/10 border-warning/20',
 };
 
 export default function BlogPage() {
@@ -47,7 +79,7 @@ export default function BlogPage() {
         <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">Blog</h1>
         <p className="text-ink-secondary mb-14">Consigli di viaggio, risparmio e mobilità condivisa.</p>
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           {posts.map((post) => (
             <Link
               key={post.slug}
