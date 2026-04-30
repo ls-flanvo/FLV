@@ -296,10 +296,10 @@ export default function GuidaConNoiPage() {
       <section className="bg-surface-1 border-t border-surface-4 py-20">
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-4">
-            Guadagna di più con ogni corsa
+            Più corse. Guadagno garantito.
           </h2>
           <p className="text-ink-secondary text-center mb-14 max-w-xl mx-auto">
-            Con Flanvo trasporti più passeggeri per tratta. Tu ricevi sempre il <strong className="text-white">100% della tariffa di trasporto</strong> — Flanvo non trattiene nulla dal tuo guadagno.
+            Flanvo riempie il tuo calendario. Corse pianificate e prevedibili. <strong className="text-white">Zero commissioni</strong> sul tuo guadagno.
           </p>
           <div className="grid md:grid-cols-3 gap-10">
             <div className="text-center">
