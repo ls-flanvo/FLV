@@ -333,68 +333,62 @@ export default function GuidaConNoiPage() {
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Come funziona una corsa</h2>
           <p className="text-ink-secondary mb-14">Dal volo al pagamento — ecco cosa succede ogni volta che accetti una corsa Flanvo.</p>
 
-          {/* Desktop: orizzontale */}
-          <div className="hidden md:block relative">
-            {/* Linea connettore */}
-            <div className="absolute top-8 left-[calc(8.33%+16px)] right-[calc(8.33%+16px)] h-px bg-gradient-to-r from-primary-500/20 via-primary-500/60 to-primary-500/20" />
-
-            <div className="grid grid-cols-6 gap-4">
-              {[
-                { n: '1', title: 'Notifica push',         body: 'Il volo è in arrivo. Ricevi volo, destinazione e guadagno stimato direttamente sul telefono.' },
-                { n: '2', title: 'Accetti in 1 tap',      body: 'Hai qualche minuto per decidere. Vedi tutti i dettagli prima di confermare.' },
-                { n: '3', title: 'Raggiungi il pick-up',  body: "L'app ti guida al punto Flanvo dell'aeroporto con l'orario preciso del volo." },
-                { n: '4', title: 'Ritiri i passeggeri',   body: 'I passeggeri ti trovano al punto di incontro dopo il ritiro bagagli.' },
-                { n: '5', title: 'Percorso ottimizzato',  body: "L'app calcola la sequenza dei drop-off per minimizzare il tempo percorso." },
-                { n: '6', title: 'Pagamento automatico',  body: "All'ultimo drop-off il pagamento viene trasferito su Stripe Connect. Zero attese." },
-              ].map((step, i) => (
-                <div key={i} className="flex flex-col items-center text-center">
-                  {/* Cerchio numerato */}
-                  <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-5 relative z-10 border-2 shrink-0 ${
-                    i === 5
-                      ? 'bg-primary-500 border-primary-500'
-                      : 'bg-surface-2 border-surface-5'
-                  }`}>
-                    <span className={`text-sm font-bold ${i === 5 ? 'text-[#0B0B0B]' : 'text-primary-400'}`}>
-                      {step.n}
-                    </span>
-                  </div>
-                  <h4 className="text-sm font-bold text-white mb-1.5 leading-tight">{step.title}</h4>
-                  <p className="text-xs text-ink-muted leading-relaxed">{step.body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Mobile: verticale */}
-          <div className="md:hidden relative pl-8">
-            {/* Linea verticale */}
-            <div className="absolute left-3 top-2 bottom-2 w-px bg-gradient-to-b from-primary-500/20 via-primary-500/50 to-primary-500" />
-
-            <div className="space-y-8">
-              {[
-                { n: '1', title: 'Notifica push', body: 'Il volo è in arrivo. Ricevi volo, destinazione e guadagno stimato direttamente sul telefono.' },
-                { n: '2', title: 'Accetti in 1 tap', body: 'Hai qualche minuto per decidere. Vedi tutti i dettagli prima di confermare.' },
-                { n: '3', title: 'Raggiungi il pick-up', body: "L'app ti guida al punto Flanvo dell'aeroporto con l'orario preciso del volo." },
-                { n: '4', title: 'Ritiri i passeggeri', body: 'I passeggeri ti trovano al punto di incontro dopo il ritiro bagagli.' },
-                { n: '5', title: 'Percorso ottimizzato', body: "L'app calcola la sequenza dei drop-off per minimizzare il tempo percorso." },
-                { n: '6', title: 'Pagamento automatico', body: "All'ultimo drop-off il pagamento viene trasferito su Stripe Connect. Zero attese." },
-              ].map((step, i) => (
-                <div key={i} className="flex items-start gap-4">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 -ml-4 relative z-10 ${
-                    i === 5
-                      ? 'bg-primary-500 border-primary-500'
-                      : 'bg-surface-2 border-surface-5'
-                  }`}>
-                    <span className={`text-xs font-bold ${i === 5 ? 'text-[#0B0B0B]' : 'text-primary-400'}`}>{step.n}</span>
-                  </div>
-                  <div className="pb-2">
-                    <h4 className="text-sm font-bold text-white mb-1">{step.title}</h4>
-                    <p className="text-xs text-ink-muted leading-relaxed">{step.body}</p>
+          {/* Steps data */}
+          {(() => {
+            const steps = [
+              { n: '1', title: 'Il gruppo si forma',       body: 'Flanvo raggruppa automaticamente i passeggeri dello stesso volo verso destinazioni simili e crea il gruppo.' },
+              { n: '2', title: 'Notifica push',             body: 'Ricevi volo, destinazione e guadagno stimato. Hai qualche minuto per decidere se accettare.' },
+              { n: '3', title: 'Accetti in 1 tap',          body: 'Confermi la corsa con un tap. I passeggeri vengono avvisati automaticamente.' },
+              { n: '4', title: 'Volo atterrato',            body: "Ricevi notifica all'atterraggio. L'app ti guida al punto Flanvo dell'aeroporto." },
+              { n: '5', title: 'Chat con i passeggeri',     body: 'Comunicazione live con il gruppo durante l\'attesa al ritiro bagagli.' },
+              { n: '6', title: 'Ritiri i passeggeri',       body: 'I passeggeri ti trovano al punto di incontro. Inizia il percorso ottimizzato verso i drop-off.' },
+              { n: '7', title: 'Pagamento automatico',      body: "All'ultimo drop-off il pagamento viene trasferito su Stripe Connect. Zero attese." },
+            ];
+            const last = steps.length - 1;
+            return (
+              <>
+                {/* Desktop: orizzontale scrollabile */}
+                <div className="hidden md:block overflow-x-auto pb-2">
+                  <div className="relative min-w-[900px]">
+                    <div className="absolute top-6 left-[6%] right-[6%] h-px bg-gradient-to-r from-primary-500/10 via-primary-500/50 to-primary-500" />
+                    <div className="grid grid-cols-7 gap-3">
+                      {steps.map((step, i) => (
+                        <div key={i} className="flex flex-col items-center text-center px-1">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 relative z-10 border-2 shrink-0 ${
+                            i === last ? 'bg-primary-500 border-primary-500' : 'bg-surface-2 border-surface-5'
+                          }`}>
+                            <span className={`text-sm font-bold ${i === last ? 'text-[#0B0B0B]' : 'text-primary-400'}`}>{step.n}</span>
+                          </div>
+                          <h4 className="text-xs font-bold text-white mb-1.5 leading-snug">{step.title}</h4>
+                          <p className="text-[11px] text-ink-muted leading-relaxed">{step.body}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+
+                {/* Mobile: verticale */}
+                <div className="md:hidden relative pl-8">
+                  <div className="absolute left-3 top-2 bottom-2 w-px bg-gradient-to-b from-primary-500/20 via-primary-500/50 to-primary-500" />
+                  <div className="space-y-7">
+                    {steps.map((step, i) => (
+                      <div key={i} className="flex items-start gap-4">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 -ml-4 relative z-10 ${
+                          i === last ? 'bg-primary-500 border-primary-500' : 'bg-surface-2 border-surface-5'
+                        }`}>
+                          <span className={`text-xs font-bold ${i === last ? 'text-[#0B0B0B]' : 'text-primary-400'}`}>{step.n}</span>
+                        </div>
+                        <div className="pb-1">
+                          <h4 className="text-sm font-bold text-white mb-1">{step.title}</h4>
+                          <p className="text-xs text-ink-muted leading-relaxed">{step.body}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </div>
       </section>
 
