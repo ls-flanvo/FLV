@@ -18,8 +18,8 @@ export default function LandingPage() {
             <span className="text-gradient">condiviso.</span>
           </h1>
           <p className="text-xl text-ink-secondary mb-10 max-w-2xl mx-auto leading-relaxed">
-            Flanvo raggruppa i passeggeri dello stesso volo verso destinazioni simili.
-            Risparmio fino al <strong className="text-white">78%</strong> rispetto ai taxi privati.
+            Flanvo raggruppa i passeggeri dello stesso volo verso destinazioni simili.{' '}
+            <strong className="text-white">Stesso van, meno spesa.</strong>
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/signup"
@@ -58,9 +58,9 @@ export default function LandingPage() {
       <section id="prezzi" className="border-y border-surface-4 bg-surface-1">
         <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-3 gap-8 text-center">
           {[
-            { value: '40–78%', label: 'Risparmio vs taxi privato' },
-            { value: '€0.22', label: 'Fee media per km/passeggero' },
-            { value: 'Price-lock', label: 'Prezzo fisso al momento del match' },
+            { value: 'Fino al 60%', label: 'di risparmio vs taxi privato' },
+            { value: 'Paghi solo i tuoi km', label: 'nessuna divisione fissa' },
+            { value: 'Price-lock', label: 'prezzo bloccato prima di salire' },
           ].map(({ value, label }) => (
             <div key={label}>
               <p className="text-3xl md:text-4xl font-black text-primary-400 mb-1">{value}</p>
