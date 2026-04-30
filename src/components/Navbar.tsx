@@ -19,8 +19,8 @@ const DROPDOWNS = {
     links: [
       { label: 'Come funziona', href: '/#come-funziona', desc: 'Scopri come funziona il carpooling aeroportuale' },
       { label: 'Cerca una corsa', href: '/flight-search', desc: 'Inserisci il tuo volo e trova compagni' },
-      { label: 'Aeroporti serviti', href: '/#aeroporti', desc: 'Gli scali dove siamo attivi' },
-      { label: 'Prezzi', href: '/#prezzi', desc: 'Quanto costa e come si calcola' },
+      { label: 'Aeroporti serviti', href: '/aeroporti', desc: 'Gli scali dove siamo attivi' },
+      { label: 'Prezzi', href: '/prezzi', desc: 'Quanto costa e come si calcola' },
     ],
   },
   info: {
