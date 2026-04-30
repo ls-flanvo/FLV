@@ -49,12 +49,20 @@ export default function SicurezzaPage() {
           <div className="inline-flex items-center gap-2 bg-primary-500/10 border border-primary-500/20 rounded-full px-4 py-1.5 text-xs font-semibold text-primary-400 mb-6">
             <Shield className="w-3.5 h-3.5" /> La tua sicurezza, prima di tutto
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-            Viaggia con fiducia.
+          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-6 leading-tight">
+            Vogliamo che tu possa muoverti liberamente.
           </h1>
-          <p className="text-lg text-ink-secondary leading-relaxed">
-            Flanvo è costruita su tre pilastri: autisti verificati, pagamenti trasparenti e dati protetti. Ogni corsa è progettata per essere sicura per tutti.
-          </p>
+          <div className="space-y-4 text-lg text-ink-secondary leading-relaxed">
+            <p>
+              Atterri in una città nuova, a volte di notte, a volte da solo. Trovi un van con persone che non conosci e un driver che non hai mai visto. Sappiamo che la fiducia non si chiede — si guadagna.
+            </p>
+            <p>
+              Per questo ogni autista su Flanvo viene verificato manualmente prima di poter effettuare la prima corsa. I pagamenti sono gestiti da Stripe, lo standard più sicuro al mondo. I tuoi dati non vengono mai venduti a terzi. E dopo ogni corsa, il sistema di rating garantisce che chi non rispetta gli standard venga rimosso.
+            </p>
+            <p className="text-base">
+              Non è una lista di funzionalità. È il modo in cui abbiamo scelto di costruire questo servizio.
+            </p>
+          </div>
         </div>
 
         {/* Sections */}
