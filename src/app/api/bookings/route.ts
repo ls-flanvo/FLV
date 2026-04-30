@@ -160,7 +160,8 @@ export async function POST(request: NextRequest) {
         const totalPax = updatedGroup.currentCapacity;
         const driverShare = (estimatedKm * rates.driverRatePerKm) / totalPax;
         const flanvoRate = estimatedKm >= 100 ? rates.flanvoTier3Rate : estimatedKm >= 51 ? rates.flanvoTier2Rate : rates.flanvoTier1Rate;
-        estimatedPriceNow = Math.round((driverShare + estimatedKm * flanvoRate + rates.protectionFee) * 100) / 100;
+        const pricePerPerson = driverShare + estimatedKm * flanvoRate + rates.protectionFee;
+        estimatedPriceNow = Math.round(pricePerPerson * booking.passengers * 100) / 100;
 
         // Aggiorna stima nel booking
         await prisma.booking.update({

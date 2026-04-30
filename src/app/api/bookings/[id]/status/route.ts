@@ -31,7 +31,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         status: booking.status,
         group: {
           status: group.status,
-          current: group.members.length,
+          current: group.currentCapacity,
           max: group.maxCapacity,
         },
       });
