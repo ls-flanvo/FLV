@@ -88,8 +88,39 @@ export default function SicurezzaPage() {
           ))}
         </div>
 
-        <div className="mt-12 pt-8 border-t border-surface-4 text-sm text-ink-muted">
-          Hai domande sulla sicurezza?{' '}
+        {/* Cosa fare in caso di problema */}
+        <div className="mt-10 bg-surface-1 border border-surface-4 rounded-2xl p-6 md:p-8">
+          <h2 className="text-lg font-bold text-white mb-2">Hai un problema durante la corsa?</h2>
+          <p className="text-sm text-ink-secondary leading-relaxed mb-6">
+            Essere onesti su questo è importante. L&apos;AI della chat non può intervenire in tempo reale durante una corsa. Ecco cosa fare concretamente, in ordine di priorità.
+          </p>
+          <div className="space-y-4">
+            <div className="flex gap-4">
+              <div className="w-8 h-8 rounded-full bg-primary-500/10 border border-primary-500/20 flex items-center justify-center shrink-0 text-sm font-bold text-primary-400">1</div>
+              <div>
+                <p className="font-semibold text-white text-sm mb-1">Contatta il driver via chat</p>
+                <p className="text-sm text-ink-muted leading-relaxed">La chat in-app ti mette in contatto diretto con il driver. Per la maggior parte dei problemi — percorso, bagagli, comunicazione — è il canale più rapido.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="w-8 h-8 rounded-full bg-primary-500/10 border border-primary-500/20 flex items-center justify-center shrink-0 text-sm font-bold text-primary-400">2</div>
+              <div>
+                <p className="font-semibold text-white text-sm mb-1">Scrivi al supporto Flanvo</p>
+                <p className="text-sm text-ink-muted leading-relaxed">Per problemi che il driver non riesce a risolvere — pagamento, controversie, comportamenti scorretti — scrivi a <a href="mailto:hello@flanvo.com" className="text-primary-400 hover:text-primary-300 transition-colors">hello@flanvo.com</a>. Rispondiamo il prima possibile e ogni segnalazione viene presa in carico.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="w-8 h-8 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0 text-sm font-bold text-red-400">3</div>
+              <div>
+                <p className="font-semibold text-white text-sm mb-1">Chiama il 112 per le emergenze</p>
+                <p className="text-sm text-ink-muted leading-relaxed">In caso di pericolo immediato, chiama il 112. Non usare l&apos;app — chiama direttamente. Le autorità hanno priorità assoluta su qualsiasi altro canale di supporto.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 pt-8 border-t border-surface-4 text-sm text-ink-muted">
+          Domande sulla sicurezza?{' '}
           <a href="mailto:hello@flanvo.com" className="text-primary-400 hover:text-primary-300 transition-colors">
             hello@flanvo.com
           </a>
