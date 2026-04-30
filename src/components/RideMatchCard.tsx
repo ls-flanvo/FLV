@@ -75,7 +75,7 @@ export default function RideMatchCard({ match, onSelect, disabled = false }: Rid
               <Users className="w-3.5 h-3.5 text-ink-muted" />
             </div>
             <p className="text-base font-bold text-white">{match.totalPassengers ?? match.passengers.length}</p>
-            <p className="text-xs text-ink-muted">nel van</p>
+            <p className="text-xs text-ink-muted">con te</p>
           </div>
           <div className="bg-surface-3 rounded-xl px-3 py-2.5 text-center">
             <div className="flex items-center justify-center gap-1 mb-0.5">
