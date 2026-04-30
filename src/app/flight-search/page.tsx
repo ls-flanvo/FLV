@@ -107,10 +107,6 @@ export default function FlightSearchPage() {
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) router.push('/login');
-  }, [isAuthenticated, router]);
-
-  useEffect(() => {
     if (step === 'flight') inputRef.current?.focus();
   }, [step]);
 
