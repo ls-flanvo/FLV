@@ -6,115 +6,197 @@ import { ChevronDown, ArrowRight, Car, DollarSign, Shield, MessageCircle, CheckC
 
 // ── SVG Illustrations ──────────────────────────────────────────────
 
+// Hero: UI card mockup stile dashboard driver
 const DriverHeroIllustration = () => (
-  <svg viewBox="0 0 480 360" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-lg">
-    {/* Background arc */}
-    <ellipse cx="300" cy="200" rx="180" ry="170" fill="#00D1B2" opacity="0.12" />
-    <ellipse cx="300" cy="210" rx="140" ry="130" fill="#00D1B2" opacity="0.10" />
-    {/* Van body */}
-    <rect x="80" y="210" width="280" height="90" rx="18" fill="#1A1A1A" />
-    <rect x="95" y="185" width="200" height="90" rx="14" fill="#242424" />
-    {/* Windows */}
-    <rect x="110" y="195" width="75" height="55" rx="8" fill="#00D1B2" opacity="0.25" />
-    <rect x="198" y="195" width="75" height="55" rx="8" fill="#00D1B2" opacity="0.25" />
-    {/* Windshield shine */}
-    <rect x="115" y="200" width="20" height="8" rx="4" fill="white" opacity="0.3" />
-    {/* Wheels */}
-    <circle cx="145" cy="300" r="28" fill="#111" />
-    <circle cx="145" cy="300" r="16" fill="#2A2A2A" />
-    <circle cx="145" cy="300" r="6" fill="#00D1B2" />
-    <circle cx="295" cy="300" r="28" fill="#111" />
-    <circle cx="295" cy="300" r="16" fill="#2A2A2A" />
-    <circle cx="295" cy="300" r="6" fill="#00D1B2" />
-    {/* Flanvo logo on van */}
-    <rect x="155" y="238" width="60" height="18" rx="4" fill="#00D1B2" opacity="0.15" />
-    <text x="185" y="251" textAnchor="middle" fontFamily="system-ui" fontSize="9" fontWeight="700" fill="#00D1B2">Flanvo</text>
-    {/* Driver person */}
-    <circle cx="340" cy="150" r="38" fill="#2A2A2A" />
-    <circle cx="340" cy="132" r="22" fill="#C8956C" />
-    {/* Hair */}
-    <ellipse cx="340" cy="114" rx="22" ry="14" fill="#1A1A1A" />
-    {/* Body */}
-    <rect x="308" y="162" width="64" height="60" rx="14" fill="#1F4E6B" />
-    {/* Collar */}
-    <path d="M326 162 L340 178 L354 162" stroke="white" strokeWidth="2" fill="none" />
-    {/* Steering wheel */}
-    <circle cx="240" cy="240" r="26" stroke="#333" strokeWidth="5" fill="none" />
-    <circle cx="240" cy="240" r="6" fill="#444" />
-    <line x1="240" y1="214" x2="240" y2="228" stroke="#444" strokeWidth="4" />
-    <line x1="240" y1="252" x2="240" y2="266" stroke="#444" strokeWidth="4" />
-    {/* Stars / rating */}
+  <svg viewBox="0 0 460 380" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-lg">
+    {/* Card principale — notifica nuova corsa */}
+    <rect x="30" y="40" width="280" height="180" rx="20" fill="#161616" stroke="#2A2A2A" strokeWidth="1.5"/>
+
+    {/* Badge stato */}
+    <rect x="50" y="62" width="110" height="22" rx="11" fill="#00D1B2" opacity="0.15"/>
+    <circle cx="64" cy="73" r="4" fill="#00D1B2"/>
+    <text x="74" y="77" fontFamily="system-ui" fontSize="11" fontWeight="600" fill="#00D1B2">Nuova corsa</text>
+
+    {/* Volo e guadagno */}
+    <text x="50" y="110" fontFamily="system-ui" fontSize="22" fontWeight="800" fill="#FFFFFF">AZ 1234</text>
+    <text x="200" y="110" fontFamily="system-ui" fontSize="22" fontWeight="800" fill="#00D1B2">€ 186</text>
+
+    {/* Route line */}
+    <circle cx="50" cy="140" r="5" fill="#00D1B2"/>
+    <line x1="50" y1="148" x2="50" y2="172" stroke="#2A2A2A" strokeWidth="1.5" strokeDasharray="4,3"/>
+    <rect x="44" y="173" width="12" height="12" rx="3" fill="#00D1B2"/>
+
+    <text x="66" y="145" fontFamily="system-ui" fontSize="12" fill="#A1A1AA">Aeroporto di Catania (CTA)</text>
+    <text x="66" y="180" fontFamily="system-ui" fontSize="12" fontWeight="600" fill="#FFFFFF">Via Roma 14, Palermo</text>
+
+    {/* Passeggeri */}
+    <rect x="50" y="196" width="60" height="18" rx="9" fill="#1F1F1F" stroke="#2A2A2A" strokeWidth="1"/>
+    <text x="80" y="209" textAnchor="middle" fontFamily="system-ui" fontSize="11" fill="#A1A1AA">4 pax</text>
+    <rect x="120" y="196" width="65" height="18" rx="9" fill="#1F1F1F" stroke="#2A2A2A" strokeWidth="1"/>
+    <text x="153" y="209" textAnchor="middle" fontFamily="system-ui" fontSize="11" fill="#A1A1AA">52 km</text>
+
+    {/* Pulsante accetta */}
+    <rect x="50" y="188" width="240" height="0" rx="0" fill="none"/>
+    {/* Azioni */}
+    <rect x="162" y="186" width="100" height="18" rx="0" fill="none"/>
+
+    {/* Card secondaria — statistiche driver */}
+    <rect x="210" y="170" width="220" height="110" rx="16" fill="#0F0F0F" stroke="#00D1B2" strokeWidth="1" opacity="0.9"/>
+
+    <text x="228" y="195" fontFamily="system-ui" fontSize="11" fontWeight="600" fill="#A1A1AA">I tuoi guadagni</text>
+
+    {/* Stats row */}
+    <text x="228" y="225" fontFamily="system-ui" fontSize="28" fontWeight="800" fill="#00D1B2">€2.340</text>
+    <text x="228" y="242" fontFamily="system-ui" fontSize="11" fill="#555">questo mese</text>
+
+    {/* Mini bar chart */}
+    {[18, 28, 22, 36, 42, 30, 48].map((h, i) => (
+      <rect key={i} x={228 + i * 24} y={268 + (52 - h)} width="16" height={h} rx="4"
+        fill={i === 6 ? '#00D1B2' : '#1A1A1A'} stroke={i === 6 ? 'none' : '#2A2A2A'} strokeWidth="1"/>
+    ))}
+
+    {/* Card rating — in alto a destra */}
+    <rect x="310" y="40" width="120" height="72" rx="14" fill="#161616" stroke="#2A2A2A" strokeWidth="1.5"/>
+    <text x="370" y="65" textAnchor="middle" fontFamily="system-ui" fontSize="26" fontWeight="800" fill="#FFFFFF">4.9</text>
+    {/* Stelle */}
     {[0,1,2,3,4].map((i) => (
-      <text key={i} x={96 + i * 18} y="175" fontSize="14" fill="#00D1B2">★</text>
+      <rect key={i} x={325 + i * 18} y="74" width="12" height="12" rx="3"
+        fill={i < 5 ? '#00D1B2' : '#2A2A2A'} opacity="0.9"/>
     ))}
-    <text x="186" y="175" fontSize="11" fill="#A1A1AA" fontFamily="system-ui">4.9</text>
-    {/* Passengers silhouettes */}
-    <circle cx="390" cy="230" r="14" fill="#2A2A2A" />
-    <circle cx="390" cy="218" r="9" fill="#B07D62" />
-    <circle cx="415" cy="230" r="14" fill="#2A2A2A" />
-    <circle cx="415" cy="218" r="9" fill="#8B6355" />
+    <text x="370" y="104" textAnchor="middle" fontFamily="system-ui" fontSize="10" fill="#555">valutazione media</text>
+
+    {/* Decorative dots */}
+    <circle cx="400" cy="200" r="3" fill="#00D1B2" opacity="0.4"/>
+    <circle cx="420" cy="230" r="2" fill="#00D1B2" opacity="0.3"/>
+    <circle cx="390" cy="260" r="4" fill="#00D1B2" opacity="0.2"/>
+    <circle cx="40" cy="320" r="3" fill="#00D1B2" opacity="0.3"/>
+    <circle cx="20" cy="280" r="2" fill="#00D1B2" opacity="0.2"/>
   </svg>
 );
 
+// Earnings: bar chart pulito con badge "100% tuo"
 const EarningsIllustration = () => (
-  <svg viewBox="0 0 320 220" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-xs mx-auto">
-    {/* Chart bars */}
-    <rect x="30" y="140" width="36" height="60" rx="6" fill="#00D1B2" opacity="0.3" />
-    <rect x="84" y="100" width="36" height="100" rx="6" fill="#00D1B2" opacity="0.5" />
-    <rect x="138" y="70" width="36" height="130" rx="6" fill="#00D1B2" opacity="0.7" />
-    <rect x="192" y="40" width="36" height="160" rx="6" fill="#00D1B2" />
-    <rect x="246" y="20" width="36" height="180" rx="6" fill="#00D1B2" />
-    {/* Euro sign */}
-    <circle cx="264" cy="14" r="14" fill="#00D1B2" opacity="0.2" />
-    <text x="264" y="19" textAnchor="middle" fontSize="14" fontWeight="700" fill="#00D1B2" fontFamily="system-ui">€</text>
-    {/* Trend arrow */}
-    <polyline points="48,150 100,115 153,85 210,55 265,32" stroke="#00D1B2" strokeWidth="2.5" strokeDasharray="5,3" fill="none" />
-  </svg>
-);
-
-const FlexIllustration = () => (
-  <svg viewBox="0 0 320 220" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-xs mx-auto">
-    {/* Calendar */}
-    <rect x="60" y="40" width="200" height="160" rx="16" fill="#1A1A1A" stroke="#2A2A2A" strokeWidth="2" />
-    <rect x="60" y="40" width="200" height="44" rx="16" fill="#00D1B2" opacity="0.2" />
-    <rect x="60" y="62" width="200" height="22" fill="#00D1B2" opacity="0.2" />
-    {/* Days header */}
-    {['L','M','M','G','V','S','D'].map((d, i) => (
-      <text key={i} x={82 + i * 26} y="72" fontSize="11" fill="#A1A1AA" textAnchor="middle" fontFamily="system-ui">{d}</text>
+  <svg viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-xs mx-auto">
+    {/* Griglia sfondo */}
+    {[40, 80, 120, 160].map((y) => (
+      <line key={y} x1="20" y1={y} x2="280" y2={y} stroke="#1A1A1A" strokeWidth="1"/>
     ))}
-    {/* Day cells — some highlighted */}
+
+    {/* Barre */}
     {[
-      {x:82,y:100,active:false},{x:108,y:100,active:true},{x:134,y:100,active:false},
-      {x:160,y:100,active:true},{x:186,y:100,active:false},{x:212,y:100,active:true},{x:238,y:100,active:false},
-      {x:82,y:128,active:false},{x:108,y:128,active:false},{x:134,y:128,active:true},
-      {x:160,y:128,active:false},{x:186,y:128,active:true},{x:212,y:128,active:false},{x:238,y:128,active:true},
-    ].map((cell, i) => (
+      { x: 30,  h: 60,  w: 30 },
+      { x: 75,  h: 90,  w: 30 },
+      { x: 120, h: 75,  w: 30 },
+      { x: 165, h: 115, w: 30 },
+      { x: 210, h: 140, w: 30 },
+    ].map((b, i) => (
       <g key={i}>
-        {cell.active && <circle cx={cell.x} cy={cell.y} r="12" fill="#00D1B2" />}
-        <text x={cell.x} y={cell.y + 4} fontSize="11" fill={cell.active ? '#0B0B0B' : '#A1A1AA'} textAnchor="middle" fontFamily="system-ui" fontWeight={cell.active ? '700' : '400'}>
-          {i + 2}
-        </text>
+        <rect x={b.x} y={172 - b.h} width={b.w} height={b.h} rx="6"
+          fill={i === 4 ? '#00D1B2' : '#1A1A1A'} stroke={i === 4 ? 'none' : '#2A2A2A'} strokeWidth="1"/>
+        {/* Valore sulla barra più alta */}
+        {i === 4 && (
+          <>
+            <rect x="200" y="14" width="50" height="20" rx="8" fill="#00D1B2"/>
+            <text x="225" y="28" textAnchor="middle" fontFamily="system-ui" fontSize="10" fontWeight="700" fill="#0B0B0B">100% tuo</text>
+          </>
+        )}
       </g>
     ))}
+
+    {/* Freccia trend */}
+    <polyline points="45,155 90,130 135,145 180,110 225,85"
+      stroke="#00D1B2" strokeWidth="2" strokeDasharray="5,3" fill="none" strokeLinecap="round"/>
+
+    {/* Label y-axis */}
+    <text x="275" y="172" fontFamily="system-ui" fontSize="10" fill="#555" textAnchor="end">€0</text>
+    <text x="275" y="85" fontFamily="system-ui" fontSize="10" fill="#555" textAnchor="end">€200</text>
   </svg>
 );
 
+// Flex: calendario settimana pulito
+const FlexIllustration = () => (
+  <svg viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-xs mx-auto">
+    {/* Card sfondo */}
+    <rect x="20" y="20" width="260" height="165" rx="16" fill="#161616" stroke="#2A2A2A" strokeWidth="1.5"/>
+
+    {/* Header mese */}
+    <text x="40" y="50" fontFamily="system-ui" fontSize="13" fontWeight="700" fill="#FFFFFF">Maggio 2026</text>
+    <text x="240" y="50" textAnchor="end" fontFamily="system-ui" fontSize="11" fill="#00D1B2">Tu scegli</text>
+
+    {/* Separatore */}
+    <line x1="30" y1="60" x2="270" y2="60" stroke="#2A2A2A" strokeWidth="1"/>
+
+    {/* Giorni settimana */}
+    {['L','M','M','G','V','S','D'].map((g, i) => (
+      <text key={i} x={44 + i * 33} y="78" fontFamily="system-ui" fontSize="11" fill="#555" textAnchor="middle">{g}</text>
+    ))}
+
+    {/* Celle giorni — row 1 */}
+    {[
+      {n:1,  active:false}, {n:2,  active:true},  {n:3,  active:false},
+      {n:4,  active:true},  {n:5,  active:false},  {n:6,  active:true},  {n:7, active:false},
+    ].map((d, i) => (
+      <g key={i}>
+        {d.active && <circle cx={44 + i * 33} cy={104} r={14} fill="#00D1B2"/>}
+        <text x={44 + i * 33} y={108} textAnchor="middle"
+          fontFamily="system-ui" fontSize="13" fontWeight={d.active ? '700' : '400'}
+          fill={d.active ? '#0B0B0B' : '#A1A1AA'}>{d.n}</text>
+      </g>
+    ))}
+
+    {/* Row 2 */}
+    {[
+      {n:8, active:false}, {n:9, active:false}, {n:10,active:true},
+      {n:11,active:false}, {n:12,active:true},  {n:13,active:false}, {n:14,active:true},
+    ].map((d, i) => (
+      <g key={i}>
+        {d.active && <circle cx={44 + i * 33} cy={138} r={14} fill="#00D1B2" opacity="0.7"/>}
+        <text x={44 + i * 33} y={142} textAnchor="middle"
+          fontFamily="system-ui" fontSize="13" fontWeight={d.active ? '700' : '400'}
+          fill={d.active ? '#0B0B0B' : '#A1A1AA'}>{d.n}</text>
+      </g>
+    ))}
+
+    {/* Footer card */}
+    <text x="150" y="172" textAnchor="middle" fontFamily="system-ui" fontSize="10" fill="#555">Accetti solo le corse che vuoi</text>
+  </svg>
+);
+
+// App: telefono con notifica pulito
 const AppIllustration = () => (
-  <svg viewBox="0 0 320 220" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-xs mx-auto">
-    {/* Phone */}
-    <rect x="100" y="20" width="120" height="190" rx="18" fill="#1A1A1A" stroke="#2A2A2A" strokeWidth="2" />
-    <rect x="108" y="32" width="104" height="166" rx="12" fill="#0F0F0F" />
-    {/* Screen content */}
-    <rect x="116" y="48" width="88" height="28" rx="8" fill="#00D1B2" opacity="0.15" />
-    <text x="160" y="66" textAnchor="middle" fontSize="10" fill="#00D1B2" fontFamily="system-ui" fontWeight="700">Nuova corsa</text>
-    <rect x="116" y="84" width="88" height="12" rx="4" fill="#2A2A2A" />
-    <rect x="116" y="104" width="60" height="12" rx="4" fill="#2A2A2A" />
-    {/* Accept button */}
-    <rect x="116" y="128" width="88" height="32" rx="10" fill="#00D1B2" />
-    <text x="160" y="148" textAnchor="middle" fontSize="11" fill="#0B0B0B" fontFamily="system-ui" fontWeight="700">Accetta</text>
-    {/* Notification dot */}
-    <circle cx="204" cy="36" r="8" fill="#00D1B2" />
-    <text x="204" y="40" textAnchor="middle" fontSize="9" fill="#0B0B0B" fontFamily="system-ui" fontWeight="700">1</text>
+  <svg viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-xs mx-auto">
+    {/* Telefono */}
+    <rect x="95" y="10" width="110" height="185" rx="20" fill="#0F0F0F" stroke="#2A2A2A" strokeWidth="2"/>
+    <rect x="103" y="22" width="94" height="161" rx="12" fill="#161616"/>
+    {/* Notch */}
+    <rect x="130" y="14" width="40" height="8" rx="4" fill="#0F0F0F"/>
+
+    {/* Status bar */}
+    <text x="113" y="38" fontFamily="system-ui" fontSize="8" fill="#555">09:41</text>
+    <rect x="175" y="31" width="12" height="6" rx="2" fill="#2A2A2A"/>
+    <rect x="175" y="31" width="9" height="6" rx="2" fill="#00D1B2"/>
+
+    {/* Notifica */}
+    <rect x="109" y="48" width="82" height="52" rx="10" fill="#1A1A1A" stroke="#2A2A2A" strokeWidth="1"/>
+    <circle cx="120" cy="60" r="6" fill="#00D1B2" opacity="0.2"/>
+    <circle cx="120" cy="60" r="3" fill="#00D1B2"/>
+    <text x="130" y="58" fontFamily="system-ui" fontSize="8" fontWeight="700" fill="#FFFFFF">Nuova corsa</text>
+    <text x="130" y="68" fontFamily="system-ui" fontSize="7" fill="#A1A1AA">AZ1234 → Palermo</text>
+    <text x="109" y="90" fontFamily="system-ui" fontSize="16" fontWeight="800" fill="#00D1B2">€ 186</text>
+    <text x="165" y="90" fontFamily="system-ui" fontSize="8" fill="#555">guadagno</text>
+
+    {/* Pulsante accetta */}
+    <rect x="109" y="108" width="82" height="28" rx="10" fill="#00D1B2"/>
+    <text x="150" y="126" textAnchor="middle" fontFamily="system-ui" fontSize="11" fontWeight="700" fill="#0B0B0B">Accetta</text>
+
+    {/* Rifiuta */}
+    <text x="150" y="152" textAnchor="middle" fontFamily="system-ui" fontSize="10" fill="#555">Rifiuta</text>
+
+    {/* Home indicator */}
+    <rect x="135" y="172" width="30" height="3" rx="2" fill="#2A2A2A"/>
+
+    {/* Glow esterno */}
+    <ellipse cx="150" cy="100" rx="60" ry="95" stroke="#00D1B2" strokeWidth="0.5" opacity="0.15"/>
   </svg>
 );
 
@@ -123,27 +205,27 @@ const AppIllustration = () => (
 const faqs = [
   {
     q: 'Dove opera Flanvo?',
-    a: 'Flanvo è attivo negli aeroporti di Catania, Palermo, Cagliari, Roma Fiumicino, Milano Malpensa, Milano Orio, Napoli e Bari. Stiamo espandendo in nuovi scali ogni mese.',
+    a: 'Flanvo è attivo negli aeroporti di Catania, Palermo, Cagliari, Roma Fiumicino, Milano Malpensa, Milano Orio al Serio, Napoli e Bari. Stiamo espandendo in nuovi scali ogni mese.',
   },
   {
     q: 'Quali sono i requisiti per guidare con Flanvo?',
-    a: 'Devi avere: patente di guida valida, Certificato di Qualificazione del Conducente (CQC), licenza NCC rilasciata dal comune, assicurazione commerciale e un veicolo in buono stato (sedan, SUV o van).',
+    a: 'Devi avere: patente di guida valida, Certificato di Qualificazione del Conducente (CQC), licenza NCC rilasciata dal comune, assicurazione commerciale per il trasporto di persone e un veicolo in regola con la revisione.',
   },
   {
-    q: 'Come vengo pagato?',
-    a: 'I pagamenti avvengono tramite Stripe Connect direttamente sul tuo conto bancario. Il pagamento viene trasferito entro 2 giorni lavorativi dal drop-off. Non ci sono trattenute nascoste.',
+    q: 'Come vengo pagato e quanto ricevo?',
+    a: 'Ricevi il 100% della tariffa di trasporto (2€/km percorso con passeggeri). Flanvo applica una quota di servizio separata direttamente ai passeggeri — tu non cedi nulla del tuo guadagno. Il pagamento arriva sul tuo conto via Stripe Connect entro 2 giorni lavorativi dal drop-off.',
   },
   {
     q: 'Posso scegliere quali corse accettare?',
-    a: 'Sì. Ricevi una notifica per ogni corsa disponibile nel tuo aeroporto di operatività e decidi tu se accettare. Non ci sono obblighi di turno o penali per i rifiuti.',
+    a: 'Sì, sempre. Ricevi una notifica push per ogni corsa disponibile nel tuo aeroporto di operatività e decidi tu se accettare. Nessun obbligo di turno e nessuna penale per i rifiuti.',
   },
   {
     q: 'Quanti passeggeri trasporto per corsa?',
-    a: "Da 2 a 7 passeggeri dello stesso volo, verso destinazioni simili. L'app raggruppa i passeggeri automaticamente e ottimizza il percorso per massimizzare i tuoi guadagni.",
+    a: "Da 2 a 7 passeggeri dello stesso volo, con destinazioni simili. L'algoritmo raggruppa i passeggeri automaticamente e ottimizza il percorso per massimizzare il tuo guadagno per chilometro.",
   },
   {
-    q: 'Quanto posso guadagnare?',
-    a: 'I guadagni dipendono dalla distanza percorsa (2€/km) e dal numero di passeggeri. Una corsa aeroporto-Palermo con 4 passeggeri può valere oltre 200€. Puoi vedere una stima prima di accettare.',
+    q: 'Quanto posso guadagnare in media?',
+    a: 'Dipende dalla distanza e dal numero di passeggeri. Una corsa Catania–Palermo con 4 passeggeri vale circa 200€. Un driver attivo su Catania può guadagnare tra 1.500€ e 3.500€ al mese, a seconda delle ore lavorate.',
   },
 ];
 
@@ -217,28 +299,28 @@ export default function GuidaConNoiPage() {
             Guadagna di più con ogni corsa
           </h2>
           <p className="text-ink-secondary text-center mb-14 max-w-xl mx-auto">
-            Con Flanvo trasporti più passeggeri per tratta, massimizzando il guadagno per chilometro percorso.
+            Con Flanvo trasporti più passeggeri per tratta. Tu ricevi sempre il <strong className="text-white">100% della tariffa di trasporto</strong> — Flanvo non trattiene nulla dal tuo guadagno.
           </p>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-10">
             <div className="text-center">
               <EarningsIllustration />
-              <h3 className="text-lg font-bold text-white mt-4 mb-2">Guadagna di più</h3>
+              <h3 className="text-lg font-bold text-white mt-5 mb-2">Ricevi il 100% della tariffa</h3>
               <p className="text-ink-secondary text-sm leading-relaxed">
-                Più passeggeri per corsa significa più entrate per ogni chilometro. Una tratta da 50km con 5 passeggeri vale oltre 100€.
+                Guadagni 2€ per ogni km percorso con passeggeri a bordo. Più persone nel van, più guadagni per la stessa tratta. Una Catania–Palermo con 4 pax vale oltre 200€.
               </p>
             </div>
             <div className="text-center">
               <FlexIllustration />
-              <h3 className="text-lg font-bold text-white mt-4 mb-2">Scegli quando guidare</h3>
+              <h3 className="text-lg font-bold text-white mt-5 mb-2">Scegli quando guidare</h3>
               <p className="text-ink-secondary text-sm leading-relaxed">
-                Accetti solo le corse che vuoi. Nessun turno obbligatorio, nessuna penale per i rifiuti. Sei tu il capo.
+                Accetti solo le corse che vuoi. Nessun turno obbligatorio, nessuna penale per i rifiuti. Sei tu il capo del tuo orario.
               </p>
             </div>
             <div className="text-center">
               <AppIllustration />
-              <h3 className="text-lg font-bold text-white mt-4 mb-2">Gestisci tutto dall'app</h3>
+              <h3 className="text-lg font-bold text-white mt-5 mb-2">Gestisci tutto dall'app</h3>
               <p className="text-ink-secondary text-sm leading-relaxed">
-                Ricevi notifiche per le nuove corse nel tuo aeroporto, accetta con un tap e ricevi pagamento automatico al drop-off.
+                Ricevi notifiche per le corse nel tuo aeroporto, accetta con un tap e vedi il guadagno stimato prima di confermare.
               </p>
             </div>
           </div>
@@ -304,19 +386,19 @@ export default function GuidaConNoiPage() {
               {
                 icon: <DollarSign className="w-6 h-6 text-primary-400" />,
                 title: 'Pagamenti sicuri',
-                body: 'Stripe Connect trasferisce i guadagni direttamente sul tuo conto bancario entro 2 giorni lavorativi. Zero contanti, zero rischi.',
-                link: { label: 'Come funzionano i pagamenti', href: '/#prezzi' },
+                body: 'Stripe Connect trasferisce il 100% della tariffa di trasporto direttamente sul tuo conto bancario entro 2 giorni lavorativi. Zero contanti, zero rischi.',
+                link: { label: 'Leggi i termini di pagamento', href: '/terms' },
               },
               {
                 icon: <MessageCircle className="w-6 h-6 text-primary-400" />,
                 title: 'Supporto dedicato',
-                body: 'Il nostro assistente AI è disponibile 24 ore su 24. Per problemi urgenti durante la corsa, hai un canale di supporto prioritario.',
+                body: "Il nostro assistente AI è disponibile 24 ore su 24. Per problemi urgenti durante la corsa, hai un canale di supporto prioritario.",
                 link: null,
               },
               {
                 icon: <Shield className="w-6 h-6 text-primary-400" />,
                 title: 'Passeggeri verificati',
-                body: "Tutti i passeggeri sono registrati e verificati. Sai sempre chi stai trasportando prima di accettare la corsa.",
+                body: "Tutti i passeggeri sono registrati su Flanvo. Sai sempre chi stai trasportando prima di accettare la corsa — nome, numero di passeggeri e destinazione.",
                 link: { label: 'Leggi di più sulla sicurezza', href: '/sicurezza' },
               },
             ].map((item) => (
@@ -370,7 +452,7 @@ export default function GuidaConNoiPage() {
 
       {/* ── BOTTOM CTA ────────────────────────────────── */}
       <div className="sticky bottom-0 bg-[#0B0B0B] border-t border-surface-4 px-6 py-4 flex items-center justify-between gap-4 z-30">
-        <p className="text-sm text-ink-secondary hidden sm:block">Unisciti ai driver partner Flanvo — approva in 48 ore.</p>
+        <p className="text-sm text-ink-secondary hidden sm:block">Approva in 48 ore · 100% della tariffa · Nessun obbligo di turno</p>
         <Link
           href="/driver/signup"
           className="flex items-center gap-2 bg-primary-500 text-[#0B0B0B] px-6 py-3 rounded-xl font-bold text-sm hover:bg-primary-400 transition-all shadow-teal shrink-0 ml-auto"
