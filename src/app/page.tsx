@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Plane, Users, DollarSign, Clock, Shield, Zap, ArrowRight, Star, CheckCircle } from 'lucide-react';
+import HomeFAQ from '@/components/HomeFAQ';
 
 export default function LandingPage() {
   return (
@@ -88,7 +89,7 @@ export default function LandingPage() {
             <>
               {/* Desktop */}
               <div className="hidden md:block relative">
-                <div className="absolute top-6 left-[8%] right-[8%] h-px bg-gradient-to-r from-primary-500/10 via-primary-500/50 to-primary-500" />
+                <div className="absolute top-6 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-primary-500/30 via-primary-500/60 to-primary-500" />
                 <div className="grid grid-cols-4 gap-6">
                   {steps.map((step, i) => (
                     <div key={i} className="flex flex-col items-center text-center px-1">
@@ -154,6 +155,15 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* FAQ passeggeri */}
+      <section className="max-w-3xl mx-auto px-4 py-20">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-bold text-white mb-2">Domande frequenti</h2>
+          <p className="text-ink-secondary text-sm">Tutto quello che vuoi sapere prima di prenotare.</p>
+        </div>
+        <HomeFAQ />
       </section>
 
       {/* CTA */}
