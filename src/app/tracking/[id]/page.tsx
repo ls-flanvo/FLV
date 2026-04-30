@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import TrackingMap from '@/components/TrackingMap';
-import { Phone, MapPin, Clock, Navigation, Car, Star, CheckCircle } from 'lucide-react';
+import { Phone, MapPin, Clock, Navigation, Car, Star, CheckCircle, MessageCircle, AlertTriangle } from 'lucide-react';
 import { formatFlightTime } from '@/lib/time';
 
 interface TrackingData {
@@ -146,7 +146,29 @@ export default function TrackingPage({ params }: { params: { id: string } }) {
               <span className="truncate">{tracking.destination.address}</span>
             </div>
           )}
-          <p className="text-xs text-ink-muted mt-4">Aggiornamento automatico ogni 10s</p>
+
+          {/* Assistenza */}
+          <div className="bg-surface-1 border border-surface-4 rounded-2xl p-4 w-full">
+            <p className="text-xs font-semibold text-ink-muted uppercase tracking-widest mb-3">Hai bisogno di aiuto?</p>
+            <div className="space-y-2">
+              <button
+                onClick={() => window.dispatchEvent(new Event('open-support-chat'))}
+                className="flex items-center gap-3 w-full px-4 py-3 bg-surface-2 border border-surface-5 rounded-xl text-sm font-semibold text-white hover:border-primary-500/30 hover:bg-surface-3 transition-all"
+              >
+                <MessageCircle className="w-4 h-4 text-primary-400 shrink-0" />
+                Contatta il supporto
+              </button>
+              <a
+                href="tel:112"
+                className="flex items-center gap-3 w-full px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/15 transition-all"
+              >
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                Emergenza — Chiama 112
+              </a>
+            </div>
+          </div>
+
+          <p className="text-xs text-ink-muted mt-2">Aggiornamento automatico ogni 10s</p>
         </div>
       </div>
     );
@@ -273,6 +295,27 @@ export default function TrackingPage({ params }: { params: { id: string } }) {
               <div>
                 <p className="text-xs font-semibold text-white">Tracking live</p>
                 <p className="text-xs text-ink-muted">Posizione aggiornata ogni 10s</p>
+              </div>
+            </div>
+
+            {/* Assistenza */}
+            <div className="bg-surface-1 border border-surface-4 rounded-2xl p-4">
+              <p className="text-xs font-semibold text-ink-muted uppercase tracking-widest mb-3">Hai bisogno di aiuto?</p>
+              <div className="space-y-2">
+                <button
+                  onClick={() => window.dispatchEvent(new Event('open-support-chat'))}
+                  className="flex items-center gap-3 w-full px-4 py-3 bg-surface-2 border border-surface-5 rounded-xl text-sm font-semibold text-white hover:border-primary-500/30 hover:bg-surface-3 transition-all"
+                >
+                  <MessageCircle className="w-4 h-4 text-primary-400 shrink-0" />
+                  Contatta il supporto
+                </button>
+                <a
+                  href="tel:112"
+                  className="flex items-center gap-3 w-full px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/15 transition-all"
+                >
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  Emergenza — Chiama 112
+                </a>
               </div>
             </div>
           </div>
