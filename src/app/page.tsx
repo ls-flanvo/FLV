@@ -69,34 +69,65 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* How it works */}
+      {/* How it works — timeline passeggero */}
       <section id="come-funziona" className="max-w-7xl mx-auto px-4 py-20">
         <div className="text-center mb-14">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Come funziona</h2>
-          <p className="text-ink-secondary">Tre passi. Nessuna sorpresa.</p>
+          <p className="text-ink-secondary">Dalla ricerca al drop-off — zero sorprese.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            { icon: Plane, step: '01', title: 'Inserisci il tuo volo', desc: 'Digita il codice volo e la tua destinazione. L\'app rileva automaticamente l\'aeroporto.' },
-            { icon: Users, step: '02', title: 'Trova compagni', desc: 'Il nostro algoritmo DBSCAN raggruppa i passeggeri con destinazioni simili in tempo reale.' },
-            { icon: DollarSign, step: '03', title: 'Condividi i costi', desc: 'Il prezzo si divide proporzionalmente alla distanza. Paghi solo per il tuo tratto.' },
-          ].map(({ icon: Icon, step, title, desc }) => (
-            <div key={step} className="bg-surface-1 border border-surface-4 rounded-2xl p-6 bg-card-gradient hover:border-surface-5 transition-all group">
-              <div className="flex items-start gap-4">
-                <div className="shrink-0">
-                  <div className="w-10 h-10 bg-primary-500/10 border border-primary-500/20 rounded-xl flex items-center justify-center group-hover:bg-primary-500/20 transition-all">
-                    <Icon className="w-5 h-5 text-primary-400" />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs font-mono text-ink-muted mb-1">{step}</p>
-                  <h3 className="font-bold text-white mb-2">{title}</h3>
-                  <p className="text-ink-secondary text-sm leading-relaxed">{desc}</p>
+
+        {(() => {
+          const steps = [
+            { n: '1', title: 'Inserisci il volo',        body: 'Digita il codice volo e la tua destinazione. Il sistema rileva l\'aeroporto automaticamente.' },
+            { n: '2', title: 'Il gruppo si forma',        body: 'L\'algoritmo trova i passeggeri del tuo stesso volo diretti nella stessa zona.' },
+            { n: '3', title: 'Conferma e pre-autorizza',  body: 'Blocchi il posto nel gruppo. Nessun addebito ora — paghi solo al drop-off.' },
+            { n: '4', title: 'Driver assegnato',          body: 'Ricevi nome, veicolo e orario di incontro. Chat live disponibile con il driver.' },
+            { n: '5', title: 'Ritiro in aeroporto',       body: 'Il driver ti aspetta al punto Flanvo dell\'aeroporto dopo il ritiro bagagli.' },
+            { n: '6', title: 'Drop-off a destinazione',   body: 'Arrivi a casa. Solo in questo momento viene addebitato il tuo prezzo finale.' },
+          ];
+          const last = steps.length - 1;
+          return (
+            <>
+              {/* Desktop */}
+              <div className="hidden md:block relative">
+                <div className="absolute top-6 left-[8%] right-[8%] h-px bg-gradient-to-r from-primary-500/10 via-primary-500/50 to-primary-500" />
+                <div className="grid grid-cols-6 gap-4">
+                  {steps.map((step, i) => (
+                    <div key={i} className="flex flex-col items-center text-center px-1">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 relative z-10 border-2 shrink-0 ${
+                        i === last ? 'bg-primary-500 border-primary-500' : 'bg-surface-2 border-surface-5'
+                      }`}>
+                        <span className={`text-sm font-bold ${i === last ? 'text-[#0B0B0B]' : 'text-primary-400'}`}>{step.n}</span>
+                      </div>
+                      <h4 className="text-xs font-bold text-white mb-1.5 leading-snug">{step.title}</h4>
+                      <p className="text-[11px] text-ink-muted leading-relaxed">{step.body}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+
+              {/* Mobile */}
+              <div className="md:hidden relative pl-8">
+                <div className="absolute left-3 top-2 bottom-2 w-px bg-gradient-to-b from-primary-500/20 via-primary-500/50 to-primary-500" />
+                <div className="space-y-7">
+                  {steps.map((step, i) => (
+                    <div key={i} className="flex items-start gap-4">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 -ml-4 relative z-10 ${
+                        i === last ? 'bg-primary-500 border-primary-500' : 'bg-surface-2 border-surface-5'
+                      }`}>
+                        <span className={`text-xs font-bold ${i === last ? 'text-[#0B0B0B]' : 'text-primary-400'}`}>{step.n}</span>
+                      </div>
+                      <div className="pb-1">
+                        <h4 className="text-sm font-bold text-white mb-1">{step.title}</h4>
+                        <p className="text-xs text-ink-muted leading-relaxed">{step.body}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          );
+        })()}
       </section>
 
       {/* Why Flanvo */}
