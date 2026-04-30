@@ -35,8 +35,8 @@ const columns: FooterColumn[] = [
       { label: 'Viaggia', href: '/flight-search' },
       { label: 'Come funziona', href: '/#come-funziona' },
       { label: 'Cerca una corsa', href: '/flight-search' },
-      { label: 'Aeroporti serviti', href: '/#aeroporti' },
-      { label: 'Prezzi', href: '/#prezzi' },
+      { label: 'Aeroporti serviti', href: '/aeroporti' },
+      { label: 'Prezzi', href: '/prezzi' },
     ],
   },
   {
