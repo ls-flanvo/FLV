@@ -73,17 +73,15 @@ export default function LandingPage() {
       <section id="come-funziona" className="max-w-7xl mx-auto px-4 py-20">
         <div className="text-center mb-14">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Come funziona</h2>
-          <p className="text-ink-secondary">Dalla ricerca al drop-off — zero sorprese.</p>
+          <p className="text-ink-secondary">Dalla ricerca al drop-off. Paghi solo i km percorsi con te a bordo.</p>
         </div>
 
         {(() => {
           const steps = [
-            { n: '1', title: 'Inserisci il volo',        body: 'Digita il codice volo e la tua destinazione. Il sistema rileva l\'aeroporto automaticamente.' },
-            { n: '2', title: 'Il gruppo si forma',        body: 'L\'algoritmo trova i passeggeri del tuo stesso volo diretti nella stessa zona.' },
-            { n: '3', title: 'Conferma e pre-autorizza',  body: 'Blocchi il posto nel gruppo. Nessun addebito ora — paghi solo al drop-off.' },
-            { n: '4', title: 'Driver assegnato',          body: 'Ricevi nome, veicolo e orario di incontro. Chat live disponibile con il driver.' },
-            { n: '5', title: 'Ritiro in aeroporto',       body: 'Il driver ti aspetta al punto Flanvo dell\'aeroporto dopo il ritiro bagagli.' },
-            { n: '6', title: 'Drop-off a destinazione',   body: 'Arrivi a casa. Solo in questo momento viene addebitato il tuo prezzo finale.' },
+            { n: '1', title: 'Cerca la tua corsa',    body: 'Inserisci il codice volo e la destinazione. L\'algoritmo trova i passeggeri del tuo stesso volo diretti nella tua zona.' },
+            { n: '2', title: 'Conferma il posto',      body: 'Blocchi il posto nel gruppo con una pre-autorizzazione. Nessun addebito ora — paghi solo a destinazione.' },
+            { n: '3', title: 'Il driver ti aspetta',   body: 'Ricevi nome, veicolo e orario di incontro. Il driver ti aspetta al punto Flanvo dopo il ritiro bagagli. Chat live disponibile.' },
+            { n: '4', title: 'Drop-off e pagamento',   body: 'Arrivi a destinazione. Viene addebitato solo il tuo prezzo, calcolato sui chilometri effettivamente percorsi con te a bordo.' },
           ];
           const last = steps.length - 1;
           return (
@@ -91,7 +89,7 @@ export default function LandingPage() {
               {/* Desktop */}
               <div className="hidden md:block relative">
                 <div className="absolute top-6 left-[8%] right-[8%] h-px bg-gradient-to-r from-primary-500/10 via-primary-500/50 to-primary-500" />
-                <div className="grid grid-cols-6 gap-4">
+                <div className="grid grid-cols-4 gap-6">
                   {steps.map((step, i) => (
                     <div key={i} className="flex flex-col items-center text-center px-1">
                       <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 relative z-10 border-2 shrink-0 ${
