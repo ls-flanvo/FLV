@@ -17,7 +17,6 @@ interface FooterLink {
 
 interface FooterColumn {
   title: string;
-  sub?: string;
   links: FooterLink[];
 }
 
@@ -32,8 +31,8 @@ const columns: FooterColumn[] = [
   },
   {
     title: 'Prodotti',
-    sub: 'Viaggia',
     links: [
+      { label: 'Viaggia', href: '/flight-search' },
       { label: 'Come funziona', href: '/#come-funziona' },
       { label: 'Cerca una corsa', href: '/flight-search' },
       { label: 'Aeroporti serviti', href: '/#aeroporti' },
@@ -97,9 +96,6 @@ export default function Footer() {
             <p className="text-xs font-semibold text-ink-muted uppercase tracking-widest mb-4">
               {col.title}
             </p>
-            {col.sub && (
-              <p className="text-sm font-semibold text-white mb-2">{col.sub}</p>
-            )}
             <ul className="space-y-2.5">
               {col.links.map((link) => (
                 <li key={link.label}>
