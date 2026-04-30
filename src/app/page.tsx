@@ -18,7 +18,7 @@ export default function LandingPage() {
             <span className="text-gradient">condiviso.</span>
           </h1>
           <p className="text-xl text-ink-secondary mb-10 max-w-2xl mx-auto leading-relaxed">
-            Flanvo raggruppa i passeggeri dello stesso volo verso destinazioni simili.{' '}
+            Atterri. Flanvo ha già raggruppato i passeggeri del tuo volo verso destinazioni simili alla tua.{' '}
             <strong className="text-white">Stesso van, meno spesa.</strong>
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
