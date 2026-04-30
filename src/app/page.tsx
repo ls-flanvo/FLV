@@ -79,9 +79,9 @@ export default function LandingPage() {
 
         {(() => {
           const steps = [
-            { n: '1', title: 'Cerca la tua corsa',    body: 'Inserisci il codice volo e la destinazione. L\'algoritmo trova i passeggeri del tuo stesso volo diretti nella tua zona.' },
+            { n: '1', title: 'Cerca la tua corsa',    body: 'Inserisci il codice volo e la destinazione che vuoi raggiungere una volta atterrato. L\'algoritmo trova i passeggeri del tuo stesso volo diretti nella tua zona.' },
             { n: '2', title: 'Conferma il posto',      body: 'Blocchi il posto nel gruppo con una pre-autorizzazione. Nessun addebito ora — paghi solo a destinazione.' },
-            { n: '3', title: 'Il driver ti aspetta',   body: 'Ricevi nome, veicolo e orario di incontro. Il driver ti aspetta al punto Flanvo dopo il ritiro bagagli. Chat live disponibile.' },
+            { n: '3', title: 'Il driver ti aspetta',   body: 'Atterri e ricevi nome, veicolo e orario di incontro. Il driver ti aspetta al punto Flanvo dopo il ritiro bagagli. Chat live disponibile.' },
             { n: '4', title: 'Drop-off e pagamento',   body: 'Arrivi a destinazione. Viene addebitato solo il tuo prezzo, calcolato sui chilometri effettivamente percorsi con te a bordo.' },
           ];
           const last = steps.length - 1;
