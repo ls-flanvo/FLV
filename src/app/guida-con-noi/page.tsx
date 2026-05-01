@@ -399,40 +399,40 @@ export default function GuidaConNoiPage() {
             const last = steps.length - 1;
             return (
               <>
-                {/* Desktop: orizzontale scrollabile */}
+                {/* Desktop */}
                 <div className="hidden md:block overflow-x-auto pb-2">
                   <div className="relative">
-                    <div className="absolute top-6 left-[8%] right-[8%] h-px bg-gradient-to-r from-primary-500/10 via-primary-500/50 to-primary-500" />
+                    <div className="absolute top-8 left-[8%] right-[8%] h-0.5 bg-gradient-to-r from-surface-4 via-primary-500/50 to-primary-500" />
                     <div className="grid grid-cols-6 gap-4">
                       {steps.map((step, i) => (
                         <div key={i} className="flex flex-col items-center text-center px-1">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 relative z-10 border-2 shrink-0 ${
-                            i === last ? 'bg-primary-500 border-primary-500' : 'bg-surface-2 border-surface-5'
+                          <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-5 relative z-10 border-2 shrink-0 shadow-lg ${
+                            i === last ? 'bg-primary-500 border-primary-500 shadow-teal' : 'bg-surface-2 border-primary-500/30'
                           }`}>
-                            <span className={`text-sm font-bold ${i === last ? 'text-[#0B0B0B]' : 'text-primary-400'}`}>{step.n}</span>
+                            <span className={`text-xl font-black ${i === last ? 'text-[#0B0B0B]' : 'text-primary-400'}`}>{step.n}</span>
                           </div>
-                          <h4 className="text-xs font-bold text-white mb-1.5 leading-snug">{step.title}</h4>
-                          <p className="text-[11px] text-ink-muted leading-relaxed">{step.body}</p>
+                          <h4 className="text-sm font-bold text-white mb-2 leading-snug">{step.title}</h4>
+                          <p className="text-xs text-ink-muted leading-relaxed">{step.body}</p>
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
 
-                {/* Mobile: verticale */}
-                <div className="md:hidden relative pl-8">
-                  <div className="absolute left-3 top-2 bottom-2 w-px bg-gradient-to-b from-primary-500/20 via-primary-500/50 to-primary-500" />
-                  <div className="space-y-7">
+                {/* Mobile */}
+                <div className="md:hidden relative pl-10">
+                  <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-gradient-to-b from-surface-4 via-primary-500/50 to-primary-500" />
+                  <div className="space-y-8">
                     {steps.map((step, i) => (
-                      <div key={i} className="flex items-start gap-4">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 -ml-4 relative z-10 ${
-                          i === last ? 'bg-primary-500 border-primary-500' : 'bg-surface-2 border-surface-5'
+                      <div key={i} className="flex items-start gap-5">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 -ml-5 relative z-10 ${
+                          i === last ? 'bg-primary-500 border-primary-500' : 'bg-surface-2 border-primary-500/30'
                         }`}>
-                          <span className={`text-xs font-bold ${i === last ? 'text-[#0B0B0B]' : 'text-primary-400'}`}>{step.n}</span>
+                          <span className={`text-sm font-black ${i === last ? 'text-[#0B0B0B]' : 'text-primary-400'}`}>{step.n}</span>
                         </div>
-                        <div className="pb-1">
-                          <h4 className="text-sm font-bold text-white mb-1">{step.title}</h4>
-                          <p className="text-xs text-ink-muted leading-relaxed">{step.body}</p>
+                        <div className="pb-1 pt-1">
+                          <h4 className="text-base font-bold text-white mb-1.5">{step.title}</h4>
+                          <p className="text-sm text-ink-muted leading-relaxed">{step.body}</p>
                         </div>
                       </div>
                     ))}
@@ -444,118 +444,131 @@ export default function GuidaConNoiPage() {
         </div>
       </section>
 
-      {/* ── COME INIZIARE ─────────────────────────────── */}
-      <section className="py-20">
+      {/* ── COME INIZIARE — bento ─────────────────────── */}
+      <section className="py-24">
         <div className="max-w-5xl mx-auto px-6">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Pronto a iniziare?</h2>
           <p className="text-ink-secondary mb-12">Tre passi per diventare driver partner Flanvo.</p>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                n: '01',
-                icon: <Car className="w-6 h-6 text-primary-400" />,
-                title: 'Registrati online',
-                body: 'Compila il modulo con i dati del tuo veicolo e i tuoi documenti. Il processo richiede meno di 5 minuti.',
-                cta: { label: 'Registrati', href: '/driver/signup' },
-              },
-              {
-                n: '02',
-                icon: <Shield className="w-6 h-6 text-primary-400" />,
-                title: 'Verifica requisiti',
-                body: 'Il team Flanvo controlla licenza NCC, CQC e assicurazione commerciale. Ricevi risposta entro 48 ore.',
-                cta: null,
-              },
-              {
-                n: '03',
-                icon: <CheckCircle className="w-6 h-6 text-primary-400" />,
-                title: 'Accetta le tue prime corse',
-                body: 'Una volta approvato, ricevi notifiche per le corse disponibili nel tuo aeroporto e inizia a guadagnare.',
-                cta: null,
-              },
-            ].map((step) => (
-              <div key={step.n} className="bg-surface-1 border border-surface-4 rounded-2xl p-6 bg-card-gradient">
-                <div className="flex items-start gap-4 mb-4">
-                  <span className="text-xs font-mono text-ink-muted">{step.n}</span>
-                  <div className="w-10 h-10 bg-primary-500/10 border border-primary-500/20 rounded-xl flex items-center justify-center shrink-0">
-                    {step.icon}
-                  </div>
-                </div>
-                <h3 className="font-bold text-white mb-2">{step.title}</h3>
-                <p className="text-ink-secondary text-sm leading-relaxed mb-4">{step.body}</p>
-                {step.cta && (
-                  <Link href={step.cta.href} className="text-sm font-semibold text-primary-400 hover:text-primary-300 transition-colors underline underline-offset-4">
-                    {step.cta.label} →
-                  </Link>
-                )}
+          <div className="grid md:grid-cols-6 gap-4">
+            {/* Step 01 — featured */}
+            <div className="md:col-span-3 bg-gradient-to-br from-primary-500/15 via-primary-500/8 to-transparent border border-primary-500/25 rounded-3xl p-8 relative overflow-hidden group hover:border-primary-500/40 transition-all">
+              <span className="text-6xl font-black text-primary-500/20 absolute top-4 right-6 leading-none">01</span>
+              <div className="w-14 h-14 bg-primary-500/15 border border-primary-500/25 rounded-2xl flex items-center justify-center mb-6">
+                <Car className="w-7 h-7 text-primary-400" />
               </div>
-            ))}
+              <h3 className="text-xl font-bold text-white mb-2">Registrati online</h3>
+              <p className="text-ink-secondary text-sm leading-relaxed mb-6">Compila il modulo con i dati del tuo veicolo e i tuoi documenti. Il processo richiede meno di 5 minuti.</p>
+              <Link href="/driver/signup" className="inline-flex items-center gap-2 bg-primary-500 text-[#0B0B0B] px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-primary-400 transition-all">
+                Inizia ora →
+              </Link>
+            </div>
+            {/* Step 02 */}
+            <div className="md:col-span-3 bg-surface-2 border border-surface-5 rounded-3xl p-8 relative overflow-hidden group hover:border-primary-500/20 transition-all">
+              <span className="text-6xl font-black text-surface-4 absolute top-4 right-6 leading-none">02</span>
+              <div className="w-14 h-14 bg-surface-3 border border-surface-5 rounded-2xl flex items-center justify-center mb-6">
+                <Shield className="w-7 h-7 text-primary-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Verifica documenti</h3>
+              <p className="text-ink-secondary text-sm leading-relaxed">Il team Flanvo controlla licenza NCC, CQC e assicurazione commerciale. Ricevi risposta entro 48 ore lavorative.</p>
+              <div className="mt-5 inline-flex items-center gap-2 bg-warning/10 border border-warning/20 rounded-xl px-4 py-2 text-xs font-semibold text-warning">
+                ⏱ Risposta entro 48 ore
+              </div>
+            </div>
+            {/* Step 03 — wide */}
+            <div className="md:col-span-6 bg-surface-2 border border-surface-5 rounded-3xl p-8 flex flex-col md:flex-row items-center gap-6 group hover:border-primary-500/20 transition-all">
+              <span className="text-8xl font-black text-surface-4 leading-none hidden md:block">03</span>
+              <div className="w-14 h-14 bg-success/10 border border-success/20 rounded-2xl flex items-center justify-center shrink-0">
+                <CheckCircle className="w-7 h-7 text-success" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">Accetta le tue prime corse</h3>
+                <p className="text-ink-secondary text-sm leading-relaxed">Una volta approvato, ricevi notifiche per le corse disponibili nel tuo aeroporto. Accetti solo quelle che vuoi — nessun obbligo di turno.</p>
+              </div>
+              <div className="ml-auto shrink-0 hidden md:flex flex-col gap-2">
+                {['Nessun obbligo di turno', '100% della tariffa', 'Pagamento in 48h'].map(t => (
+                  <div key={t} className="flex items-center gap-2 text-xs text-success">
+                    <CheckCircle className="w-3.5 h-3.5" />{t}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── COSA OFFRIAMO ─────────────────────────────── */}
-      <section className="bg-surface-1 border-t border-surface-4 py-20">
+      {/* ── COSA OFFRIAMO — bento ─────────────────────── */}
+      <section className="bg-surface-1 border-t border-surface-4 py-24">
         <div className="max-w-5xl mx-auto px-6">
           <h2 className="text-3xl font-bold text-white mb-3">Cosa offriamo ai driver partner</h2>
           <p className="text-ink-secondary mb-12">Il supporto di cui hai bisogno, quando ne hai bisogno.</p>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                icon: <DollarSign className="w-6 h-6 text-primary-400" />,
-                title: 'Pagamenti sicuri',
-                body: 'Stripe Connect trasferisce il 100% della tariffa di trasporto direttamente sul tuo conto bancario entro 2 giorni lavorativi. Zero contanti, zero rischi.',
-                link: { label: 'Leggi i termini di pagamento', href: '/terms' },
-              },
-              {
-                icon: <MessageCircle className="w-6 h-6 text-primary-400" />,
-                title: 'Supporto dedicato',
-                body: "Il nostro assistente AI è disponibile 24 ore su 24. Per problemi urgenti durante la corsa, hai un canale di supporto prioritario.",
-                link: null,
-              },
-              {
-                icon: <Shield className="w-6 h-6 text-primary-400" />,
-                title: 'Passeggeri verificati',
-                body: "Tutti i passeggeri sono registrati su Flanvo. Sai sempre chi stai trasportando prima di accettare la corsa — nome, numero di passeggeri e destinazione.",
-                link: { label: 'Leggi di più sulla sicurezza', href: '/sicurezza' },
-              },
-            ].map((item) => (
-              <div key={item.title} className="bg-surface-2 border border-surface-5 rounded-2xl p-6 hover:border-surface-4 transition-all">
-                <div className="w-12 h-12 bg-primary-500/10 rounded-xl flex items-center justify-center mb-5">
-                  {item.icon}
-                </div>
-                <h3 className="font-bold text-white mb-2">{item.title}</h3>
-                <p className="text-ink-secondary text-sm leading-relaxed mb-4">{item.body}</p>
-                {item.link && (
-                  <Link href={item.link.href} className="text-sm font-semibold text-primary-400 hover:text-primary-300 transition-colors underline underline-offset-4">
-                    {item.link.label}
-                  </Link>
-                )}
+          <div className="grid md:grid-cols-6 gap-4">
+            {/* Featured — Pagamenti */}
+            <div className="md:col-span-4 bg-gradient-to-br from-primary-500/15 via-primary-500/8 to-transparent border border-primary-500/25 rounded-3xl p-8 group hover:border-primary-500/40 transition-all">
+              <p className="text-6xl font-black text-primary-400 mb-1 leading-none">100%</p>
+              <p className="text-xs font-semibold text-primary-400/60 uppercase tracking-widest mb-4">della tariffa a te</p>
+              <h3 className="text-xl font-bold text-white mb-2">Pagamenti diretti e sicuri</h3>
+              <p className="text-ink-secondary text-sm leading-relaxed mb-5">Stripe Connect trasferisce l&apos;intera tariffa di trasporto direttamente sul tuo conto bancario entro 2 giorni lavorativi dall&apos;accettazione della corsa. Zero contanti, zero rischi, zero commissioni.</p>
+              <Link href="/terms" className="text-sm font-semibold text-primary-400 hover:text-primary-300 transition-colors">
+                Leggi i termini di pagamento →
+              </Link>
+            </div>
+            {/* Meno no-show */}
+            <div className="md:col-span-2 bg-surface-2 border border-surface-5 rounded-3xl p-6 group hover:border-primary-500/20 transition-all">
+              <div className="text-3xl font-black text-primary-400 mb-1">-80%</div>
+              <p className="text-xs text-ink-muted mb-4">no-show vs metodo tradizionale</p>
+              <h3 className="font-bold text-white mb-2">Meno no-show</h3>
+              <p className="text-ink-muted text-sm">Il passeggero paga prima di salire. Se non si presenta, sei comunque compensato.</p>
+            </div>
+            {/* Supporto */}
+            <div className="md:col-span-3 bg-surface-2 border border-surface-5 rounded-3xl p-6 group hover:border-primary-500/20 transition-all">
+              <div className="w-12 h-12 bg-primary-500/10 rounded-2xl flex items-center justify-center mb-5">
+                <MessageCircle className="w-6 h-6 text-primary-400" />
               </div>
-            ))}
+              <h3 className="font-bold text-white mb-2">Supporto 24/7</h3>
+              <p className="text-ink-secondary text-sm leading-relaxed">Assistente AI sempre disponibile. Canale prioritario per emergenze durante la corsa.</p>
+            </div>
+            {/* Passeggeri verificati */}
+            <div className="md:col-span-3 bg-surface-2 border border-surface-5 rounded-3xl p-6 group hover:border-primary-500/20 transition-all">
+              <div className="w-12 h-12 bg-primary-500/10 rounded-2xl flex items-center justify-center mb-5">
+                <Shield className="w-6 h-6 text-primary-400" />
+              </div>
+              <h3 className="font-bold text-white mb-2">Passeggeri verificati</h3>
+              <p className="text-ink-secondary text-sm leading-relaxed">Sai sempre chi stai trasportando — nome, destinazione e numero di bagagli prima di accettare.</p>
+              <Link href="/sicurezza" className="mt-4 inline-block text-sm font-semibold text-primary-400 hover:text-primary-300 transition-colors">
+                Sicurezza Flanvo →
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── REQUISITI ─────────────────────────────────── */}
-      <section className="py-20">
+      {/* ── REQUISITI — visual cards ───────────────────── */}
+      <section className="py-24">
         <div className="max-w-5xl mx-auto px-6">
           <h2 className="text-3xl font-bold text-white mb-3">Requisiti per guidare</h2>
-          <p className="text-ink-secondary mb-10">Flanvo opera nel settore NCC regolamentato.</p>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <p className="text-ink-secondary mb-10">Flanvo opera nel settore NCC regolamentato. Tutti i requisiti sono obbligatori.</p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
-              'Licenza NCC (Noleggio con Conducente) rilasciata dal comune',
-              'Certificato di Qualificazione del Conducente (CQC) in corso di validità',
-              'Assicurazione commerciale per il trasporto di persone',
-              'Veicolo con revisione valida (sedan, SUV o van — max 7 posti)',
-              'Smartphone Android o iOS per gestire le corse',
-              'Conto bancario italiano per i pagamenti Stripe Connect',
+              { icon: '🪪', label: 'Documento', title: 'Licenza NCC', desc: 'Rilasciata dal comune di residenza o operatività' },
+              { icon: '📋', label: 'Certificazione', title: 'CQC in validità', desc: 'Certificato di Qualificazione del Conducente' },
+              { icon: '🛡️', label: 'Assicurazione', title: 'Polizza commerciale', desc: 'Per il trasporto di persone a titolo oneroso' },
+              { icon: '🚐', label: 'Veicolo', title: 'Auto o van revisionato', desc: 'Sedan, SUV o van — max 7 posti passeggeri' },
+              { icon: '📱', label: 'Tecnologia', title: 'Smartphone', desc: 'Android o iOS per gestire notifiche e corse' },
+              { icon: '🏦', label: 'Pagamenti', title: 'Conto bancario IT', desc: 'Per ricevere i pagamenti via Stripe Connect' },
             ].map((req) => (
-              <div key={req} className="flex items-start gap-3 bg-surface-1 border border-surface-4 rounded-xl px-4 py-3">
-                <CheckCircle className="w-4 h-4 text-primary-400 shrink-0 mt-0.5" />
-                <span className="text-sm text-ink-secondary">{req}</span>
+              <div key={req.title} className="bg-surface-1 border border-surface-4 rounded-2xl p-5 hover:border-primary-500/20 hover:bg-surface-2 transition-all group">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-2xl">{req.icon}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">{req.label}</span>
+                </div>
+                <h3 className="font-bold text-white mb-1">{req.title}</h3>
+                <p className="text-ink-muted text-sm">{req.desc}</p>
               </div>
             ))}
           </div>
+          <p className="text-xs text-ink-muted mt-6 text-center">
+            Hai dubbi su un requisito? <Link href="/guida-con-noi#faq" className="text-primary-400 hover:text-primary-300">Leggi le FAQ →</Link>
+          </p>
         </div>
       </section>
 

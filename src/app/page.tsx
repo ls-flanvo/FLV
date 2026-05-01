@@ -17,7 +17,7 @@ export default function LandingPage() {
               src="/images/hero-airplane.jpg"
               alt=""
               fill
-              className="object-cover object-center opacity-75"
+              className="object-cover object-center opacity-85"
               priority
             />
             {/* Sfumatura verso destra — si dissolve al centro */}
@@ -30,7 +30,7 @@ export default function LandingPage() {
               src="/images/hero-group-driver.jpg"
               alt=""
               fill
-              className="object-cover object-center opacity-75"
+              className="object-cover object-center opacity-85"
               priority
             />
             {/* Sfumatura verso sinistra — si dissolve al centro */}
@@ -177,7 +177,6 @@ export default function LandingPage() {
               <p className="text-xs font-semibold text-primary-400/60 uppercase tracking-widest mb-4">di risparmio medio</p>
               <h3 className="text-xl font-bold text-white mb-2">Risparmia su ogni viaggio</h3>
               <p className="text-ink-secondary text-sm leading-relaxed">Riduci i costi del trasporto aeroportuale rispetto a taxi e NCC privati. Più siete, meno paga ognuno.</p>
-              <DollarSign className="absolute bottom-6 right-6 w-28 h-28 text-primary-500/8 group-hover:text-primary-500/15 transition-all" />
             </div>
 
             {/* Card 2 — Sicurezza (3 col) */}
