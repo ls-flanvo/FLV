@@ -11,29 +11,29 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-hero-gradient pointer-events-none" />
 
         {/* Immagine 5 — aereo, lato sinistro */}
-        <div className="absolute left-0 top-0 bottom-0 w-[28%] pointer-events-none hidden md:block">
+        <div className="absolute left-0 top-0 bottom-0 w-[32%] pointer-events-none hidden lg:block">
           <Image
             src="/images/hero-airplane.jpg"
             alt=""
             fill
-            className="object-cover object-right opacity-35"
+            className="object-cover object-center opacity-60"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0B0B0B]/20 via-transparent to-[#0B0B0B]" />
-          <div className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-r from-transparent to-[#0B0B0B]" />
+          {/* Sfumatura solo verso il centro — morbida */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-[#0B0B0B]" />
         </div>
 
         {/* Immagine 6 — gruppo + driver, lato destro */}
-        <div className="absolute right-0 top-0 bottom-0 w-[28%] pointer-events-none hidden md:block">
+        <div className="absolute right-0 top-0 bottom-0 w-[32%] pointer-events-none hidden lg:block">
           <Image
             src="/images/hero-group-driver.jpg"
             alt=""
             fill
-            className="object-cover object-left opacity-35"
+            className="object-cover object-center opacity-60"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-l from-[#0B0B0B]/20 via-transparent to-[#0B0B0B]" />
-          <div className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-l from-transparent to-[#0B0B0B]" />
+          {/* Sfumatura solo verso il centro — morbida */}
+          <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-[#0B0B0B]" />
         </div>
 
         <div className="relative">
