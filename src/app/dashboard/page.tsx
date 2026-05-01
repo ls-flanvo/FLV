@@ -93,10 +93,11 @@ export default function DashboardPage() {
           )}
         </div>
         {hasBookings && (
-          <Link href="/flight-search">
-            <button className="flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all text-sm shadow-teal">
-              <Plus className="w-4 h-4" /> Nuova corsa
-            </button>
+          <Link
+            href="/flight-search"
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all text-sm shadow-teal"
+          >
+            <Plus className="w-4 h-4" /> Nuova corsa
           </Link>
         )}
       </div>
@@ -130,15 +131,16 @@ export default function DashboardPage() {
           </p>
 
           {/* Main CTA */}
-          <Link href="/flight-search">
-            <button className="flex items-center gap-3 px-8 py-4 bg-primary-500 text-[#0B0B0B] font-bold text-lg rounded-2xl hover:bg-primary-400 active:scale-[0.98] transition-all shadow-teal mb-4">
-              Cerca la mia corsa <ArrowRight className="w-5 h-5" />
-            </button>
+          <Link
+            href="/flight-search"
+            className="flex items-center gap-3 px-8 py-4 bg-primary-500 text-[#0B0B0B] font-bold text-lg rounded-2xl hover:bg-primary-400 active:scale-[0.98] transition-all shadow-teal mb-4"
+          >
+            Cerca la mia corsa <ArrowRight className="w-5 h-5" />
           </Link>
 
           {/* Mini how-it-works */}
           <div className="flex items-center gap-6 mt-6 text-xs text-ink-muted">
-            {['Codice volo', '→', 'Trova compagni', '→', 'Paga all\'arrivo'].map((s, i) => (
+            {['Codice volo', '→', 'Trova compagni', '→', 'Paghi all\'accettazione'].map((s, i) => (
               <span key={i} className={s === '→' ? 'text-surface-5' : ''}>{s}</span>
             ))}
           </div>
