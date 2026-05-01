@@ -465,6 +465,52 @@ export default function GuidaConNoiPage() {
         </div>
       </section>
 
+      {/* ── COSA OFFRIAMO — bento ─────────────────────── */}
+      <section className="bg-surface-1 border-t border-surface-4 py-24">
+        <div className="max-w-5xl mx-auto px-6">
+          <h2 className="text-3xl font-bold text-white mb-3">Cosa offriamo ai driver partner</h2>
+          <p className="text-ink-secondary mb-12">Il supporto di cui hai bisogno, quando ne hai bisogno.</p>
+          <div className="grid md:grid-cols-6 gap-4">
+            {/* Featured — Pagamenti */}
+            <div className="md:col-span-4 bg-gradient-to-br from-primary-500/15 via-primary-500/8 to-transparent border border-primary-500/25 rounded-3xl p-8 group hover:border-primary-500/40 transition-all">
+              <p className="text-6xl font-black text-primary-400 mb-1 leading-none">100%</p>
+              <p className="text-xs font-semibold text-primary-400/60 uppercase tracking-widest mb-4">della tariffa a te</p>
+              <h3 className="text-xl font-bold text-white mb-2">Pagamenti diretti e sicuri</h3>
+              <p className="text-ink-secondary text-sm leading-relaxed mb-5">Stripe Connect trasferisce l&apos;intera tariffa di trasporto direttamente sul tuo conto bancario entro 2 giorni lavorativi dall&apos;accettazione della corsa. Zero contanti, zero rischi, zero commissioni.</p>
+              <Link href="/terms" className="text-sm font-semibold text-primary-400 hover:text-primary-300 transition-colors">
+                Leggi i termini di pagamento →
+              </Link>
+            </div>
+            {/* Meno no-show */}
+            <div className="md:col-span-2 bg-surface-2 border border-surface-5 rounded-3xl p-6 group hover:border-primary-500/20 transition-all">
+              <div className="text-3xl font-black text-primary-400 mb-1">-80%</div>
+              <p className="text-xs text-ink-muted mb-4">no-show vs metodo tradizionale</p>
+              <h3 className="font-bold text-white mb-2">Meno no-show</h3>
+              <p className="text-ink-muted text-sm">Il passeggero paga prima di salire. Se non si presenta, sei comunque compensato.</p>
+            </div>
+            {/* Supporto */}
+            <div className="md:col-span-3 bg-surface-2 border border-surface-5 rounded-3xl p-6 group hover:border-primary-500/20 transition-all">
+              <div className="w-12 h-12 bg-primary-500/10 rounded-2xl flex items-center justify-center mb-5">
+                <MessageCircle className="w-6 h-6 text-primary-400" />
+              </div>
+              <h3 className="font-bold text-white mb-2">Supporto 24/7</h3>
+              <p className="text-ink-secondary text-sm leading-relaxed">Assistente AI sempre disponibile. Canale prioritario per emergenze durante la corsa.</p>
+            </div>
+            {/* Passeggeri verificati */}
+            <div className="md:col-span-3 bg-surface-2 border border-surface-5 rounded-3xl p-6 group hover:border-primary-500/20 transition-all">
+              <div className="w-12 h-12 bg-primary-500/10 rounded-2xl flex items-center justify-center mb-5">
+                <Shield className="w-6 h-6 text-primary-400" />
+              </div>
+              <h3 className="font-bold text-white mb-2">Passeggeri verificati</h3>
+              <p className="text-ink-secondary text-sm leading-relaxed">Sai sempre chi stai trasportando — nome, destinazione e numero di bagagli prima di accettare.</p>
+              <Link href="/sicurezza" className="mt-4 inline-block text-sm font-semibold text-primary-400 hover:text-primary-300 transition-colors">
+                Sicurezza Flanvo →
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── COME INIZIARE — bento ─────────────────────── */}
       <section className="py-24">
         <div className="max-w-5xl mx-auto px-6">
@@ -512,52 +558,6 @@ export default function GuidaConNoiPage() {
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── COSA OFFRIAMO — bento ─────────────────────── */}
-      <section className="bg-surface-1 border-t border-surface-4 py-24">
-        <div className="max-w-5xl mx-auto px-6">
-          <h2 className="text-3xl font-bold text-white mb-3">Cosa offriamo ai driver partner</h2>
-          <p className="text-ink-secondary mb-12">Il supporto di cui hai bisogno, quando ne hai bisogno.</p>
-          <div className="grid md:grid-cols-6 gap-4">
-            {/* Featured — Pagamenti */}
-            <div className="md:col-span-4 bg-gradient-to-br from-primary-500/15 via-primary-500/8 to-transparent border border-primary-500/25 rounded-3xl p-8 group hover:border-primary-500/40 transition-all">
-              <p className="text-6xl font-black text-primary-400 mb-1 leading-none">100%</p>
-              <p className="text-xs font-semibold text-primary-400/60 uppercase tracking-widest mb-4">della tariffa a te</p>
-              <h3 className="text-xl font-bold text-white mb-2">Pagamenti diretti e sicuri</h3>
-              <p className="text-ink-secondary text-sm leading-relaxed mb-5">Stripe Connect trasferisce l&apos;intera tariffa di trasporto direttamente sul tuo conto bancario entro 2 giorni lavorativi dall&apos;accettazione della corsa. Zero contanti, zero rischi, zero commissioni.</p>
-              <Link href="/terms" className="text-sm font-semibold text-primary-400 hover:text-primary-300 transition-colors">
-                Leggi i termini di pagamento →
-              </Link>
-            </div>
-            {/* Meno no-show */}
-            <div className="md:col-span-2 bg-surface-2 border border-surface-5 rounded-3xl p-6 group hover:border-primary-500/20 transition-all">
-              <div className="text-3xl font-black text-primary-400 mb-1">-80%</div>
-              <p className="text-xs text-ink-muted mb-4">no-show vs metodo tradizionale</p>
-              <h3 className="font-bold text-white mb-2">Meno no-show</h3>
-              <p className="text-ink-muted text-sm">Il passeggero paga prima di salire. Se non si presenta, sei comunque compensato.</p>
-            </div>
-            {/* Supporto */}
-            <div className="md:col-span-3 bg-surface-2 border border-surface-5 rounded-3xl p-6 group hover:border-primary-500/20 transition-all">
-              <div className="w-12 h-12 bg-primary-500/10 rounded-2xl flex items-center justify-center mb-5">
-                <MessageCircle className="w-6 h-6 text-primary-400" />
-              </div>
-              <h3 className="font-bold text-white mb-2">Supporto 24/7</h3>
-              <p className="text-ink-secondary text-sm leading-relaxed">Assistente AI sempre disponibile. Canale prioritario per emergenze durante la corsa.</p>
-            </div>
-            {/* Passeggeri verificati */}
-            <div className="md:col-span-3 bg-surface-2 border border-surface-5 rounded-3xl p-6 group hover:border-primary-500/20 transition-all">
-              <div className="w-12 h-12 bg-primary-500/10 rounded-2xl flex items-center justify-center mb-5">
-                <Shield className="w-6 h-6 text-primary-400" />
-              </div>
-              <h3 className="font-bold text-white mb-2">Passeggeri verificati</h3>
-              <p className="text-ink-secondary text-sm leading-relaxed">Sai sempre chi stai trasportando — nome, destinazione e numero di bagagli prima di accettare.</p>
-              <Link href="/sicurezza" className="mt-4 inline-block text-sm font-semibold text-primary-400 hover:text-primary-300 transition-colors">
-                Sicurezza Flanvo →
-              </Link>
             </div>
           </div>
         </div>
