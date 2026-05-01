@@ -308,7 +308,7 @@ export default function GuidaConNoiPage() {
 
       {/* ── HERO ─────────────────────────────────────── */}
       <section className="max-w-7xl mx-auto px-6 pt-20 pb-16">
-        <div className="grid lg:grid-cols-[300px_1fr_1fr] md:grid-cols-2 gap-10 items-center">
+        <div className="grid xl:grid-cols-[240px_1fr_1fr] lg:grid-cols-[220px_1fr] gap-10 items-center">
 
           {/* Immagine driver — solo su schermi larghi */}
           <div className="hidden lg:block relative h-[420px] rounded-3xl overflow-hidden">
@@ -350,8 +350,8 @@ export default function GuidaConNoiPage() {
             </div>
           </div>
 
-          {/* Illustrazione dashboard */}
-          <div className="hidden md:flex justify-center">
+          {/* Illustrazione dashboard — solo su xl */}
+          <div className="hidden xl:flex justify-center">
             <DriverHeroIllustration />
           </div>
 
