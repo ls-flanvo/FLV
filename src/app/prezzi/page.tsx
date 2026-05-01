@@ -14,9 +14,8 @@ const comparison = [
 ];
 
 const cancellation = [
-  { when: 'Prima del match del gruppo',   refund: 'Rimborso completo',  color: 'text-primary-400' },
-  { when: 'Tra 12h e 24h dal volo',       refund: 'Rimborso del 50%',   color: 'text-warning' },
-  { when: 'Meno di 12h dal volo',         refund: 'Nessun rimborso',    color: 'text-red-400' },
+  { when: 'Prima che il driver accetti',    refund: 'Rimborso completo',  color: 'text-primary-400' },
+  { when: 'Dopo che il driver accetta',     refund: 'Nessun rimborso',    color: 'text-red-400' },
   { when: 'Volo cancellato dal vettore',  refund: 'Rimborso completo',  color: 'text-primary-400' },
 ];
 
@@ -134,7 +133,7 @@ export default function PrezziPage() {
         <div className="bg-surface-1 border border-surface-4 rounded-2xl p-6 md:p-8 mb-14">
           <h2 className="text-xl font-bold text-white mb-5">Politica di cancellazione</h2>
           <p className="text-sm text-ink-secondary mb-5 leading-relaxed">
-            La pre-autorizzazione viene effettuata al momento della conferma. I fondi vengono effettivamente addebitati solo al drop-off. Puoi cancellare con rimborso completo in qualsiasi momento prima che il gruppo si formi.
+            La pre-autorizzazione viene effettuata al momento della conferma. I fondi vengono addebitati solo al drop-off. Puoi cancellare con rimborso completo in qualsiasi momento — finché il driver non ha accettato la corsa. Dopo l&apos;accettazione del driver, la cancellazione non è consentita. Volo cancellato dalla compagnia aerea: rimborso completo sempre.
           </p>
           <div className="space-y-3">
             {cancellation.map(({ when, refund, color }) => (

@@ -14,7 +14,7 @@ const faqs = [
   },
   {
     q: 'Posso cancellare la prenotazione?',
-    a: 'Sì. Se cancelli prima della formazione del gruppo: rimborso completo. Tra 12h e 24h dal volo: rimborso del 50%. Meno di 12h dal volo: nessun rimborso. Se il tuo volo viene cancellato dalla compagnia: rimborso completo sempre.',
+    a: 'Sì. Puoi cancellare gratuitamente fino al momento in cui il driver accetta la corsa — in qualsiasi momento prima. Se il driver non ha ancora accettato, la pre-autorizzazione sulla carta viene rilasciata integralmente. Dopo che il driver accetta, la cancellazione non è più possibile. Se il tuo volo viene cancellato dalla compagnia aerea, rimborso completo sempre.',
   },
   {
     q: 'Chi sono i passeggeri nel gruppo?',
