@@ -321,13 +321,9 @@ export default function BookingCard({ booking }: { booking: Booking }) {
               <p className="text-xs font-bold text-success mb-1">Volo atterrato</p>
               <p className="text-xs text-ink-secondary mb-1">Punto di incontro:</p>
               <p className="text-xs font-semibold text-white mb-2">{rideGroup!.meetingPoint}</p>
-              {rideGroup?.meetingTime && (
-                <p className="text-xs text-ink-muted">
-                  Orario incontro: <strong className="text-white">
-                    {new Date(rideGroup.meetingTime).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
-                  </strong>
-                </p>
-              )}
+              <p className="text-xs text-ink-muted mt-1">
+                Premi &quot;Sono qui&quot; nella pagina tracking quando sei all&apos;uscita arrivi
+              </p>
             </div>
           )}
 

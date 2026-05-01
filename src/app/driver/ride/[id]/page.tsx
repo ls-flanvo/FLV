@@ -43,7 +43,6 @@ export default function DriverNavigationPage({ params }: { params: { id: string 
   const [noShowAvailableAt, setNoShowAvailableAt] = useState<string | null>(null);
   const [flightStatus, setFlightStatus] = useState<string | null>(null);
   const [meetingPoint, setMeetingPoint] = useState<string | null>(null);
-  const [meetingTime, setMeetingTime] = useState<string | null>(null);
   const [rideGroupId, setRideGroupId] = useState<string | null>(null);
   const [flightCode, setFlightCode] = useState<string | null>(null);
   const [pickupTime, setPickupTime] = useState<string | null>(null);
@@ -74,15 +73,15 @@ export default function DriverNavigationPage({ params }: { params: { id: string 
     fetch('/api/driver/rides', { headers: { Authorization: `Bearer ${authToken()}` } })
       .then(r => r.json())
       .then(data => {
-        const ride = data.rides?.find((r: { id: string; flightStatus?: string; meetingPoint?: string; meetingTime?: string; pickupTime?: string; flight?: { code?: string }; arrivedCount?: number }) => r.id === params.id);
+        const ride = data.rides?.find((r: { id: string; flightStatus?: string; meetingPoint?: string; noShowAvailableAt?: string; pickupTime?: string; flight?: { code?: string }; arrivedCount?: number }) => r.id === params.id);
         if (ride?.flightStatus) setFlightStatus(ride.flightStatus);
         if (ride?.meetingPoint) setMeetingPoint(ride.meetingPoint);
-        if (ride?.meetingTime) setMeetingTime(ride.meetingTime);
         if (ride?.id) setRideGroupId(ride.id);
         if (ride?.flight?.code) setFlightCode(ride.flight.code);
         if (ride?.pickupTime) setPickupTime(ride.pickupTime);
         if (ride?.arrivedCount !== undefined) setArrivedCount(ride.arrivedCount);
         if (ride?.noShowAvailableAt) setNoShowAvailableAt(ride.noShowAvailableAt);
+        if (ride?.meetingPoint) setMeetingPoint(ride.meetingPoint);
         if (!ride) return;
 
         const builtStops: Stop[] = [];
@@ -353,9 +352,9 @@ const handleStartRide = async () => {
               <div>
                 <p className="text-xs font-bold text-warning">No-show disponibile tra {noShowMinsLeft} min</p>
                 <p className="text-[11px] text-ink-muted mt-0.5">
-                  {meetingTime
-                    ? `Scadenza: ${new Date(new Date(meetingTime).getTime() + 20 * 60_000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`
-                    : 'In attesa del meetingTime'}
+                  {noShowAvailableAt
+                    ? `Scadenza: ${new Date(noShowAvailableAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`
+                    : 'In attesa atterraggio'}
                 </p>
               </div>
             </div>
