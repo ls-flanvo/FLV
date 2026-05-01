@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
 import { ChevronDown, ArrowRight, Car, DollarSign, Shield, MessageCircle, CheckCircle } from 'lucide-react';
 
@@ -306,35 +307,54 @@ export default function GuidaConNoiPage() {
     <div className="bg-[#0B0B0B]">
 
       {/* ── HERO ─────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-6 pt-20 pb-16 grid md:grid-cols-2 gap-12 items-center">
-        <div>
-          <div className="inline-flex items-center gap-2 bg-primary-500/10 border border-primary-500/20 rounded-full px-4 py-1.5 text-xs font-semibold text-primary-400 mb-6">
-            <span className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-pulse" />
-            Driver partner Flanvo
+      <section className="max-w-7xl mx-auto px-6 pt-20 pb-16">
+        <div className="grid lg:grid-cols-[300px_1fr_1fr] md:grid-cols-2 gap-10 items-center">
+
+          {/* Immagine driver — solo su schermi larghi */}
+          <div className="hidden lg:block relative h-[420px] rounded-3xl overflow-hidden">
+            <Image
+              src="/images/driver-tablet.jpg.png"
+              alt="Driver Flanvo con tablet"
+              fill
+              className="object-cover object-top"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B0B]/60 via-transparent to-transparent" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white leading-tight tracking-tight mb-5">
-            Guadagna trasportando passeggeri aeroportuali
-          </h1>
-          <p className="text-ink-secondary text-lg leading-relaxed mb-8">
-            Unisciti alla rete di driver NCC che trasportano gruppi di passeggeri dallo stesso volo verso destinazioni simili. Corse più lunghe, più passeggeri, guadagni più alti.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Link
-              href="/driver/signup"
-              className="flex items-center justify-center gap-2 bg-primary-500 text-[#0B0B0B] px-7 py-4 rounded-2xl font-bold text-base hover:bg-primary-400 transition-all shadow-teal"
-            >
-              Registrati e guida con noi <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              href="/driver/login"
-              className="flex items-center justify-center gap-2 bg-surface-2 border border-surface-5 text-white px-7 py-4 rounded-2xl font-semibold text-base hover:border-surface-4 transition-all"
-            >
-              Accedi
-            </Link>
+
+          {/* Testo */}
+          <div>
+            <div className="inline-flex items-center gap-2 bg-primary-500/10 border border-primary-500/20 rounded-full px-4 py-1.5 text-xs font-semibold text-primary-400 mb-6">
+              <span className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-pulse" />
+              Driver partner Flanvo
+            </div>
+            <h1 className="text-4xl md:text-5xl font-extrabold text-white leading-tight tracking-tight mb-5">
+              Guadagna trasportando passeggeri aeroportuali
+            </h1>
+            <p className="text-ink-secondary text-lg leading-relaxed mb-8">
+              Unisciti alla rete di driver NCC che trasportano gruppi di passeggeri dallo stesso volo verso destinazioni simili. Corse più lunghe, più passeggeri, guadagni più alti.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link
+                href="/driver/signup"
+                className="flex items-center justify-center gap-2 bg-primary-500 text-[#0B0B0B] px-7 py-4 rounded-2xl font-bold text-base hover:bg-primary-400 transition-all shadow-teal"
+              >
+                Registrati e guida con noi <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                href="/driver/login"
+                className="flex items-center justify-center gap-2 bg-surface-2 border border-surface-5 text-white px-7 py-4 rounded-2xl font-semibold text-base hover:border-surface-4 transition-all"
+              >
+                Accedi
+              </Link>
+            </div>
           </div>
-        </div>
-        <div className="hidden md:flex justify-center">
-          <DriverHeroIllustration />
+
+          {/* Illustrazione dashboard */}
+          <div className="hidden md:flex justify-center">
+            <DriverHeroIllustration />
+          </div>
+
         </div>
       </section>
 
@@ -573,7 +593,7 @@ export default function GuidaConNoiPage() {
       </section>
 
       {/* ── FAQ ───────────────────────────────────────── */}
-      <section className="bg-surface-1 border-t border-surface-4 py-20">
+      <section id="faq" className="bg-surface-1 border-t border-surface-4 py-20">
         <div className="max-w-3xl mx-auto px-6">
           <h2 className="text-3xl font-bold text-white mb-10">Domande frequenti</h2>
           <FAQ />
