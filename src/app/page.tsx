@@ -307,19 +307,21 @@ export default function LandingPage() {
               <p className="text-ink-muted text-sm leading-relaxed">Solo passeggeri con destinazioni simili. L&apos;algoritmo ottimizza il percorso per tutti.</p>
             </div>
 
-            {/* Card 6 — Van NCC (6 col) */}
-            <div className="md:col-span-6 bg-gradient-to-br from-surface-2 via-surface-3 to-surface-2 border border-surface-5 rounded-3xl p-8 md:p-10 group hover:border-primary-500/20 transition-all">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="w-12 h-12 bg-primary-500/10 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-primary-500/20 transition-all">
-                  <Users className="w-6 h-6 text-primary-400" />
-                </div>
-                <h3 className="text-xl md:text-2xl font-bold text-white leading-snug">
-                  Sali su un van NCC e respiri, ti rilassi.
-                </h3>
+            {/* Card 6 — Zero stress (6 col, wide) */}
+            <div className="md:col-span-6 bg-gradient-to-r from-surface-2 via-surface-3 to-surface-2 border border-surface-5 rounded-3xl p-8 flex flex-col md:flex-row items-center gap-6 group hover:border-primary-500/20 transition-all">
+              <div className="w-16 h-16 bg-primary-500/10 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-primary-500/20 transition-all">
+                <Plane className="w-8 h-8 text-primary-400" />
               </div>
-              <p className="text-ink-secondary text-sm md:text-base leading-relaxed max-w-3xl">
-                I bagagli hanno spazio, sono al sicuro — nessuna coincidenza, nessuna fila. Servizio professionale, sedili comodi, porta a porta senza cambi. Evita confusioni tra mezzi pubblici, affollamenti di persone e insicurezza.
-              </p>
+              <div className="text-center md:text-left">
+                <h3 className="text-xl font-bold text-white mb-1">Zero stress dall&apos;atterraggio alla porta di casa</h3>
+                <p className="text-ink-secondary text-sm">Atterri, premi &quot;Sono qui&quot; sull&apos;app, il driver NCC raggiunge il punto di incontro in 5-10 minuti. Tracking live, chat diretta, nessuna sorpresa sul prezzo.</p>
+              </div>
+              <div className="ml-auto shrink-0 hidden md:block">
+                <div className="flex items-center gap-2 bg-primary-500/10 border border-primary-500/20 rounded-2xl px-5 py-3">
+                  <CheckCircle className="w-5 h-5 text-primary-400" />
+                  <span className="text-sm font-bold text-primary-400">Price-lock garantito</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
