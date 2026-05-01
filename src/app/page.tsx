@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Plane, Users, DollarSign, Clock, Shield, Zap, ArrowRight, Star, CheckCircle } from 'lucide-react';
 import HomeFAQ from '@/components/HomeFAQ';
 
@@ -8,6 +9,33 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20 text-center overflow-hidden">
         <div className="absolute inset-0 bg-hero-gradient pointer-events-none" />
+
+        {/* Immagine 5 — aereo, lato sinistro */}
+        <div className="absolute left-0 top-0 bottom-0 w-[28%] pointer-events-none hidden md:block">
+          <Image
+            src="/images/hero-airplane.jpg"
+            alt=""
+            fill
+            className="object-cover object-right opacity-35"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0B0B0B]/20 via-transparent to-[#0B0B0B]" />
+          <div className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-r from-transparent to-[#0B0B0B]" />
+        </div>
+
+        {/* Immagine 6 — gruppo + driver, lato destro */}
+        <div className="absolute right-0 top-0 bottom-0 w-[28%] pointer-events-none hidden md:block">
+          <Image
+            src="/images/hero-group-driver.jpg"
+            alt=""
+            fill
+            className="object-cover object-left opacity-35"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-l from-[#0B0B0B]/20 via-transparent to-[#0B0B0B]" />
+          <div className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-l from-transparent to-[#0B0B0B]" />
+        </div>
+
         <div className="relative">
           <div className="inline-flex items-center gap-2 bg-primary-500/10 border border-primary-500/20 rounded-full px-4 py-1.5 text-xs font-semibold text-primary-400 mb-8">
             <span className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-pulse" />
