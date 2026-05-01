@@ -163,6 +163,52 @@ const FlexIllustration = () => (
 );
 
 // App: telefono con notifica pulito
+// No-show: confronto metodo tradizionale vs Flanvo
+const NoShowIllustration = () => (
+  <svg viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-xs mx-auto">
+    {/* Sfondo diviso */}
+    <rect x="20" y="20" width="118" height="160" rx="14" fill="#161616" stroke="#2A2A2A" strokeWidth="1.5"/>
+    <rect x="162" y="20" width="118" height="160" rx="14" fill="#0F1F1C" stroke="#00D1B2" strokeWidth="1.5" opacity="0.7"/>
+
+    {/* Label sinistra: Tradizionale */}
+    <text x="79" y="42" textAnchor="middle" fontFamily="system-ui" fontSize="9" fontWeight="700" fill="#666">A chiamata</text>
+
+    {/* Telefono che suona */}
+    <rect x="55" y="52" width="48" height="68" rx="10" fill="#1A1A1A" stroke="#333" strokeWidth="1"/>
+    <text x="79" y="92" textAnchor="middle" fontFamily="system-ui" fontSize="22">📵</text>
+
+    {/* Frecce incerte */}
+    <text x="79" y="136" textAnchor="middle" fontFamily="system-ui" fontSize="9" fill="#555">Risponde?</text>
+    <text x="44" y="155" fontFamily="system-ui" fontSize="8" fill="#555">Forse sì</text>
+    <text x="90" y="155" fontFamily="system-ui" fontSize="8" fill="#555">Forse no</text>
+    <line x1="79" y1="139" x2="52" y2="148" stroke="#444" strokeWidth="1" strokeDasharray="3,2"/>
+    <line x1="79" y1="139" x2="100" y2="148" stroke="#444" strokeWidth="1" strokeDasharray="3,2"/>
+
+    {/* X rossa */}
+    <circle cx="79" cy="172" r="8" fill="#EF444420"/>
+    <text x="79" y="176" textAnchor="middle" fontFamily="system-ui" fontSize="10" fontWeight="700" fill="#EF4444">✕</text>
+
+    {/* Label destra: Flanvo */}
+    <text x="221" y="42" textAnchor="middle" fontFamily="system-ui" fontSize="9" fontWeight="700" fill="#00D1B2">Flanvo</text>
+
+    {/* Scudo confermato */}
+    <path d="M221 52 L245 62 L245 90 C245 108 221 118 221 118 C221 118 197 108 197 90 L197 62 Z" fill="#00D1B220" stroke="#00D1B2" strokeWidth="1.5"/>
+    <text x="221" y="93" textAnchor="middle" fontFamily="system-ui" fontSize="20" fill="#00D1B2">✓</text>
+
+    {/* Badge "confermato" */}
+    <rect x="185" y="126" width="72" height="18" rx="9" fill="#00D1B215" stroke="#00D1B230"/>
+    <text x="221" y="139" textAnchor="middle" fontFamily="system-ui" fontSize="9" fontWeight="700" fill="#00D1B2">Prenotato e pagato</text>
+
+    {/* Freccia sicura */}
+    <rect x="193" y="152" width="56" height="16" rx="6" fill="#00D1B2"/>
+    <text x="221" y="164" textAnchor="middle" fontFamily="system-ui" fontSize="9" fontWeight="700" fill="#0B0B0B">Si presenta</text>
+
+    {/* Divisore centrale */}
+    <line x1="150" y1="30" x2="150" y2="170" stroke="#2A2A2A" strokeWidth="1" strokeDasharray="4,3"/>
+    <text x="150" y="108" textAnchor="middle" fontFamily="system-ui" fontSize="8" fill="#333" transform="rotate(-90,150,108)">VS</text>
+  </svg>
+);
+
 const AppIllustration = () => (
   <svg viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-xs mx-auto">
     {/* Telefono */}
@@ -301,7 +347,7 @@ export default function GuidaConNoiPage() {
           <p className="text-ink-secondary text-center mb-14 max-w-xl mx-auto">
             Flanvo riempie il tuo calendario. Corse pianificate e prevedibili. <strong className="text-white">Zero commissioni</strong> sul tuo guadagno.
           </p>
-          <div className="grid md:grid-cols-3 gap-10">
+          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-8">
             <div className="text-center">
               <EarningsIllustration />
               <h3 className="text-lg font-bold text-white mt-5 mb-2">Ricevi il 100% della tariffa</h3>
@@ -318,9 +364,16 @@ export default function GuidaConNoiPage() {
             </div>
             <div className="text-center">
               <AppIllustration />
-              <h3 className="text-lg font-bold text-white mt-5 mb-2">Gestisci tutto dall'app</h3>
+              <h3 className="text-lg font-bold text-white mt-5 mb-2">Gestisci tutto dall&apos;app</h3>
               <p className="text-ink-secondary text-sm leading-relaxed">
-                Ricevi notifiche per le corse nel tuo aeroporto, accetta con un tap e vedi il guadagno stimato prima di confermare.
+                Ricevi notifiche per le corse nel tuo aeroporto, accetta con un tap e vedi il guadagno stimato prima di confermare. Storico corse, ricevute Stripe e fatturazione — tutto in un posto.
+              </p>
+            </div>
+            <div className="text-center">
+              <NoShowIllustration />
+              <h3 className="text-lg font-bold text-white mt-5 mb-2">Meno no-show, più certezze</h3>
+              <p className="text-ink-secondary text-sm leading-relaxed">
+                Con il metodo tradizionale a chiamata il passeggero può non presentarsi senza conseguenze. Su Flanvo il pagamento è confermato prima della corsa — se non si presenta, sei comunque compensato.
               </p>
             </div>
           </div>

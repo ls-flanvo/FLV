@@ -2,7 +2,72 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { UserCheck, ArrowLeft, Car, Mail, Phone, CheckCircle, XCircle, Clock, Eye } from 'lucide-react';
+import { UserCheck, ArrowLeft, Car, Mail, Phone, CheckCircle, XCircle, Clock, Eye, AlertTriangle, ShieldCheck } from 'lucide-react';
+
+type CheckResult = { label: string; status: 'ok' | 'warn' | 'fail'; note?: string };
+
+function runAutoChecks(d: PendingDriver): CheckResult[] {
+  const year = new Date().getFullYear();
+  const italianPlate = /^[A-Z]{2}\d{3}[A-Z]{2}$/i;
+  const italianLicense = /^[A-Z]{2}\d{7}[A-Z]$/i;
+  const cqcFormat = /^[A-Z0-9]{6,20}$/i;
+
+  return [
+    {
+      label: 'Email formato valido',
+      status: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email) ? 'ok' : 'fail',
+    },
+    {
+      label: 'Numero patente (formato IT)',
+      status: italianLicense.test(d.driverLicense.replace(/\s/g, '')) ? 'ok' : 'warn',
+      note: !italianLicense.test(d.driverLicense.replace(/\s/g, '')) ? 'Formato atteso: XX0000000X — verifica manualmente' : undefined,
+    },
+    {
+      label: 'Targa veicolo (formato IT)',
+      status: italianPlate.test(d.licensePlate.replace(/\s/g, '')) ? 'ok' : 'warn',
+      note: !italianPlate.test(d.licensePlate.replace(/\s/g, '')) ? 'Formato atteso: AA000AA — verifica manualmente' : undefined,
+    },
+    {
+      label: 'Anno veicolo ragionevole',
+      status: Number(d.vehicleYear) >= 2005 && Number(d.vehicleYear) <= year + 1 ? 'ok' : 'fail',
+      note: `Anno dichiarato: ${d.vehicleYear}`,
+    },
+    {
+      label: 'Modello veicolo compilato',
+      status: d.vehicleModel?.trim().length > 2 ? 'ok' : 'fail',
+    },
+    {
+      label: 'Colore veicolo compilato',
+      status: d.vehicleColor?.trim().length > 0 ? 'ok' : 'warn',
+    },
+    {
+      label: 'Numero CQC compilato',
+      status: d.driverLicense?.trim().length > 0 ? 'ok' : 'fail',
+      note: 'Verifica scadenza manualmente — non memorizzata nel sistema',
+    },
+    {
+      label: 'Scadenza patente',
+      status: 'warn',
+      note: 'Non memorizzata — verificare documento originale',
+    },
+    {
+      label: 'Scadenza CQC',
+      status: 'warn',
+      note: 'Non memorizzata — verificare documento originale',
+    },
+    {
+      label: 'Telefono compilato',
+      status: d.phone?.trim().length >= 9 ? 'ok' : 'warn',
+      note: !d.phone ? 'Numero mancante' : undefined,
+    },
+  ];
+}
+
+const statusIcon = (s: 'ok' | 'warn' | 'fail') => {
+  if (s === 'ok') return <CheckCircle className="w-3.5 h-3.5 text-success shrink-0" />;
+  if (s === 'warn') return <AlertTriangle className="w-3.5 h-3.5 text-warning shrink-0" />;
+  return <XCircle className="w-3.5 h-3.5 text-danger shrink-0" />;
+};
 
 interface PendingDriver {
   id: string; name: string; surname: string;
@@ -157,21 +222,70 @@ export default function AdminApproveDriversPage() {
                   </div>
                 </div>
 
-                {selected?.id === d.id && !showReject && (
-                  <div className="mt-5 pt-5 border-t border-surface-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {[
-                      { label: 'Licenza', value: d.driverLicense },
-                      { label: 'Veicolo', value: `${d.vehicleModel} ${d.vehicleYear}` },
-                      { label: 'Targa', value: d.licensePlate },
-                      { label: 'Colore', value: d.vehicleColor },
-                    ].map(({ label, value }) => (
-                      <div key={label} className="bg-surface-2 rounded-xl px-4 py-3">
-                        <p className="text-xs text-ink-muted mb-1">{label}</p>
-                        <p className="text-sm font-semibold text-white">{value || '—'}</p>
+                {selected?.id === d.id && !showReject && (() => {
+                  const checks = runAutoChecks(d);
+                  const fails = checks.filter(c => c.status === 'fail').length;
+                  const warns = checks.filter(c => c.status === 'warn').length;
+                  const oks = checks.filter(c => c.status === 'ok').length;
+                  return (
+                    <div className="mt-5 pt-5 border-t border-surface-4 space-y-4">
+                      {/* Dati veicolo */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {[
+                          { label: 'Licenza', value: d.driverLicense },
+                          { label: 'Veicolo', value: `${d.vehicleModel} ${d.vehicleYear}` },
+                          { label: 'Targa', value: d.licensePlate },
+                          { label: 'Colore', value: d.vehicleColor },
+                        ].map(({ label, value }) => (
+                          <div key={label} className="bg-surface-2 rounded-xl px-4 py-3">
+                            <p className="text-xs text-ink-muted mb-1">{label}</p>
+                            <p className="text-sm font-semibold text-white">{value || '—'}</p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
+
+                      {/* Verifica automatica NCC */}
+                      <div className="bg-surface-2 border border-surface-5 rounded-2xl p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <ShieldCheck className="w-4 h-4 text-primary-400" />
+                            <p className="text-sm font-bold text-white">Verifica automatica requisiti NCC</p>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="flex items-center gap-1 text-success"><CheckCircle className="w-3 h-3" />{oks} ok</span>
+                            {warns > 0 && <span className="flex items-center gap-1 text-warning"><AlertTriangle className="w-3 h-3" />{warns} da verificare</span>}
+                            {fails > 0 && <span className="flex items-center gap-1 text-danger"><XCircle className="w-3 h-3" />{fails} problemi</span>}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          {checks.map((c, i) => (
+                            <div key={i} className={`flex items-start gap-2.5 px-3 py-2 rounded-xl ${
+                              c.status === 'ok' ? 'bg-success/5' : c.status === 'warn' ? 'bg-warning/5' : 'bg-danger/8'
+                            }`}>
+                              {statusIcon(c.status)}
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-xs font-medium ${
+                                  c.status === 'ok' ? 'text-white' : c.status === 'warn' ? 'text-warning' : 'text-danger'
+                                }`}>{c.label}</p>
+                                {c.note && <p className="text-[11px] text-ink-muted mt-0.5">{c.note}</p>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {fails === 0 && warns <= 2 && (
+                          <div className="mt-3 px-3 py-2 bg-success/8 border border-success/20 rounded-xl">
+                            <p className="text-xs text-success font-semibold">✓ Verifica automatica superata — richiede solo controllo manuale scadenze documenti</p>
+                          </div>
+                        )}
+                        {fails > 0 && (
+                          <div className="mt-3 px-3 py-2 bg-danger/8 border border-danger/20 rounded-xl">
+                            <p className="text-xs text-danger font-semibold">⚠ {fails} problema/i rilevato/i — valutare attentamente prima di approvare</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {showReject && selected?.id === d.id && (
                   <div className="mt-5 pt-5 border-t border-surface-4">

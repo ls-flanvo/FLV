@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore, useBookingStore } from '@/store';
 import { RideMatch } from '@/lib/types';
 import RideMatchCard from '@/components/RideMatchCard';
-import { Loader2, Search, Plane, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Loader2, Search, Plane, ArrowLeft, CheckCircle, TrendingDown } from 'lucide-react';
 
 export default function MatchingPage() {
   const [matches, setMatches] = useState<RideMatch[]>([]);
@@ -197,6 +197,42 @@ export default function MatchingPage() {
           </div>
         ) : (
           <>
+            {/* Confronto prezzo — usa il prezzo del primo match disponibile */}
+            {matches[0]?.pricePerPerson > 0 && (() => {
+              const flanvoPrice = matches[0].pricePerPerson;
+              const taxiEstimate = Math.round(flanvoPrice * 2.8);
+              const saving = taxiEstimate - Math.round(flanvoPrice);
+              const pct = Math.round((saving / taxiEstimate) * 100);
+              return (
+                <div className="mb-5 bg-surface-1 border border-surface-4 rounded-2xl p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <TrendingDown className="w-4 h-4 text-primary-400" />
+                    <p className="text-xs font-bold text-white">Quanto risparmi con Flanvo</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-surface-2 rounded-xl px-3 py-3">
+                      <p className="text-[10px] text-ink-muted mb-1">Taxi privato</p>
+                      <p className="text-base font-bold text-ink-secondary line-through">~€{taxiEstimate}</p>
+                      <p className="text-[10px] text-ink-muted">a persona</p>
+                    </div>
+                    <div className="bg-primary-500/10 border border-primary-500/20 rounded-xl px-3 py-3 flex flex-col items-center justify-center">
+                      <p className="text-[10px] font-bold text-primary-400 mb-0.5">Risparmi</p>
+                      <p className="text-lg font-black text-primary-400">-{pct}%</p>
+                      <p className="text-[10px] text-primary-400">€{saving} in meno</p>
+                    </div>
+                    <div className="bg-success/8 border border-success/20 rounded-xl px-3 py-3">
+                      <p className="text-[10px] text-ink-muted mb-1">Con Flanvo</p>
+                      <p className="text-base font-bold text-success">~€{Math.round(flanvoPrice)}</p>
+                      <p className="text-[10px] text-ink-muted">a persona</p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-ink-muted text-center mt-2">
+                    Stima taxi basata su tariffe medie aeroportuali · prezzo Flanvo varia con il gruppo
+                  </p>
+                </div>
+              );
+            })()}
+
             <div className="mb-5 bg-surface-2 border border-surface-5 rounded-xl px-4 py-3 flex items-start gap-3">
               <div className="w-2 h-2 bg-success rounded-full mt-1.5 shrink-0 animate-pulse" />
               <p className="text-xs text-ink-secondary leading-relaxed">
