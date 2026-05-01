@@ -108,7 +108,7 @@ export default function LandingPage() {
           {/* Intro — domanda retorica */}
           <div className="max-w-3xl mx-auto text-center mb-16">
             <p className="text-lg md:text-xl text-ink-secondary leading-relaxed mb-6">
-              Ti sei mai chiesto se nel tuo stesso volo ci fosse qualcuno diretto nella tua stessa direzione, ma non sai come riconoscerlo?
+              Ti sei mai chiesto se sul tuo stesso volo ci fosse qualcuno diretto dove vai tu, qualcuno con cui condividere il viaggio e dividere il costo, qualcuno nella tua stessa situazione in balia dei trasporti o lunghe attese — ma non sai come riconoscerlo?
             </p>
             <p className="text-4xl md:text-5xl font-extrabold text-white mb-2">Succede a tutti.</p>
             <p className="text-xl font-semibold text-primary-400">Flanvo lo sa già.</p>
