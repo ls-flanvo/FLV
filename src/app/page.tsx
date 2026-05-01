@@ -55,7 +55,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/signup"
               className="flex items-center justify-center gap-2 bg-primary-500 text-[#0B0B0B] px-8 py-4 rounded-2xl text-base font-bold hover:bg-primary-400 transition-all shadow-teal active:scale-95">
-              Inizia gratis <ArrowRight className="w-4 h-4" />
+              Registrati <ArrowRight className="w-4 h-4" />
             </Link>
             <Link href="/login"
               className="flex items-center justify-center gap-2 bg-surface-2 border border-surface-5 text-white px-8 py-4 rounded-2xl text-base font-semibold hover:border-surface-4 hover:bg-surface-3 transition-all active:scale-95">
@@ -297,7 +297,7 @@ export default function LandingPage() {
                 <span className="text-lg font-bold text-primary-400/60">min</span>
               </div>
               <h3 className="font-bold text-white mb-2">Prenotazione rapida</h3>
-              <p className="text-ink-muted text-sm leading-relaxed">Dal codice volo al checkout. Nessuna registrazione per vedere i prezzi.</p>
+              <p className="text-ink-muted text-sm leading-relaxed">Inserisci il codice volo, trova il gruppo, prenota. Dal primo click alla conferma in meno di 2 minuti.</p>
             </div>
 
             {/* Card 5 — Algoritmo (2 col) */}
@@ -342,7 +342,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/signup"
               className="flex items-center justify-center gap-2 bg-primary-500 text-[#0B0B0B] px-8 py-4 rounded-2xl font-bold hover:bg-primary-400 transition-all shadow-teal">
-              Registrati gratis <ArrowRight className="w-4 h-4" />
+              Registrati <ArrowRight className="w-4 h-4" />
             </Link>
             <Link href="/driver/signup"
               className="flex items-center justify-center gap-2 bg-surface-2 border border-surface-5 text-white px-8 py-4 rounded-2xl font-semibold hover:border-surface-4 transition-all">
