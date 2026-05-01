@@ -307,22 +307,25 @@ export default function GuidaConNoiPage() {
     <div className="bg-[#0B0B0B]">
 
       {/* ── HERO ─────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-6 pt-20 pb-16">
-        <div className="grid xl:grid-cols-[240px_1fr_1fr] lg:grid-cols-[220px_1fr] gap-10 items-center">
+      <section className="relative max-w-7xl mx-auto px-6 pt-20 pb-16 overflow-hidden">
 
-          {/* Immagine driver — solo su schermi larghi */}
-          <div className="hidden lg:block relative h-[420px] rounded-3xl overflow-hidden">
-            <Image
-              src="/images/driver-tablet.jpg.png"
-              alt="Driver Flanvo con tablet"
-              fill
-              className="object-cover object-top"
-              priority
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B0B]/60 via-transparent to-transparent" />
-          </div>
+        {/* Immagine driver — sottoposta al testo, lato sinistro */}
+        <div className="absolute left-0 top-0 bottom-0 w-[340px] pointer-events-none hidden lg:block">
+          <Image
+            src="/images/driver-tablet.jpg.png"
+            alt=""
+            fill
+            className="object-cover object-top opacity-95"
+            priority
+          />
+          {/* Sfumatura verso destra per fondersi col background */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-[#0B0B0B]" />
+          {/* Sfumatura in basso */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B0B]/50 via-transparent to-transparent" />
+        </div>
 
-          {/* Testo */}
+        {/* Contenuto — spostato a destra dell'immagine */}
+        <div className="grid md:grid-cols-2 gap-12 items-center lg:pl-80">
           <div>
             <div className="inline-flex items-center gap-2 bg-primary-500/10 border border-primary-500/20 rounded-full px-4 py-1.5 text-xs font-semibold text-primary-400 mb-6">
               <span className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-pulse" />
@@ -349,13 +352,11 @@ export default function GuidaConNoiPage() {
               </Link>
             </div>
           </div>
-
-          {/* Illustrazione dashboard — solo su xl */}
-          <div className="hidden xl:flex justify-center">
+          <div className="hidden md:flex justify-center">
             <DriverHeroIllustration />
           </div>
-
         </div>
+
       </section>
 
       {/* ── BENEFITS ─────────────────────────────────── */}
