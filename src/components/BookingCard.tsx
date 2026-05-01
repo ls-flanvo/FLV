@@ -117,6 +117,7 @@ export default function BookingCard({ booking }: { booking: Booking }) {
   const meetingLanded = rideGroup?.flightStatus === 'landed' && rideGroup?.meetingPoint;
   const status = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
   const isActive = ['IN_PROGRESS'].includes(booking.status);
+  const isCancellable = ['PENDING', 'IN_MATCHING', 'CONFIRMED', 'MATCHED', 'IN_PROGRESS'].includes(booking.status);
   const isMatched = booking.status === 'MATCHED' && !isPaid;
   const isAuthorized = booking.status === 'MATCHED' && isPaid;
   const isPending = booking.status === 'PENDING';
@@ -406,6 +407,15 @@ export default function BookingCard({ booking }: { booking: Booking }) {
 
         {/* Actions */}
         <div className="px-5 pb-5 space-y-2">
+          {isCancellable && !isActive && (
+            <button
+              onClick={() => setIsCancelModalOpen(true)}
+              className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs text-danger/70 hover:text-danger transition-colors"
+            >
+              <XCircle className="w-3.5 h-3.5" /> Cancella prenotazione
+            </button>
+          )}
+
           {isActive && (
             <>
               <div className="grid grid-cols-2 gap-2">
