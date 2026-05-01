@@ -6,37 +6,40 @@ import HomeFAQ from '@/components/HomeFAQ';
 export default function LandingPage() {
   return (
     <div className="bg-[#0B0B0B]">
-      {/* Hero */}
-      <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20 text-center overflow-hidden">
-        <div className="absolute inset-0 bg-hero-gradient pointer-events-none" />
+      {/* Hero — sezione full-width, contenuto centrato */}
+      <section className="relative w-full pt-24 pb-20 text-center overflow-hidden">
 
-        {/* Immagine 5 — aereo, lato sinistro */}
-        <div className="absolute left-0 top-0 bottom-0 w-[32%] pointer-events-none hidden lg:block">
-          <Image
-            src="/images/hero-airplane.jpg"
-            alt=""
-            fill
-            className="object-cover object-center opacity-60"
-            priority
-          />
-          {/* Sfumatura solo verso il centro — morbida */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-[#0B0B0B]" />
+        {/* Immagini a larghezza schermo intera — ciascuna copre il 45% */}
+        <div className="absolute inset-0 pointer-events-none hidden lg:block">
+          {/* Aereo — sinistra */}
+          <div className="absolute left-0 top-0 bottom-0 w-[45%]">
+            <Image
+              src="/images/hero-airplane.jpg"
+              alt=""
+              fill
+              className="object-cover object-center opacity-55"
+              priority
+            />
+            {/* Sfumatura verso destra — si dissolve al centro */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0B0B0B]/0 via-[#0B0B0B]/30 to-[#0B0B0B]" />
+          </div>
+
+          {/* Gruppo + driver — destra */}
+          <div className="absolute right-0 top-0 bottom-0 w-[45%]">
+            <Image
+              src="/images/hero-group-driver.jpg"
+              alt=""
+              fill
+              className="object-cover object-center opacity-55"
+              priority
+            />
+            {/* Sfumatura verso sinistra — si dissolve al centro */}
+            <div className="absolute inset-0 bg-gradient-to-l from-[#0B0B0B]/0 via-[#0B0B0B]/30 to-[#0B0B0B]" />
+          </div>
         </div>
 
-        {/* Immagine 6 — gruppo + driver, lato destro */}
-        <div className="absolute right-0 top-0 bottom-0 w-[32%] pointer-events-none hidden lg:block">
-          <Image
-            src="/images/hero-group-driver.jpg"
-            alt=""
-            fill
-            className="object-cover object-center opacity-60"
-            priority
-          />
-          {/* Sfumatura solo verso il centro — morbida */}
-          <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-[#0B0B0B]" />
-        </div>
-
-        <div className="relative">
+        {/* Contenuto centrato */}
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="inline-flex items-center gap-2 bg-primary-500/10 border border-primary-500/20 rounded-full px-4 py-1.5 text-xs font-semibold text-primary-400 mb-8">
             <span className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-pulse" />
             Carpooling aeroportuale intelligente
