@@ -107,8 +107,8 @@ export default function LandingPage() {
 
           {/* Intro — domanda retorica */}
           <div className="max-w-3xl mx-auto text-center mb-16">
-            <p className="text-3xl md:text-4xl font-bold text-white leading-snug mb-6">
-              Ti sei mai chiesto se nel tuo stesso volo ci fosse qualcuno diretto nella tua stessa direzione — ma non sai come riconoscerlo?
+            <p className="text-lg md:text-xl text-ink-secondary leading-relaxed mb-6">
+              Ti sei mai chiesto se nel tuo stesso volo ci fosse qualcuno diretto nella tua stessa direzione, ma non sai come riconoscerlo?
             </p>
             <p className="text-4xl md:text-5xl font-extrabold text-white mb-2">Succede a tutti.</p>
             <p className="text-xl font-semibold text-primary-400">Flanvo lo sa già.</p>
@@ -130,7 +130,7 @@ export default function LandingPage() {
 
             {/* Featured 2 — Zone remote */}
             <div className="md:col-span-3 bg-surface-1 border border-surface-4 rounded-3xl p-8 hover:border-surface-5 transition-all">
-              <p className="text-xs font-bold uppercase tracking-widest text-ink-muted mb-5">Destinazione</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-ink-muted mb-5">Destinazioni remote</p>
               <h3 className="text-xl font-bold text-white/90 mb-2">Non ci arriva nessun mezzo.</h3>
               <p className="text-ink-muted text-sm leading-relaxed mb-6">Taormina, Ragusa, Agrigento. Nessun bus diretto. Nessun treno utile. Solo taxi a tariffa fissa — €90, da soli.</p>
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-400 bg-primary-500/10 border border-primary-500/20 rounded-full px-3 py-1">
@@ -141,50 +141,34 @@ export default function LandingPage() {
 
             {/* Card — Bus perso */}
             <div className="md:col-span-2 bg-surface-1 border border-surface-4 rounded-2xl p-6 hover:border-surface-5 transition-all">
-              <p className="text-4xl font-black text-white/10 mb-3 leading-none">23:47</p>
+              <p className="text-4xl font-black text-white/10 mb-3 leading-none">20:30</p>
               <h3 className="font-bold text-white/90 mb-2">L&apos;ultimo bus è partito 12 minuti fa.</h3>
-              <p className="text-ink-muted text-sm leading-relaxed mb-4">Il volo era in orario. Il bus non aspettava nessuno.</p>
+              <p className="text-ink-muted text-sm leading-relaxed mb-4">Il volo era in orario. Il bus non aspettava nessuno. E ora?</p>
               <span className="text-xs text-primary-400 font-semibold">Flanvo non ha orari fissi →</span>
             </div>
 
-            {/* Card — Coincidenze */}
-            <div className="md:col-span-2 bg-surface-1 border border-surface-4 rounded-2xl p-6 hover:border-surface-5 transition-all">
+            {/* Card — Coincidenze + ritardi uniti */}
+            <div className="md:col-span-4 bg-surface-1 border border-surface-4 rounded-2xl p-6 hover:border-surface-5 transition-all">
               <p className="text-4xl font-black text-white/10 mb-3 leading-none">×3</p>
-              <h3 className="font-bold text-white/90 mb-2">3 coincidenze con un trolley da 23 kg.</h3>
-              <p className="text-ink-muted text-sm leading-relaxed mb-4">Navetta + metro + bus. Ognuno con orario diverso.</p>
-              <span className="text-xs text-primary-400 font-semibold">Un van, porta a porta →</span>
-            </div>
-
-            {/* Card — Ritardi simultanei */}
-            <div className="md:col-span-2 bg-surface-1 border border-surface-4 rounded-2xl p-6 hover:border-surface-5 transition-all">
-              <p className="text-4xl font-black text-white/10 mb-3 leading-none">+2h</p>
-              <h3 className="font-bold text-white/90 mb-2">Il volo in ritardo. Anche il treno.</h3>
-              <p className="text-ink-muted text-sm leading-relaxed mb-4">Ritardi che si sommano. Il collegamento salta comunque.</p>
-              <span className="text-xs text-primary-400 font-semibold">Il driver monitora il volo in tempo reale →</span>
+              <h3 className="font-bold text-white/90 mb-2">3 coincidenze con un trolley da 23 kg. E se qualcuno ritarda?</h3>
+              <p className="text-ink-muted text-sm leading-relaxed mb-4">Navetta + metro + bus. Ognuno con orario diverso. Ritardi che si sommano — il collegamento salta comunque.</p>
+              <span className="text-xs text-primary-400 font-semibold">Un van porta a porta. Il driver monitora il volo in tempo reale →</span>
             </div>
 
             {/* Card — Estero */}
             <div className="md:col-span-2 bg-surface-1 border border-surface-4 rounded-2xl p-6 hover:border-surface-5 transition-all">
               <p className="text-4xl font-black text-white/10 mb-3 leading-none">?</p>
               <h3 className="font-bold text-white/90 mb-2">Sei all&apos;estero e non sai come funzionano i mezzi.</h3>
-              <p className="text-ink-muted text-sm leading-relaxed mb-4">App diverse, valute diverse, orari impossibili da decifrare stanco dopo un volo.</p>
+              <p className="text-ink-muted text-sm leading-relaxed mb-4">App diverse, orari impossibili da decifrare stanco. Con Flanvo sali con chi era sul tuo stesso volo — qualcuno che conosci già, anche solo di vista.</p>
               <span className="text-xs text-primary-400 font-semibold">Un servizio, una app, ovunque →</span>
             </div>
 
-            {/* Card — Amico che non ce la fa */}
-            <div className="md:col-span-2 bg-surface-1 border border-surface-4 rounded-2xl p-6 hover:border-surface-5 transition-all">
+            {/* Card — Amico + aspetti 2h uniti */}
+            <div className="md:col-span-4 bg-surface-1 border border-surface-4 rounded-2xl p-6 hover:border-surface-5 transition-all">
               <p className="text-4xl font-black text-white/10 mb-3 leading-none">📵</p>
-              <h3 className="font-bold text-white/90 mb-2">L&apos;amico non ce la fa. Piano B saltato.</h3>
-              <p className="text-ink-muted text-sm leading-relaxed mb-4">Contavi su un passaggio. All&apos;ultimo momento non può — e ora sei da solo all&apos;aeroporto.</p>
-              <span className="text-xs text-primary-400 font-semibold">Nessun piano B con Flanvo →</span>
-            </div>
-
-            {/* Card — Aspetti 2 ore */}
-            <div className="md:col-span-2 bg-surface-1 border border-surface-4 rounded-2xl p-6 hover:border-surface-5 transition-all">
-              <p className="text-4xl font-black text-white/10 mb-3 leading-none">2h</p>
-              <h3 className="font-bold text-white/90 mb-2">Aspetti che qualcuno venga a prenderti.</h3>
-              <p className="text-ink-muted text-sm leading-relaxed mb-4">Due ore in aeroporto, impegnando chi ami per una tratta che potrebbe risolvere da solo.</p>
-              <span className="text-xs text-primary-400 font-semibold">Indipendente dall&apos;atterraggio →</span>
+              <h3 className="font-bold text-white/90 mb-2">L&apos;amico non ce la fa. E aspettare che qualcuno venga impegna tutti.</h3>
+              <p className="text-ink-muted text-sm leading-relaxed mb-4">Contavi su un passaggio. All&apos;ultimo momento non può — e ora sei da solo all&apos;aeroporto, ad aspettare qualcuno che deve interrompere la sua giornata per venire a prenderti.</p>
+              <span className="text-xs text-primary-400 font-semibold">Indipendente da tutti →</span>
             </div>
 
             {/* Strip — Taxi sparito */}
