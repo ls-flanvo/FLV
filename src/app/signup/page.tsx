@@ -48,7 +48,7 @@ export default function SignupPage() {
   const perks = [
     'Risparmia fino al 78% rispetto al taxi',
     'Stesso volo, stessa direzione',
-    'Pagamento solo all\'arrivo',
+    'Pagamento all\'accettazione del driver',
   ];
 
   return (

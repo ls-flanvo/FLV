@@ -208,7 +208,7 @@ export default function Navbar() {
                   <div className="h-5 w-px bg-surface-5" />
                   <Link href="/login" className="text-sm font-medium text-ink-secondary hover:text-white transition-colors">Accedi</Link>
                   <Link href="/signup" className="bg-primary-500 text-[#0B0B0B] font-semibold text-sm px-4 py-2 rounded-xl hover:bg-primary-400 transition-all shadow-teal">
-                    Inizia gratis
+                    Registrati
                   </Link>
                 </>
               )}
@@ -324,7 +324,7 @@ export default function Navbar() {
                   <div className="h-px bg-surface-4 mx-4 my-2" />
                   <Link href="/login" className={mobileLink} onClick={closeAll}>Accedi</Link>
                   <Link href="/signup" onClick={closeAll} className="flex items-center justify-center mx-4 py-3 bg-primary-500 text-[#0B0B0B] font-semibold rounded-xl hover:bg-primary-400 transition-all text-sm mt-1">
-                    Inizia gratis
+                    Registrati
                   </Link>
                 </>
               )}

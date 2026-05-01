@@ -156,7 +156,7 @@ export default function PrezziPage() {
           >
             Cerca la tua corsa <ArrowRight className="w-4 h-4" />
           </Link>
-          <p className="text-xs text-ink-muted mt-4">Nessuna registrazione per vedere i prezzi</p>
+          <p className="text-xs text-ink-muted mt-4">Registrati per cercare una corsa e vedere i prezzi</p>
         </div>
       </div>
     </div>

@@ -14,7 +14,7 @@ const values = [
   },
   {
     title: 'Semplicità',
-    desc: 'Dal codice volo al van prenotato in meno di due minuti. Nessuna registrazione richiesta per vedere i prezzi. Zero attriti nel momento in cui ne hai più bisogno.',
+    desc: 'Dal codice volo al van prenotato in meno di due minuti. Registrati una volta, prenota sempre in pochi tap. Zero attriti nel momento in cui ne hai più bisogno.',
   },
 ];
 
