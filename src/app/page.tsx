@@ -91,7 +91,7 @@ export default function LandingPage() {
           {[
             { value: 'Fino al 60%', label: 'di risparmio vs taxi privato' },
             { value: 'Paghi solo i tuoi km', label: 'nessuna divisione fissa' },
-            { value: 'Price-lock', label: 'prezzo bloccato prima di salire' },
+            { value: 'Price-lock', label: 'prezzo bloccato prima di salire in aereo' },
           ].map(({ value, label }) => (
             <div key={label}>
               <p className="text-3xl md:text-4xl font-black text-primary-400 mb-1">{value}</p>
@@ -202,7 +202,7 @@ export default function LandingPage() {
           const steps = [
             { n: '1', title: 'Cerca la tua corsa',    body: 'Inserisci il codice volo e la destinazione. L\'algoritmo trova i passeggeri del tuo stesso volo diretti nella tua zona.' },
             { n: '2', title: 'Conferma il posto',      body: 'Blocchi il posto nel gruppo con una pre-autorizzazione. Nessun addebito ora — paghi all\'accettazione del driver.' },
-            { n: '3', title: 'Premi "Sono qui"',       body: 'Atterri, ritiri i bagagli e premi il pulsante. Il driver NCC raggiunge il punto di incontro in 5-10 minuti.' },
+            { n: '3', title: 'Volo atterrato',           body: 'Quando il volo atterra ricevi una notifica — i passeggeri premono \'Sono qui\' quando sono all\'uscita arrivi, il driver raggiunge il punto di incontro in 5-10 minuti.' },
             { n: '4', title: 'Arrivi a destinazione',  body: 'Il driver ti porta a casa. Paghi solo i tuoi km effettivi — nessuna divisione fissa del costo totale.' },
           ];
           const last = steps.length - 1;
