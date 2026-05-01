@@ -143,6 +143,7 @@ model User {
   messages      RideMessage[]
   notifications     Notification[]
   pushSubscriptions PushSubscription[]
+  disputes      Dispute[]
 
   @@index([email])
   @@index([role])
@@ -260,6 +261,7 @@ model Booking {
   user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   microGroup          MicroGroup?    @relation(fields: [microGroupId], references: [id], onDelete: SetNull)
   groupMember         GroupMember?   // 1:1 relationship dopo matching
+  disputes            Dispute[]
 
   @@index([userId])
   @@index([status])
@@ -696,6 +698,25 @@ model Notification {
 
   @@index([userId, read])
   @@map("notifications")
+}
+
+model Dispute {
+  id          String   @id @default(cuid())
+  bookingId   String
+  userId      String
+  reason      String   // LOST_LUGGAGE | MEDICAL | FLIGHT_ISSUE | DRIVER_ISSUE | OTHER
+  description String
+  status      String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  refundAmount Float?
+  resolution  String?
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  createdAt   DateTime @default(now())
+
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("disputes")
 }
 
 model InsurancePool {

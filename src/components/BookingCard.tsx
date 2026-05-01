@@ -9,8 +9,9 @@ import CancellationModal from './CancellationModal';
 import { formatFlightTime, formatCountdown } from '@/lib/time';
 import {
   Plane, MapPin, DollarSign, MessageCircle, Navigation,
-  Luggage, Clock, Users, XCircle, Star, Share2, ChevronRight,
+  Luggage, Clock, Users, XCircle, Star, Share2, ChevronRight, AlertTriangle,
 } from 'lucide-react';
+import DisputeModal from './DisputeModal';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
   PENDING:      { label: 'Cerchiamo compagni...',  color: 'text-warning',     dot: 'bg-warning' },
@@ -32,6 +33,7 @@ export default function BookingCard({ booking }: { booking: Booking }) {
   const [ratingSubmitted, setRatingSubmitted] = useState(!!booking.userRating);
   const [ratingLoading, setRatingLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
+  const [isDisputeOpen, setIsDisputeOpen] = useState(false);
 
   const [groupStatus, setGroupStatus] = useState<{ current: number; max: number } | null>(null);
   const isForming = ['PENDING', 'IN_MATCHING'].includes(booking.status);
@@ -252,6 +254,17 @@ export default function BookingCard({ booking }: { booking: Booking }) {
             </div>
           )}
 
+          {/* NO-SHOW per forza maggiore — visibile quando driver assegnato */}
+          {rideGroup?.status === 'ASSIGNED' && (
+            <button
+              onClick={() => setIsDisputeOpen(true)}
+              className="flex items-center gap-2 text-xs text-ink-muted hover:text-warning transition-colors"
+            >
+              <AlertTriangle className="w-3.5 h-3.5" />
+              Problema al pickup per cause di forza maggiore?
+            </button>
+          )}
+
           {/* MEETING POINT — volo atterrato, driver in arrivo */}
           {meetingLanded && (
             <div className="bg-success/8 border border-success/25 rounded-xl px-4 py-3">
@@ -449,6 +462,13 @@ export default function BookingCard({ booking }: { booking: Booking }) {
       {chatEnabled && rideGroupId && (
         <DriverChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)}
           driverName="Driver Flanvo" driverPhone="" groupId={rideGroupId} />
+      )}
+      {isDisputeOpen && (
+        <DisputeModal
+          bookingId={booking.id}
+          flightNumber={booking.flightNumber}
+          onClose={() => setIsDisputeOpen(false)}
+        />
       )}
       <CancellationModal
         isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)}
