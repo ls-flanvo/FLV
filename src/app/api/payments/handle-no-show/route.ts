@@ -14,7 +14,9 @@ const noShowSchema = z.object({
   reason: z.string().optional()
 });
 
-const WAIT_AFTER_MEETING_MS = 20 * 60 * 1000; // 20 min dal meeting time
+// 15 min dal meeting time (che è già landing + 25 min bagagli)
+// Il driver deve prima contattare il passeggero via chat, poi attendere 15 min
+const WAIT_AFTER_MEETING_MS = 15 * 60 * 1000;
 
 export async function POST(req: NextRequest) {
   try {
@@ -106,15 +108,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Il pagamento è già catturato al momento dell'accettazione del driver.
-    // No-show: il driver era presente e ha atteso — riceve la sua parte.
-    // La fee Flanvo rimane a Flanvo (servizio organizzato, driver presente).
-    // Nessun refund al passeggero — può aprire disputa per forza maggiore.
+    // No-show: il driver era presente, ha contattato il passeggero via chat e ha atteso 15 min.
+    // Driver riceve: driverShare (compensazione presenza e attesa)
+    // Flanvo rimborsa al passeggero: flanvoFee + protectionFee (la propria quota)
+    // Passeggero paga solo: driverShare (penale per il no-show)
 
     if (member.paymentStatus !== 'CAPTURED') {
       return NextResponse.json({ error: 'Pagamento non ancora catturato' }, { status: 400 });
     }
 
-    // Transfer quota driver — compensazione per l'attesa
+    // Transfer quota driver — compensazione per presenza e attesa
     const transfer = await stripe.transfers.create({
       amount: Math.round(member.driverShare! * 100),
       currency: 'eur',
@@ -122,11 +125,23 @@ export async function POST(req: NextRequest) {
       metadata: {
         memberId: member.id,
         type: 'no_show_compensation',
-        reason: reason || 'Passenger no-show after 20 min wait',
+        reason: reason || 'Passenger no-show after 15 min wait + chat contact',
       },
     });
 
-    console.log(`No-show transfer: ${transfer.id} - €${member.driverShare} to driver ${driver.id}`);
+    // Rimborso parziale al passeggero: Flanvo restituisce la propria fee
+    // Quota Flanvo = totalPrice - driverShare (include flanvoFee + protectionFee)
+    const flanvoQuota = (member.totalPrice ?? 0) - (member.driverShare ?? 0);
+    const flanvoRefundCents = Math.round(Math.max(0, flanvoQuota) * 100);
+    if (flanvoRefundCents > 0) {
+      await stripe.refunds.create({
+        payment_intent: member.paymentIntentId,
+        amount: flanvoRefundCents,
+        metadata: { type: 'NO_SHOW_FLANVO_FEE_REFUND', memberId: member.id },
+      }).catch(console.error);
+    }
+
+    console.log(`No-show: transfer €${member.driverShare} to driver, refund €${flanvoRefundCents / 100} flanvo fee to passenger`);
 
     // STEP 4: Update GroupMember
     await prisma.groupMember.update({
@@ -172,7 +187,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       driverPaid: member.driverShare,
-      message: 'Driver compensato per l\'attesa. Il passeggero può aprire una disputa per forza maggiore.',
+      flanvoRefunded: flanvoRefundCents / 100,
+      message: 'Driver compensato per presenza e attesa. Fee Flanvo rimborsata al passeggero. Per forza maggiore documentata aprire disputa.',
     });
 
   } catch (error: unknown) {

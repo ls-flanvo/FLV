@@ -24,6 +24,56 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string 
   NO_MATCH:     { label: 'Nessun match',           color: 'text-ink-muted',   dot: 'bg-ink-muted' },
 };
 
+const TIP_OPTIONS = [1, 2, 5];
+
+function TipSection({ bookingId }: { bookingId: string }) {
+  const [tipped, setTipped] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const sendTip = async (amount: number) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('flanvo_token');
+      await fetch('/api/payments/tip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ bookingId, amount }),
+      });
+      setTipped(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (tipped) {
+    return (
+      <div className="bg-primary-500/8 border border-primary-500/20 rounded-xl px-4 py-3 text-center">
+        <p className="text-sm font-semibold text-primary-400">Mancia inviata — grazie!</p>
+        <p className="text-xs text-ink-muted mt-0.5">Il driver ha ricevuto la tua mancia.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-surface-2 border border-surface-5 rounded-xl px-4 py-3">
+      <p className="text-xs text-ink-muted mb-2">Sei arrivato a destinazione. Grazie per aver scelto Flanvo!</p>
+      <p className="text-xs font-semibold text-white mb-2">Vuoi lasciare una mancia al driver?</p>
+      <div className="flex gap-2">
+        {TIP_OPTIONS.map((amount) => (
+          <button
+            key={amount}
+            onClick={() => sendTip(amount)}
+            disabled={loading}
+            className="flex-1 py-2 bg-surface-3 border border-surface-5 rounded-xl text-sm font-bold text-white hover:border-primary-500/30 hover:bg-surface-2 disabled:opacity-40 transition-all"
+          >
+            €{amount}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function BookingCard({ booking }: { booking: Booking }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -395,7 +445,10 @@ export default function BookingCard({ booking }: { booking: Booking }) {
           )}
 
           {isCompleted && (
-            <div className="pt-1">
+            <div className="pt-1 space-y-3">
+              {/* Ringraziamento + mancia */}
+              <TipSection bookingId={booking.id} />
+
               {ratingSubmitted ? (
                 <div className="bg-success/8 border border-success/20 rounded-xl px-4 py-3 flex items-center gap-2.5">
                   <Star className="w-4 h-4 text-success fill-success shrink-0" />
