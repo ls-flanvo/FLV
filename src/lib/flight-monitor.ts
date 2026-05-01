@@ -223,18 +223,34 @@ async function handleFlightCancelledOrDiverted(group: any, reason: 'cancelled' |
       select: { id: true, paymentIntentId: true, paymentStatus: true, totalPrice: true },
     });
 
-    // Rilascia la pre-autorizzazione Stripe (necessità tecnica — il servizio non verrà erogato)
-    if (m?.paymentIntentId && m.paymentStatus === 'AUTHORIZED') {
-      stripe.paymentIntents.cancel(m.paymentIntentId).catch(() => {});
+    if (m?.paymentIntentId) {
+      if (m.paymentStatus === 'AUTHORIZED') {
+        // Pre-auth non ancora catturata → rilascia il blocco sulla carta
+        stripe.paymentIntents.cancel(m.paymentIntentId).catch(() => {});
+        await prisma.groupMember.update({
+          where: { id: member.id },
+          data: { status: 'CANCELLED', paymentStatus: 'REFUNDED' },
+        });
+      } else if (m.paymentStatus === 'CAPTURED') {
+        // Già catturato (driver aveva accettato) → non rimborsare
+        // Il driver viene comunque pagato al drop-off come da accordo
+        // Il passeggero riceverà assistenza EU 261/2004
+        await prisma.groupMember.update({
+          where: { id: member.id },
+          data: { status: 'CANCELLED' },
+        });
+      } else {
+        await prisma.groupMember.update({
+          where: { id: member.id },
+          data: { status: 'CANCELLED' },
+        });
+      }
+    } else {
+      await prisma.groupMember.update({
+        where: { id: member.id },
+        data: { status: 'CANCELLED' },
+      });
     }
-
-    await prisma.groupMember.update({
-      where: { id: member.id },
-      data: {
-        status: 'CANCELLED',
-        paymentStatus: m?.paymentStatus === 'AUTHORIZED' ? 'REFUNDED' : m?.paymentStatus ?? 'PENDING',
-      },
-    });
 
     const booking = await prisma.booking.findFirst({
       where: { groupMember: { id: member.id } },

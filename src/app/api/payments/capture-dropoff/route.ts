@@ -42,18 +42,11 @@ export async function POST(req: NextRequest) {
     const errors: string[] = [];
 
     for (const member of group.members) {
-      if (!member.paymentIntentId || member.paymentStatus !== 'AUTHORIZED') continue;
+      // Il pagamento è già catturato al momento dell'accettazione del driver
+      if (!member.paymentIntentId || member.paymentStatus !== 'CAPTURED') continue;
 
       try {
-        const amountCents = Math.round((member.totalPrice ?? 0) * 100);
-        if (amountCents <= 0) continue;
-
-        // Cattura il PaymentIntent
-        await stripe.paymentIntents.capture(member.paymentIntentId, {
-          amount_to_capture: amountCents,
-        });
-
-        // Trasferisce la quota driver
+        // Transfer quota driver via Stripe Connect
         const driverShareCents = Math.round((member.driverShare ?? 0) * 100);
         if (driverShareCents > 0) {
           await stripe.transfers.create({
@@ -68,7 +61,7 @@ export async function POST(req: NextRequest) {
         // Aggiorna member
         await prisma.groupMember.update({
           where: { id: member.id },
-          data: { paymentStatus: 'CAPTURED', capturedAt: new Date(), status: 'COMPLETED', actualDropoffTime: new Date() },
+          data: { status: 'COMPLETED', actualDropoffTime: new Date() },
         });
 
         // Aggiorna booking

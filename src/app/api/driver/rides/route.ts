@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireDriver, authErrorResponse } from '@/lib/api-auth';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' });
 
 export async function GET(request: NextRequest) {
   try {
@@ -68,7 +71,8 @@ export async function GET(request: NextRequest) {
         lng: m.booking.dropoffLng,
       }));
 
-      const totalPrice = group.members.reduce((sum, m) => sum + (m.totalPrice ?? 0), 0);
+      // Il driver vede solo il suo netto (driverShare) — la fee Flanvo è sul passeggero
+      const totalPrice = group.members.reduce((sum, m) => sum + (m.driverShare ?? 0), 0);
       const rideStatus = isAssigned && 'ride' in group && group.ride
         ? group.ride.status.toLowerCase()
         : 'pending';
@@ -170,19 +174,41 @@ export async function PATCH(request: NextRequest) {
         throw e;
       }
 
-      // Notifica passeggeri che il driver è stato assegnato
-      const { createNotification } = await import('@/lib/notify');
+      // Cattura immediata di tutti i payment intent autorizzati
       const groupWithMembers = await prisma.rideGroup.findUnique({
         where: { id: rideId },
-        include: { members: { where: { status: { not: 'CANCELLED' } }, include: { booking: true } } },
+        include: {
+          members: {
+            where: { status: { not: 'CANCELLED' } },
+            include: { booking: { include: { user: true } } },
+          },
+        },
       });
+
       if (groupWithMembers) {
         for (const member of groupWithMembers.members) {
+          if (member.paymentIntentId && member.paymentStatus === 'AUTHORIZED') {
+            try {
+              const amountCents = Math.round((member.totalPrice ?? 0) * 100);
+              if (amountCents > 0) {
+                await stripe.paymentIntents.capture(member.paymentIntentId, { amount_to_capture: amountCents });
+                await prisma.groupMember.update({
+                  where: { id: member.id },
+                  data: { paymentStatus: 'CAPTURED', capturedAt: new Date() },
+                });
+              }
+            } catch (e) {
+              console.error(`Capture failed for member ${member.id}:`, e);
+            }
+          }
+
+          // Notifica passeggero
+          const { createNotification } = await import('@/lib/notify');
           createNotification({
             userId: member.booking.userId,
             type: 'RIDE_STARTED',
-            title: '🚐 Driver assegnato!',
-            body: `Il tuo driver (${driver.vehicleModel}, targa ${driver.vehiclePlate}) è stato assegnato alla tua corsa.`,
+            title: 'Driver assegnato',
+            body: `Il tuo driver (${driver.vehicleModel}, targa ${driver.vehiclePlate}) è stato assegnato. Il pagamento è stato confermato.`,
             data: { rideGroupId: rideId },
           }).catch(() => {});
         }

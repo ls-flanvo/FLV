@@ -105,37 +105,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const idempotencyKey = `noshow-${memberId}-${Date.now()}`;
+    // Il pagamento è già catturato al momento dell'accettazione del driver.
+    // No-show: il driver era presente e ha atteso — riceve la sua parte.
+    // La fee Flanvo rimane a Flanvo (servizio organizzato, driver presente).
+    // Nessun refund al passeggero — può aprire disputa per forza maggiore.
 
-    // STEP 1: Capture ONLY driver share
-    const captured = await stripe.paymentIntents.capture(
-      member.paymentIntentId,
-      {
-        amount_to_capture: Math.round(member.driverShare! * 100)
-      },
-      {
-        idempotencyKey
-      }
-    );
+    if (member.paymentStatus !== 'CAPTURED') {
+      return NextResponse.json({ error: 'Pagamento non ancora catturato' }, { status: 400 });
+    }
 
-    console.log(`No-show capture: ${captured.id} - €${member.driverShare}`);
-
-    // STEP 2: Refund flanvo fee + protection fee (0 km = no service)
-    const refundAmount = (member.flanvoFee || 0) + 1.00; // flanvo fee + protection
-    const refund = await stripe.refunds.create({
-      payment_intent: member.paymentIntentId,
-      amount: Math.round(refundAmount * 100),
-      reason: 'requested_by_customer',
-      metadata: {
-        type: 'NO_SHOW_REFUND',
-        memberId: member.id,
-        reason: '0 km traveled = no service fee'
-      }
-    });
-
-    console.log(`No-show refund: ${refund.id} - €${refundAmount}`);
-
-    // STEP 3: Transfer driver share to driver (compensation for waiting)
+    // Transfer quota driver — compensazione per l'attesa
     const transfer = await stripe.transfers.create({
       amount: Math.round(member.driverShare! * 100),
       currency: 'eur',
@@ -143,8 +122,8 @@ export async function POST(req: NextRequest) {
       metadata: {
         memberId: member.id,
         type: 'no_show_compensation',
-        reason: reason || 'Passenger no-show after 20 min wait'
-      }
+        reason: reason || 'Passenger no-show after 20 min wait',
+      },
     });
 
     console.log(`No-show transfer: ${transfer.id} - €${member.driverShare} to driver ${driver.id}`);
@@ -180,7 +159,7 @@ export async function POST(req: NextRequest) {
         maxDetourMinutes: member.booking.maxDetourMinutes,
         constraintsMet: false,
         calculatedBy: 'system',
-        notes: `NO-SHOW: Captured €${member.driverShare}, Refunded €${refundAmount}. ${reason || ''}`
+        notes: `NO-SHOW: Driver compensato €${member.driverShare}. Fee Flanvo trattenuta. ${reason || ''}`
       }
     });
 
@@ -192,11 +171,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      captured: true,
-      penalty: member.driverShare,
-      refunded: refundAmount,
-      netCharge: member.driverShare,
-      reason: 'No-show after 20 min wait. Driver share charged, service fee refunded.'
+      driverPaid: member.driverShare,
+      message: 'Driver compensato per l\'attesa. Il passeggero può aprire una disputa per forza maggiore.',
     });
 
   } catch (error: unknown) {
