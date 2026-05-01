@@ -17,7 +17,7 @@ export default function LandingPage() {
               src="/images/hero-airplane.jpg"
               alt=""
               fill
-              className="object-cover object-center opacity-85"
+              className="object-cover object-center opacity-95"
               priority
             />
             {/* Sfumatura verso destra — si dissolve al centro */}
@@ -30,7 +30,7 @@ export default function LandingPage() {
               src="/images/hero-group-driver.jpg"
               alt=""
               fill
-              className="object-cover object-center opacity-85"
+              className="object-cover object-center opacity-95"
               priority
             />
             {/* Sfumatura verso sinistra — si dissolve al centro */}
