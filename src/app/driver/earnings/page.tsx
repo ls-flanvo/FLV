@@ -88,7 +88,7 @@ export default function DriverEarningsPage() {
         <div className="bg-surface-1 border border-surface-4 rounded-2xl p-8 text-center">
           <TrendingUp className="w-10 h-10 text-ink-muted mx-auto mb-3" />
           <p className="text-sm text-ink-secondary">Nessuna corsa completata ancora.</p>
-          <p className="text-xs text-ink-muted mt-1">I guadagni appaiono qui dopo ogni drop-off.</p>
+          <p className="text-xs text-ink-muted mt-1">I guadagni appaiono qui dopo ogni corsa completata.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -122,7 +122,7 @@ export default function DriverEarningsPage() {
       )}
 
       <p className="text-center mt-6 text-xs text-ink-muted">
-        I pagamenti vengono trasferiti sul tuo account Stripe entro 2 giorni lavorativi dal drop-off.
+        I pagamenti vengono trasferiti sul tuo account Stripe entro 2 giorni lavorativi dall'accettazione della corsa.
       </p>
     </div>
   );

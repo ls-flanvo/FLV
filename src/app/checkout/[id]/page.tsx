@@ -74,8 +74,8 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
           {[
             { step: '1', text: 'Il tuo posto nel gruppo è confermato', color: 'bg-success' },
             { step: '2', text: 'Riceverai i dettagli dell\'autista e del van via email', color: 'bg-primary-500' },
-            { step: '3', text: 'Il driver ti aspetta al Terminal Arrivi con cartello Flanvo', color: 'bg-primary-500' },
-            { step: '4', text: 'La carta viene addebitata solo quando arrivi a destinazione', color: 'bg-primary-500' },
+            { step: '3', text: 'Quando atterri premi "Sono qui" — il driver raggiunge il punto di incontro in 5-10 minuti', color: 'bg-primary-500' },
+            { step: '4', text: 'L\'addebito avviene al momento dell\'accettazione del driver, prima della corsa', color: 'bg-primary-500' },
           ].map(({ step, text, color }) => (
             <div key={step} className="flex items-start gap-3">
               <div className={`w-5 h-5 ${color} rounded-full flex items-center justify-center text-[#0B0B0B] text-xs font-bold shrink-0 mt-0.5`}>{step}</div>
@@ -233,7 +233,7 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
               {/* Trust badges */}
               <div className="space-y-2">
                 {[
-                  'Addebito solo al drop-off',
+                  'Addebito all\'accettazione del driver',
                   'Rimborso completo fino ad accettazione driver',
                   'Pagamento sicuro Stripe',
                 ].map((t) => (

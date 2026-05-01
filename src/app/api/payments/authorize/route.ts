@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       userId: member.booking.userId,
       type: 'BOOKING_CONFIRMED',
       title: 'Pagamento autorizzato',
-      body: `Pre-autorizzazione ${priceLabel} confermata per il volo ${member.rideGroup.flightNumber}. Addebito solo al drop-off.`,
+      body: `Pre-autorizzazione ${priceLabel} confermata per il volo ${member.rideGroup.flightNumber}. L'addebito avverrà quando il driver accetta la corsa.`,
       data: { paymentIntentId, flightNumber: member.rideGroup.flightNumber },
     }).catch(() => {});
 

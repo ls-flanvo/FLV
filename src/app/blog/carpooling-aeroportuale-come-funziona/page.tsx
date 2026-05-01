@@ -53,9 +53,9 @@ export default function Post() {
             Il prezzo viene calcolato in quel momento e non cambia. Non ci sono variazioni in base al traffico, all&apos;orario o a quante persone ci sono in coda per i taxi. Quello che vedi è quello che paghi.
           </p>
 
-          <h2 className="text-xl font-bold text-white mt-10 mb-3">Il pagamento: pre-autorizzazione e addebito al drop-off</h2>
+          <h2 className="text-xl font-bold text-white mt-10 mb-3">Il pagamento: pre-autorizzazione e addebito all&apos;accettazione</h2>
           <p>
-            Quando confirmi la prenotazione, la tua carta viene pre-autorizzata (i fondi vengono bloccati ma non addebitati). L&apos;addebito reale avviene solo quando arrivi a destinazione e il driver chiude la corsa. Se per qualsiasi motivo la corsa non avviene, la pre-autorizzazione decade automaticamente.
+            Quando confirmi la prenotazione, la tua carta viene pre-autorizzata (i fondi vengono bloccati ma non addebitati). L&apos;addebito reale avviene quando il driver accetta la corsa — prima del pickup, ma dopo che il servizio è confermato. Se la corsa non avviene per mancanza di driver, la pre-autorizzazione decade automaticamente.
           </p>
 
           <h2 className="text-xl font-bold text-white mt-10 mb-3">Cosa succede se il volo è in ritardo?</h2>
@@ -66,12 +66,12 @@ export default function Post() {
             Se il ritardo è superiore a 2 ore e il gruppo non riesce più a formarsi, ricevi un rimborso completo della pre-autorizzazione. In caso di cancellazione del volo da parte del vettore, il rimborso è sempre integrale.
           </p>
 
-          <h2 className="text-xl font-bold text-white mt-10 mb-3">Dove trovo il driver in aeroporto?</h2>
+          <h2 className="text-xl font-bold text-white mt-10 mb-3">Come trovo il driver in aeroporto?</h2>
           <p>
-            Prima dell&apos;atterraggio ricevi una notifica con il punto di incontro esatto — solitamente l&apos;uscita Arrivi del terminal, zona attesa autisti. Il driver ha un cartello con il logo Flanvo e il tuo nome. Puoi comunicare con lui in tempo reale via chat direttamente dall&apos;app.
+            Quando il volo atterra ricevi una notifica. Ritira i bagagli, poi premi &quot;Sono qui&quot; dall&apos;app quando sei all&apos;uscita arrivi. Il driver — che nel frattempo aspetta nel parcheggio NCC dedicato — riceve la notifica e raggiunge il punto di incontro in 5-10 minuti. Non devi aspettare agli arrivi: sei tu a chiamarlo quando sei pronto.
           </p>
           <p>
-            In ogni aeroporto servito da Flanvo c&apos;è un punto di incontro dedicato. Puoi verificare il punto esatto per il tuo aeroporto nella pagina <Link href="/aeroporti" className="text-primary-400 hover:text-primary-300 transition-colors">aeroporti serviti</Link>.
+            Il punto di incontro esatto per ogni aeroporto è disponibile nella pagina <Link href="/aeroporti" className="text-primary-400 hover:text-primary-300 transition-colors">aeroporti serviti</Link>.
           </p>
 
           <h2 className="text-xl font-bold text-white mt-10 mb-3">Chi sono gli altri passeggeri?</h2>

@@ -74,7 +74,7 @@ export default function LandingPage() {
       <section id="come-funziona" className="max-w-7xl mx-auto px-4 py-20">
         <div className="text-center mb-14">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Come funziona</h2>
-          <p className="text-ink-secondary">Dalla ricerca al drop-off. Paghi solo i km percorsi con te a bordo.</p>
+          <p className="text-ink-secondary">Dalla ricerca al pickup. Paghi solo i km percorsi con te a bordo.</p>
         </div>
 
         {(() => {

@@ -201,7 +201,7 @@ export default function MatchingPage() {
               <div className="w-2 h-2 bg-success rounded-full mt-1.5 shrink-0 animate-pulse" />
               <p className="text-xs text-ink-secondary leading-relaxed">
                 <strong className="text-white">Unisciti al gruppo</strong> — nessun pagamento ora.
-                Riceverai una email di conferma con il prezzo finale. Paghi solo al drop-off.
+                Riceverai una email di conferma con il prezzo finale. L&apos;addebito avviene quando il driver accetta la corsa.
               </p>
             </div>
             <div className="space-y-4">
@@ -215,7 +215,7 @@ export default function MatchingPage() {
               ))}
             </div>
             <p className="text-center text-xs text-ink-muted mt-6">
-              Il pagamento avviene solo al drop-off · Nessun addebito immediato
+              Addebito all&apos;accettazione del driver · Nessun addebito prima del match
             </p>
           </>
         )}

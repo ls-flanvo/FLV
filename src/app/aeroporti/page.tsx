@@ -4,24 +4,25 @@ import { ArrowLeft, ArrowRight, MapPin, CheckCircle } from 'lucide-react';
 export const metadata = { title: 'Aeroporti serviti — Flanvo' };
 
 const italiani = [
-  { code: 'CTA', name: 'Catania Fontanarossa',        city: 'Catania',  meeting: 'Terminal Arrivi — Uscita Bagagli, cartello Flanvo' },
-  { code: 'PMO', name: 'Palermo Falcone Borsellino',  city: 'Palermo',  meeting: 'Terminal Arrivi — Area Riconsegna Bagagli, cartello Flanvo' },
-  { code: 'CAG', name: 'Cagliari Elmas',              city: 'Cagliari', meeting: 'Uscita Arrivi — Zona Attesa, cartello Flanvo' },
-  { code: 'FCO', name: 'Roma Fiumicino',              city: 'Roma',     meeting: 'Terminal 1 — Uscita Arrivi B, cartello Flanvo' },
-  { code: 'MXP', name: 'Milano Malpensa',             city: 'Milano',   meeting: 'Terminal 1 — Arrivi, zona autisti, cartello Flanvo' },
-  { code: 'BGY', name: 'Milano Bergamo Orio al Serio',city: 'Bergamo',  meeting: 'Uscita Arrivi — Zona NCC, cartello Flanvo' },
-  { code: 'NAP', name: 'Napoli Capodichino',          city: 'Napoli',   meeting: 'Arrivi — Zona Attesa Autisti, cartello Flanvo' },
-  { code: 'BRI', name: 'Bari Karol Wojtyla',          city: 'Bari',     meeting: 'Uscita Arrivi — Parcheggio P1, cartello Flanvo' },
+  { code: 'CTA', name: 'Catania Fontanarossa',        city: 'Catania',   meeting: 'Uscita Arrivi — corsello esterno, area raccolta NCC' },
+  { code: 'PMO', name: 'Palermo Falcone Borsellino',  city: 'Palermo',   meeting: 'Uscita Arrivi — marciapiede esterno, area NCC' },
+  { code: 'CAG', name: 'Cagliari Elmas',              city: 'Cagliari',  meeting: 'Uscita Arrivi — piazzale esterno, zona NCC' },
+  { code: 'FCO', name: 'Roma Fiumicino',              city: 'Roma',      meeting: 'Terminal 1 — Uscita Arrivi B, marciapiede raccolta NCC' },
+  { code: 'CIA', name: 'Roma Ciampino',               city: 'Roma',      meeting: 'Parcheggio Accosto P3 — Piazzale Leonardo da Vinci' },
+  { code: 'MXP', name: 'Milano Malpensa',             city: 'Milano',    meeting: 'Terminal 1 — Arrivi uscita D, zona raccolta NCC (piano 0)' },
+  { code: 'BGY', name: 'Milano Bergamo Orio al Serio',city: 'Bergamo',   meeting: 'Uscita Arrivi — area NCC esterna, oltre le colonnine' },
+  { code: 'NAP', name: 'Napoli Capodichino',          city: 'Napoli',    meeting: 'Uscita Arrivi — lato destro verso parcheggio, area NCC' },
+  { code: 'BRI', name: 'Bari Karol Wojtyla',          city: 'Bari',      meeting: 'Uscita Arrivi — corsello esterno, parcheggio P1 zona NCC' },
 ];
 
 const europei = [
-  { code: 'LHR', name: 'London Heathrow',          city: 'Londra',    meeting: 'Terminal Arrivals — Meet & Greet, Flanvo sign' },
-  { code: 'LGW', name: 'London Gatwick',           city: 'Londra',    meeting: 'South Terminal — Arrivals, Flanvo sign' },
-  { code: 'CDG', name: 'Parigi Charles de Gaulle', city: 'Parigi',    meeting: 'Terminal 2E — Arrivées, panneau Flanvo' },
-  { code: 'AMS', name: 'Amsterdam Schiphol',       city: 'Amsterdam', meeting: 'Arrivals Hall — Schiphol Plaza, Flanvo sign' },
-  { code: 'FRA', name: 'Francoforte',              city: 'Francoforte', meeting: 'Terminal 1 — Ankunft B, Flanvo Schild' },
-  { code: 'BCN', name: 'Barcellona El Prat',       city: 'Barcellona', meeting: 'Terminal 1 — Llegadas, cartel Flanvo' },
-  { code: 'MAD', name: 'Madrid Barajas',           city: 'Madrid',    meeting: 'Terminal 4 — Llegadas, cartel Flanvo' },
+  { code: 'LHR', name: 'London Heathrow',          city: 'Londra',     meeting: 'Terminal Arrivals — vehicle forecourt, PHV pickup bay' },
+  { code: 'LGW', name: 'London Gatwick',           city: 'Londra',     meeting: 'South Terminal — Arrivals forecourt, PHV pickup zone' },
+  { code: 'CDG', name: 'Parigi Charles de Gaulle', city: 'Parigi',     meeting: 'Terminal 2E — Zone VTC, sortie L (niveau arrivées)' },
+  { code: 'AMS', name: 'Amsterdam Schiphol',       city: 'Amsterdam',  meeting: 'Arrivals Hall — transfer forecourt, private hire zone' },
+  { code: 'FRA', name: 'Francoforte',              city: 'Francoforte',meeting: 'Terminal 1 — Ankunft B, Mietwagen-Abholzone (Ebene 0)' },
+  { code: 'BCN', name: 'Barcellona El Prat',       city: 'Barcellona', meeting: 'Terminal 1 — Llegadas, zona VTC exterior' },
+  { code: 'MAD', name: 'Madrid Barajas',           city: 'Madrid',     meeting: 'Terminal 4 — Llegadas, área VTC exterior (salida T4S)' },
 ];
 
 function AirportCard({ code, name, city, meeting }: { code: string; name: string; city: string; meeting: string }) {
@@ -59,7 +60,7 @@ export default function AeroportiPage() {
             Aeroporti serviti
           </h1>
           <p className="text-lg text-ink-secondary leading-relaxed">
-            Flanvo è attivo in {italiani.length + europei.length} aeroporti tra Italia ed Europa. In ogni aeroporto trovi un punto di incontro dedicato con il cartello Flanvo.
+            Flanvo è attivo in {italiani.length + europei.length} aeroporti tra Italia ed Europa. Quando atterri premi &quot;Sono qui&quot; dall&apos;app — il driver NCC raggiunge il punto di incontro in 5-10 minuti.
           </p>
         </div>
 
