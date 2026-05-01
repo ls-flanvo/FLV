@@ -14,7 +14,7 @@ const faqs = [
   },
   {
     q: 'Posso cancellare la prenotazione?',
-    a: 'Sì. Puoi cancellare gratuitamente fino al momento in cui il driver accetta la corsa. Dopo l\'accettazione la cancellazione non è consentita, ma in caso di forza maggiore al pickup (bagagli smarriti, emergenza medica) puoi aprire una disputa entro 24 ore dall\'orario di pickup — il team Flanvo valuta e decide. Se il volo viene cancellato dalla compagnia aerea, rimborso completo sempre.',
+    a: 'Sì. Puoi cancellare gratuitamente fino a quando il driver non accetta la corsa. Dopo l\'accettazione, la cancellazione non è consentita. Per forza maggiore al pickup (bagagli smarriti, emergenza medica) apri una disputa entro 24 ore. Per volo cancellato o dirottato dalla compagnia aerea, Flanvo attiva automaticamente una procedura di assistenza: ricevi la ricevuta ufficiale e le istruzioni per richiedere il rimborso all\'airline ai sensi del Reg. UE 261/2004 — è la compagnia a rimborsarti, non Flanvo.',
   },
   {
     q: 'Chi sono i passeggeri nel gruppo?',

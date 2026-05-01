@@ -14,10 +14,10 @@ const comparison = [
 ];
 
 const cancellation = [
-  { when: 'Prima che il driver accetti',                          refund: 'Rimborso completo',       color: 'text-primary-400' },
-  { when: 'Dopo che il driver accetta',                           refund: 'Nessun rimborso',         color: 'text-red-400' },
-  { when: 'Forza maggiore al pickup (disputa entro 24h)',         refund: 'Valutato caso per caso',  color: 'text-warning' },
-  { when: 'Volo cancellato dal vettore',                          refund: 'Rimborso completo',       color: 'text-primary-400' },
+  { when: 'Prima che il driver accetti',                               refund: 'Rimborso completo',              color: 'text-primary-400' },
+  { when: 'Dopo che il driver accetta',                                refund: 'Nessun rimborso',                color: 'text-red-400' },
+  { when: 'Forza maggiore al pickup (disputa entro 24h)',              refund: 'Valutato caso per caso',         color: 'text-warning' },
+  { when: 'Volo cancellato o dirottato dalla compagnia aerea',        refund: 'Assistenza EU 261/2004 →',       color: 'text-blue-400' },
 ];
 
 export default function PrezziPage() {

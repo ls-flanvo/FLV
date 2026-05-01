@@ -1,6 +1,7 @@
 import { prisma } from './prisma';
 import { createNotification } from './notify';
 import { AIRPORT_COORDS } from './airports';
+import { sendAirlineCancellationAssistance } from './email';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' });
@@ -209,20 +210,72 @@ async function handleNoDriver(group: any) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleFlightCancelledOrDiverted(group: any, reason: 'cancelled' | 'diverted') {
   await prisma.rideGroup.update({ where: { id: group.id }, data: { flightStatus: reason, status: 'CANCELLED' } });
-  const title = reason === 'cancelled' ? 'Volo cancellato — rimborso completo' : 'Volo dirottato — rimborso completo';
+
+  const reasonLabel = reason === 'cancelled' ? 'cancellato' : 'dirottato';
+  const title = `Volo ${group.flightNumber} ${reasonLabel} — procedura assistenza attivata`;
   const body = reason === 'cancelled'
-    ? 'Il volo è stato cancellato. La prenotazione è annullata con rimborso totale.'
-    : 'Il volo è stato dirottato. La prenotazione è annullata con rimborso totale.';
+    ? `Il volo ${group.flightNumber} è stato cancellato dalla compagnia aerea. Ti abbiamo inviato le istruzioni per richiedere il rimborso all'airline tramite Reg. UE 261/2004.`
+    : `Il volo ${group.flightNumber} è stato dirottato. Ti abbiamo inviato le istruzioni per richiedere il rimborso all'airline tramite Reg. UE 261/2004.`;
+
   for (const member of group.members) {
     const m = await prisma.groupMember.findUnique({
-      where: { id: member.id }, select: { paymentIntentId: true, paymentStatus: true },
+      where: { id: member.id },
+      select: { id: true, paymentIntentId: true, paymentStatus: true, totalPrice: true },
     });
-    if (m?.paymentIntentId && m.paymentStatus === 'AUTHORIZED') stripe.paymentIntents.cancel(m.paymentIntentId).catch(() => {});
+
+    // Rilascia la pre-autorizzazione Stripe (necessità tecnica — il servizio non verrà erogato)
+    if (m?.paymentIntentId && m.paymentStatus === 'AUTHORIZED') {
+      stripe.paymentIntents.cancel(m.paymentIntentId).catch(() => {});
+    }
+
     await prisma.groupMember.update({
       where: { id: member.id },
-      data: { status: 'CANCELLED', paymentStatus: m?.paymentStatus === 'AUTHORIZED' ? 'REFUNDED' : m?.paymentStatus ?? 'PENDING' },
+      data: {
+        status: 'CANCELLED',
+        paymentStatus: m?.paymentStatus === 'AUTHORIZED' ? 'REFUNDED' : m?.paymentStatus ?? 'PENDING',
+      },
     });
-    await prisma.booking.updateMany({ where: { groupMember: { id: member.id } }, data: { status: 'CANCELLED' } });
-    createNotification({ userId: member.booking.userId, type: 'BOOKING_CANCELLED', title, body, data: { rideGroupId: group.id, reason } }).catch(() => {});
+
+    const booking = await prisma.booking.findFirst({
+      where: { groupMember: { id: member.id } },
+      select: { id: true, userId: true, pickupTime: true },
+    });
+
+    if (booking) {
+      await prisma.booking.update({ where: { id: booking.id }, data: { status: 'CANCELLED' } });
+
+      // Crea automaticamente una disputa "airline" per ogni passeggero
+      await prisma.dispute.create({
+        data: {
+          bookingId: booking.id,
+          userId: booking.userId,
+          reason: reason === 'cancelled' ? 'AIRLINE_CANCELLED' : 'AIRLINE_DIVERTED',
+          description: `Procedura automatica: volo ${group.flightNumber} ${reasonLabel} dalla compagnia aerea. Assistenza per rimborso EU 261/2004 attivata.`,
+          status: 'PENDING',
+        },
+      }).catch(() => {});
+
+      // Invia email assistenza airline con ricevuta e istruzioni
+      const user = await prisma.user.findUnique({ where: { id: booking.userId }, select: { email: true, name: true } });
+      if (user) {
+        sendAirlineCancellationAssistance(user.email, {
+          userName: user.name ?? 'Passeggero',
+          flightNumber: group.flightNumber,
+          reason,
+          bookingId: booking.id,
+          amount: m?.totalPrice ?? 0,
+          pickupDate: booking.pickupTime.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }),
+        }).catch(() => {});
+      }
+    }
+
+    // Notifica in-app
+    createNotification({
+      userId: member.booking.userId,
+      type: 'BOOKING_CANCELLED',
+      title,
+      body,
+      data: { rideGroupId: group.id, reason, assistanceActivated: true },
+    }).catch(() => {});
   }
 }

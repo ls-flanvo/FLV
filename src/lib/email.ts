@@ -283,6 +283,58 @@ export async function sendCancellationPenalty(
   );
 }
 
+export async function sendAirlineCancellationAssistance(
+  to: string,
+  params: {
+    userName: string;
+    flightNumber: string;
+    reason: 'cancelled' | 'diverted';
+    bookingId: string;
+    amount: number;
+    pickupDate: string;
+  }
+) {
+  const reasonLabel = params.reason === 'cancelled' ? 'cancellato' : 'dirottato';
+  const reasonTitle = params.reason === 'cancelled' ? 'Volo cancellato' : 'Volo dirottato';
+  await send(
+    to,
+    `${reasonTitle} — Come richiedere il rimborso alla compagnia aerea`,
+    wrapEmail(`
+      <h1 style="color:#0a0a0a;font-size:24px;font-weight:700;margin:0 0 12px">${reasonTitle}: ecco come ottenere il rimborso</h1>
+      <p style="color:#444;line-height:1.6">Ciao ${params.userName}, il volo <strong>${params.flightNumber}</strong> è stato ${reasonLabel} dalla compagnia aerea.</p>
+
+      <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:20px;margin:20px 0">
+        <p style="margin:0 0 8px;font-weight:700;color:#92400e">Flanvo non prevede rimborso diretto per questo caso</p>
+        <p style="margin:0;color:#78350f;font-size:14px;line-height:1.5">La responsabilità è della compagnia aerea. In base al <strong>Regolamento UE 261/2004</strong>, hai diritto al rimborso delle spese di trasporto alternativo — inclusa la tua prenotazione Flanvo.</p>
+      </div>
+
+      <h2 style="color:#0a0a0a;font-size:18px;font-weight:700;margin:24px 0 12px">La tua ricevuta Flanvo</h2>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin:0 0 20px">
+        <p style="margin:0 0 6px;font-size:13px;color:#374151"><strong>Prenotazione:</strong> ${params.bookingId}</p>
+        <p style="margin:0 0 6px;font-size:13px;color:#374151"><strong>Volo:</strong> ${params.flightNumber}</p>
+        <p style="margin:0 0 6px;font-size:13px;color:#374151"><strong>Data:</strong> ${params.pickupDate}</p>
+        <p style="margin:0;font-size:15px;font-weight:700;color:#0a0a0a"><strong>Importo:</strong> €${params.amount.toFixed(2)}</p>
+      </div>
+
+      <h2 style="color:#0a0a0a;font-size:18px;font-weight:700;margin:24px 0 12px">Come richiedere il rimborso — 3 passi</h2>
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:20px;margin:0 0 20px">
+        <p style="margin:0 0 12px;font-size:14px;color:#166534"><strong>1.</strong> Contatta la compagnia aerea tramite il loro portale reclami o per email.</p>
+        <p style="margin:0 0 12px;font-size:14px;color:#166534"><strong>2.</strong> Richiedi il rimborso delle spese di trasporto ai sensi del Reg. UE 261/2004, Art. 8.</p>
+        <p style="margin:0;font-size:14px;color:#166534"><strong>3.</strong> Allega questa email come ricevuta della spesa di trasporto (€${params.amount.toFixed(2)}).</p>
+      </div>
+
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin:0 0 20px">
+        <p style="margin:0 0 8px;font-weight:700;font-size:13px;color:#374151">Template da copiare e inviare alla compagnia aerea:</p>
+        <p style="margin:0;font-size:12px;color:#6b7280;font-style:italic;line-height:1.6">
+          "In riferimento al volo ${params.flightNumber} del ${params.pickupDate}, ${reasonLabel} dalla vostra compagnia, richiedo il rimborso delle spese di trasporto alternativo sostenute ai sensi del Regolamento UE 261/2004. Allego ricevuta del servizio Flanvo per €${params.amount.toFixed(2)} (prenotazione ${params.bookingId})."
+        </p>
+      </div>
+
+      <p style="color:#666;font-size:13px">Hai bisogno di supporto nella procedura? Il team Flanvo ti affianca — scrivi a <a href="mailto:hello@flanvo.com" style="color:#00C2B5">hello@flanvo.com</a> indicando la prenotazione <strong>${params.bookingId}</strong>.</p>
+    `)
+  );
+}
+
 export async function sendPickupReminder(
   to: string,
   params: {
