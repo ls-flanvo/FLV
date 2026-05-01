@@ -107,8 +107,8 @@ export default function LandingPage() {
 
           {/* Intro — domanda retorica */}
           <div className="max-w-3xl mx-auto text-center mb-16">
-            <p className="text-2xl md:text-3xl text-ink-secondary leading-relaxed italic mb-8">
-              &ldquo;Ti sei mai chiesto se nel tuo stesso volo ci fosse qualcuno diretto nella tua stessa direzione — ma non sai come riconoscerlo?&rdquo;
+            <p className="text-3xl md:text-4xl font-bold text-white leading-snug mb-6">
+              Ti sei mai chiesto se nel tuo stesso volo ci fosse qualcuno diretto nella tua stessa direzione — ma non sai come riconoscerlo?
             </p>
             <p className="text-4xl md:text-5xl font-extrabold text-white mb-2">Succede a tutti.</p>
             <p className="text-xl font-semibold text-primary-400">Flanvo lo sa già.</p>
@@ -117,10 +117,10 @@ export default function LandingPage() {
           {/* Bento — pain points */}
           <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
 
-            {/* Featured 1 — Costa quanto il biglietto */}
+            {/* Featured 1 — Costo da soli */}
             <div className="md:col-span-3 bg-surface-1 border border-surface-4 rounded-3xl p-8 hover:border-surface-5 transition-all">
-              <p className="text-xs font-bold uppercase tracking-widest text-ink-muted mb-5">Tariffa aeroportuale</p>
-              <h3 className="text-xl font-bold text-white/90 mb-2">Il taxi costa quanto il biglietto aereo.</h3>
+              <p className="text-6xl font-black text-white/10 mb-4 leading-none">€65</p>
+              <h3 className="text-xl font-bold text-white/90 mb-2">Da soli per 28 km. Il taxi costa quanto il biglietto aereo.</h3>
               <p className="text-ink-muted text-sm leading-relaxed mb-6">Vai da solo, la tratta è quella e il prezzo è quello. Il taxi non fa sconti perché hai già speso per volare.</p>
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-400 bg-primary-500/10 border border-primary-500/20 rounded-full px-3 py-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary-400" />
