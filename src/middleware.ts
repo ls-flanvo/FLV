@@ -21,7 +21,7 @@ async function getTokenPayload(request: NextRequest) {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const userRoutes = ['/dashboard', '/flight-search', '/matching', '/checkout', '/tracking'];
+  const userRoutes: string[] = []; // Auth gestita client-side + API level
   const driverRoutes = ['/driver/dashboard', '/driver/ride'];
   const adminRoutes = ['/admin'];
   const adminExcluded = ['/admin/login'];
@@ -70,12 +70,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/dashboard/:path*',
-    '/account/:path*',
-    '/flight-search',
-    '/matching',
-    '/checkout/:path*',
-    '/tracking/:path*',
     '/driver/dashboard/:path*',
     '/driver/ride/:path*',
     '/driver/earnings/:path*',
