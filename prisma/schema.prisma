@@ -169,6 +169,7 @@ model Driver {
 
   // Scalo di operatività (impostato al signup)
   homeAirport               String       @default("CTA") // Codice IATA es. CTA, PMO, CAG
+  pickupPoint               String?      // Punto di ritiro dichiarato dal driver: es. "Uscita Arrivi, corsello NCC lato P1"
 
   // GPS live location (aggiornato dal driver durante la corsa)
   currentLat                Float?
@@ -369,8 +370,9 @@ model RideGroup {
   flightActualLanding DateTime?   // Orario atterraggio reale
   delayNotifiedMins   Int         @default(0)           // Ultimo ritardo notificato (minuti)
   lastFlightCheck     DateTime?   // Ultimo controllo AviationStack
-  meetingTime         DateTime?   // Orario incontro = atterraggio + 25min
-  meetingPoint        String?     // Es. "Terminal Arrivi — Uscita Bagagli, cartello Flanvo"
+  noShowAvailableAt   DateTime?   // landing + baggageWait + 20 min — quando driver può marcare no-show
+  meetingPoint        String?     // Punto di incontro fisico (luogo, non orario)
+  isExtraSchengen     Boolean     @default(false)       // auto-rilevato: true = dogana + passaporti
 
   // Pricing
   basePrice         Float
@@ -433,6 +435,7 @@ model GroupMember {
   actualPickupTime      DateTime?
   estimatedDropoffTime  DateTime?
   actualDropoffTime     DateTime?
+  arrivedAtPickup       DateTime?   // Passeggero ha premuto "Sono qui" al punto d'incontro
   
   // MicroGroup Tracking
   microGroupId    String?       // Se parte di un micro-gruppo

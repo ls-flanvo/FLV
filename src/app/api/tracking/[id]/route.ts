@@ -88,7 +88,10 @@ export async function GET(
             : 'Il driver è stato assegnato e si sta preparando',
           flightStatus: member.rideGroup.flightStatus,
           meetingPoint: member.rideGroup.meetingPoint,
-          meetingTime: member.rideGroup.meetingTime?.toISOString() ?? null,
+          noShowAvailableAt: member.rideGroup.noShowAvailableAt?.toISOString() ?? null,
+          groupMemberId: member.id,
+          bookingId: member.bookingId,
+          arrivedAtPickup: member.arrivedAtPickup?.toISOString() ?? null,
           driver: {
             name: driver?.user?.name ?? 'Autista assegnato',
             phone: driver?.user?.phone ?? '',

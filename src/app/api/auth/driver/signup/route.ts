@@ -11,10 +11,10 @@ export async function POST(req: NextRequest) {
     const {
       name, email, password, phone,
       licenseNumber, vehiclePlate, vehicleModel, vehicleYear, vehicleColor, vehicleType,
-      homeAirport,
+      homeAirport, pickupPoint,
     } = data;
 
-    if (!name || !email || !password || !phone || !licenseNumber || !vehiclePlate || !vehicleModel || !vehicleYear || !vehicleColor || !vehicleType || !homeAirport) {
+    if (!name || !email || !password || !phone || !licenseNumber || !vehiclePlate || !vehicleModel || !vehicleYear || !vehicleColor || !vehicleType || !homeAirport || !pickupPoint) {
       return NextResponse.json(
         { error: 'Tutti i campi obbligatori devono essere compilati' },
         { status: 400 }
@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
             vehicleColor,
             vehicleType: normalizedVehicleType as typeof VALID_VEHICLE_TYPES[number],
             homeAirport: homeAirport.toUpperCase(),
+            pickupPoint: pickupPoint.trim(),
             isVerified: false,
           },
         },

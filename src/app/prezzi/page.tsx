@@ -16,7 +16,7 @@ const comparison = [
 const cancellation = [
   { when: 'Prima che il driver accetti',                               refund: 'Rimborso completo',              color: 'text-primary-400' },
   { when: 'Dopo che il driver accetta',                                refund: 'Nessun rimborso',                color: 'text-red-400' },
-  { when: 'Forza maggiore al pickup (disputa entro 24h)',              refund: 'Valutato caso per caso',         color: 'text-warning' },
+  { when: 'Forza maggiore al pickup (disputa entro 24h)',              refund: 'Flanvo rimborsa propria quota',  color: 'text-warning' },
   { when: 'Volo cancellato o dirottato dalla compagnia aerea',        refund: 'Assistenza EU 261/2004 →',       color: 'text-blue-400' },
 ];
 
@@ -87,7 +87,7 @@ export default function PrezziPage() {
               'Monitoraggio del tuo volo in tempo reale',
               'Chat diretta con il driver',
               'Copertura in caso di ritardo volo',
-              'Pagamento sicuro via Stripe — addebito solo al drop-off',
+              'Pagamento sicuro via Stripe — addebito al momento dell\'accettazione del driver',
             ].map((item) => (
               <li key={item} className="flex items-center gap-3 text-sm text-ink-secondary">
                 <CheckCircle className="w-4 h-4 text-primary-400 shrink-0" />
@@ -134,8 +134,9 @@ export default function PrezziPage() {
         <div className="bg-surface-1 border border-surface-4 rounded-2xl p-6 md:p-8 mb-14">
           <h2 className="text-xl font-bold text-white mb-5">Politica di cancellazione</h2>
           <p className="text-sm text-ink-secondary mb-5 leading-relaxed">
-            La pre-autorizzazione viene effettuata al momento della conferma. I fondi vengono addebitati solo al drop-off. Puoi cancellare con rimborso completo in qualsiasi momento — finché il driver non ha accettato la corsa. Dopo l&apos;accettazione, la cancellazione non è consentita: il driver ha già rinunciato ad altri impegni.
-            In caso di <strong className="text-white">forza maggiore al pickup</strong> (bagagli smarriti, emergenza medica, ritardo involontario) puoi aprire una disputa entro 24 ore — il team Flanvo valuterà e deciderà sul rimborso. Volo cancellato dalla compagnia aerea: rimborso completo sempre.
+            La pre-autorizzazione viene effettuata al momento della conferma. I fondi vengono addebitati al momento dell&apos;accettazione del driver. Puoi cancellare con rimborso completo in qualsiasi momento — finché il driver non ha accettato la corsa.
+            Dopo l&apos;accettazione, la cancellazione non è rimborsabile: il driver ha già rinunciato ad altri impegni.
+            In caso di <strong className="text-white">forza maggiore al pickup</strong> (bagagli smarriti dall&apos;airline, emergenza medica, ritardo involontario) puoi aprire una disputa entro 24 ore: Flanvo rimborsa la propria quota e il driver trattiene la sua compensazione per la presenza. Per voli cancellati o dirottati si applica la procedura EU 261/2004.
           </p>
           <div className="space-y-3">
             {cancellation.map(({ when, refund, color }) => (

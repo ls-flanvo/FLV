@@ -3,14 +3,17 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import TrackingMap from '@/components/TrackingMap';
-import { Phone, MapPin, Clock, Navigation, Car, Star, CheckCircle, MessageCircle, AlertTriangle } from 'lucide-react';
+import { Phone, MapPin, Clock, Navigation, Car, Star, CheckCircle, MessageCircle, AlertTriangle, HandMetal } from 'lucide-react';
 import { formatFlightTime } from '@/lib/time';
 
 interface TrackingData {
   status: string; message?: string;
   flightStatus?: string;
   meetingPoint?: string | null;
-  meetingTime?: string | null;
+  noShowAvailableAt?: string | null;
+  groupMemberId?: string;
+  bookingId?: string;
+  arrivedAtPickup?: string | null;
   vehicle?: { brand: string; model: string; plate: string };
   currentLocation?: { lat: number; lng: number };
   destination?: { address: string; lat: number; lng: number };
@@ -23,6 +26,39 @@ export default function TrackingPage({ params }: { params: { id: string } }) {
   const [tracking, setTracking] = useState<TrackingData | null>(null);
   const [error, setError] = useState('');
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [arrivedSent, setArrivedSent] = useState(false);
+  const [arrivedLoading, setArrivedLoading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
+  const confirmArrived = async () => {
+    if (!tracking?.bookingId || arrivedSent || arrivedLoading) return;
+    setConfirming(false);
+    setArrivedLoading(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('flanvo_token') : null;
+      const res = await fetch('/api/passenger/arrived', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ bookingId: tracking.bookingId }),
+      });
+      if (res.ok) {
+        setArrivedSent(true);
+        setTracking(prev => prev ? { ...prev, arrivedAtPickup: new Date().toISOString() } : prev);
+      }
+    } catch { /* ignore */ } finally {
+      setArrivedLoading(false);
+    }
+  };
+
+  // Mostra il pulsante se volo atterrato oppure se l'orario previsto è già passato
+  // (fallback per ritardi nel polling AviationStack)
+  const showArrivedButton = !arrivedSent && !tracking?.arrivedAtPickup && (
+    tracking?.flightStatus === 'landed' ||
+    (tracking?.noShowAvailableAt && new Date() >= new Date(new Date(tracking.noShowAvailableAt).getTime() - 25 * 60_000))
+  );
 
   const fetchTracking = async () => {
     try {
@@ -31,8 +67,12 @@ export default function TrackingPage({ params }: { params: { id: string } }) {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const json = await res.json();
-      if (json.tracking) setTracking(json.tracking);
-      else setError(json.error || 'Errore nel tracking');
+      if (json.tracking) {
+        setTracking(json.tracking);
+        if (json.tracking.arrivedAtPickup) setArrivedSent(true);
+      } else {
+        setError(json.error || 'Errore nel tracking');
+      }
     } catch {
       setError('Impossibile caricare il tracking');
     }
@@ -130,13 +170,84 @@ export default function TrackingPage({ params }: { params: { id: string } }) {
             <div className="bg-success/8 border border-success/25 rounded-xl px-4 py-3 text-left mb-4">
               <p className="text-xs font-bold text-success mb-1">Punto di incontro</p>
               <p className="text-sm text-white">{tracking.meetingPoint}</p>
-              {tracking.meetingTime && (
+              {tracking.noShowAvailableAt && (
                 <p className="text-xs text-ink-muted mt-1">
-                  Orario: <strong className="text-white">
-                    {new Date(tracking.meetingTime).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
-                  </strong>
+                  Premi &quot;Sono qui&quot; quando sei all&apos;uscita — il van arriva entro 5-10 min
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Overlay doppia conferma */}
+          {confirming && (
+            <div className="fixed inset-0 z-50 bg-black/70 flex items-end justify-center p-4" onClick={() => setConfirming(false)}>
+              <div className="bg-surface-1 border border-surface-4 rounded-3xl w-full max-w-sm p-6 mb-2" onClick={e => e.stopPropagation()}>
+                <div className="w-14 h-14 bg-primary-500/15 border border-primary-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <HandMetal className="w-7 h-7 text-primary-400" />
+                </div>
+                <h3 className="text-lg font-bold text-white text-center mb-4">Dove aspettare il van</h3>
+
+                {/* Fix punto 1: meetingPoint mostrato PRIMA della conferma */}
+                {tracking.meetingPoint && (
+                  <div className="bg-primary-500/10 border border-primary-500/20 rounded-2xl px-4 py-3 mb-4 text-left">
+                    <p className="text-xs font-bold text-primary-400 mb-1">Punto di incontro</p>
+                    <p className="text-sm text-white leading-relaxed">{tracking.meetingPoint}</p>
+                    <p className="text-xs text-ink-muted mt-2">
+                      Dirigiti qui con i bagagli e aspetta il van — il driver si sposterà verso di te
+                    </p>
+                  </div>
+                )}
+
+                <p className="text-sm text-ink-secondary text-center mb-5">
+                  Sei già lì con <strong className="text-white">tutti i tuoi bagagli</strong>?
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setConfirming(false)}
+                    className="flex-1 py-3.5 bg-surface-2 border border-surface-5 text-ink-secondary font-semibold rounded-2xl hover:text-white transition-all text-sm"
+                  >
+                    Non ancora
+                  </button>
+                  <button
+                    onClick={confirmArrived}
+                    className="flex-1 py-3.5 bg-primary-500 text-[#0B0B0B] font-bold rounded-2xl hover:bg-primary-400 active:scale-[0.98] transition-all text-sm shadow-teal"
+                  >
+                    Sì, sono qui
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Pulsante "Sono qui" — visibile se volo atterrato o orario previsto raggiunto */}
+          {(arrivedSent || tracking.arrivedAtPickup || showArrivedButton) && (
+            <div className="mb-4 w-full">
+              {arrivedSent || tracking.arrivedAtPickup ? (
+                <div className="flex items-center gap-3 w-full px-4 py-4 bg-success/10 border border-success/30 rounded-2xl">
+                  <CheckCircle className="w-5 h-5 text-success shrink-0" />
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-success">Presenza confermata</p>
+                    <p className="text-xs text-ink-muted mt-0.5">
+                      Il driver è stato avvisato e si sta spostando verso di te
+                      {tracking.arrivedAtPickup && (
+                        <> — {new Date(tracking.arrivedAtPickup).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirming(true)}
+                  disabled={arrivedLoading}
+                  className="flex items-center justify-center gap-3 w-full px-4 py-4 bg-primary-500 text-[#0B0B0B] font-bold rounded-2xl hover:bg-primary-400 active:scale-[0.98] transition-all disabled:opacity-60 text-sm shadow-teal"
+                >
+                  <HandMetal className="w-5 h-5" />
+                  {arrivedLoading ? 'Segnalazione...' : 'Sono all\'uscita arrivi'}
+                </button>
+              )}
+              <p className="text-[11px] text-ink-muted text-center mt-2">
+                Premi quando sei fisicamente all&apos;uscita con i bagagli — il driver raggiungerà il punto di raccolta in 5-10 min
+              </p>
             </div>
           )}
 

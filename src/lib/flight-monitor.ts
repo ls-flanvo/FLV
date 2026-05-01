@@ -2,10 +2,10 @@ import { prisma } from './prisma';
 import { createNotification } from './notify';
 import { AIRPORT_COORDS } from './airports';
 import { sendAirlineCancellationAssistance } from './email';
+import { isExtraSchengen, baggageWaitMins } from './schengen';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' });
-const BAGGAGE_WAIT_MINS = 25;
 const DELAY_NOTIFY_THRESHOLD_MINS = 15;
 
 // Intervallo di polling adattivo in base alle ore al volo
@@ -18,6 +18,7 @@ function adaptiveIntervalMs(minutesUntilPickup: number): number {
 
 interface AviationFlight {
   flight_status: string;
+  departure: { iata: string };
   arrival: { iata: string; scheduled: string; estimated?: string; actual?: string; delay?: number };
 }
 
@@ -68,6 +69,7 @@ export async function monitorActiveFlights() {
       },
       ride: { include: { driver: { include: { user: true } } } },
     },
+
   });
 
   // ── 3. Deduplicazione per numero volo ─────────────────────────────────────
@@ -108,23 +110,32 @@ async function checkGroup(group: any, flight: AviationFlight | null) {
   const status = flight.flight_status;
   const arrivalCode = flight.arrival?.iata ?? '';
   const airportInfo = AIRPORT_COORDS[arrivalCode];
-  const meetingPoint = airportInfo?.meetingPoint ?? 'Terminal Arrivi — Uscita Bagagli, cartello Flanvo';
+  // Il punto di ritiro del driver ha priorità su quello generico dell'aeroporto
+  const driverPickupPoint = group.ride?.driver?.pickupPoint;
+  const meetingPoint = driverPickupPoint || airportInfo?.meetingPoint || 'Uscita Arrivi — seguire segnaletica NCC/Pick-up';
 
   if (status === 'landed') {
     const actualLanding = flight.arrival?.actual ? new Date(flight.arrival.actual) : new Date();
-    const meetingTime = new Date(actualLanding.getTime() + BAGGAGE_WAIT_MINS * 60_000);
+    const departureIata = flight.departure?.iata ?? '';
+    const waitMins = baggageWaitMins(departureIata);
+    const extraSchengen = isExtraSchengen(departureIata);
+    // No-show disponibile = landing + attesa bagagli + 20 min attesa al pick-up
+    const noShowAvailableAt = new Date(actualLanding.getTime() + (waitMins + 20) * 60_000);
     await prisma.rideGroup.update({
       where: { id: group.id },
-      data: { flightStatus: 'landed', flightActualLanding: actualLanding, meetingTime, meetingPoint },
+      data: { flightStatus: 'landed', flightActualLanding: actualLanding, noShowAvailableAt, meetingPoint, isExtraSchengen: extraSchengen },
     });
-    const meetingStr = meetingTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    const passengerBody = extraSchengen
+      ? `Completa controllo passaporti e ritiro bagagli, poi premi "Sono qui" — il driver si sposterà all'area di raccolta entro 5-10 min. Punto: ${meetingPoint}`
+      : `Ritira i bagagli, poi premi "Sono qui" sull'app — il driver raggiungerà il punto di raccolta in 5-10 minuti. Punto: ${meetingPoint}`;
+
     for (const member of group.members) {
       createNotification({
         userId: member.booking.userId,
         type: 'RIDE_STARTED',
         title: `Volo ${group.flightNumber} atterrato`,
-        body: `Il driver ti aspetta entro le ${meetingStr}. Punto di incontro: ${meetingPoint}`,
-        data: { rideGroupId: group.id, meetingPoint, meetingTime: meetingTime.toISOString() },
+        body: passengerBody,
+        data: { rideGroupId: group.id, meetingPoint, noShowAvailableAt: noShowAvailableAt.toISOString(), action: 'press_arrived', isExtraSchengen: extraSchengen },
       }).catch(() => {});
     }
     const driverRecord = await prisma.driver.findFirst({
@@ -136,8 +147,8 @@ async function checkGroup(group: any, flight: AviationFlight | null) {
         userId: driverRecord.userId,
         type: 'RIDE_STARTED',
         title: `Volo ${group.flightNumber} atterrato`,
-        body: `Dirigiti al punto di incontro entro le ${meetingStr}: ${meetingPoint}`,
-        data: { rideGroupId: group.id, meetingPoint, meetingTime: meetingTime.toISOString() },
+        body: `Portati nel parcheggio NCC. Riceverai notifica quando i passeggeri premono "Sono qui". Punto di incontro: ${meetingPoint}`,
+        data: { rideGroupId: group.id, meetingPoint, noShowAvailableAt: noShowAvailableAt.toISOString(), action: 'go_to_ncc_area' },
       }).catch(() => {});
     }
     return;

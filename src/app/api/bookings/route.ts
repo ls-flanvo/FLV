@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
               select: {
                 id: true, status: true, qualityScore: true, totalPrice: true,
                 currentCapacity: true, maxCapacity: true,
-                flightStatus: true, meetingPoint: true, meetingTime: true,
+                flightStatus: true, meetingPoint: true, noShowAvailableAt: true,
                 members: {
                   where: { status: { not: 'CANCELLED' } },
                   select: { id: true, booking: { select: { passengerName: true, passengers: true } } },

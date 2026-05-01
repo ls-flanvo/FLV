@@ -27,6 +27,7 @@ export default function DriverSignupPage() {
     address: '', city: '', province: '', zipCode: '',
     vehicleBrand: '', vehicleModel: '', vehicleYear: '', licensePlate: '', vehicleColor: '', seats: '',
     homeAirport: '',
+    pickupPoint: '',
     insuranceCompany: '', insuranceNumber: '', insuranceExpiry: '',
     driverLicense: '', licenseExpiry: '', cqcNumber: '', cqcExpiry: '',
     availability: 'fulltime', termsAccepted: false, privacyAccepted: false,
@@ -56,6 +57,7 @@ export default function DriverSignupPage() {
       if (!form.vehicleModel.trim()) return 'Modello obbligatorio';
       if (!form.licensePlate.trim()) return 'Targa obbligatoria';
       if (!form.homeAirport) return 'Seleziona lo scalo di operatività';
+      if (!form.pickupPoint.trim()) return 'Inserisci il tuo punto di ritiro passeggeri';
     }
     if (step === 'documents') {
       if (!form.driverLicense.trim()) return 'Numero patente obbligatorio';
@@ -318,6 +320,29 @@ export default function DriverSignupPage() {
                   <option value="BGY">BGY — Milano Bergamo Orio</option>
                 </select>
               </div>
+
+              {/* Punto di ritiro */}
+              {form.homeAirport && (
+                <div className="bg-primary-500/5 border border-primary-500/15 rounded-xl p-4">
+                  <label className="block text-xs font-semibold text-white mb-1">
+                    Punto di ritiro passeggeri *
+                  </label>
+                  <p className="text-xs text-ink-muted mb-3">
+                    Indica il punto esatto dove prelevi i passeggeri nel tuo aeroporto — sarà mostrato ai passeggeri quando premono &quot;Sono qui&quot;. Sii preciso: uscita, corsia, zona NCC.
+                  </p>
+                  <textarea
+                    name="pickupPoint"
+                    value={form.pickupPoint}
+                    onChange={e => set('pickupPoint', e.target.value)}
+                    rows={2}
+                    placeholder={`Es. "Uscita Arrivi, corsello esterno lato parcheggio P1 — zona NCC, secondo stallo"`}
+                    className="w-full bg-surface-2 border border-surface-5 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-ink-muted focus:outline-none focus:border-primary-500 resize-none"
+                  />
+                  <p className="text-[11px] text-ink-muted mt-2">
+                    Puoi modificarlo in seguito dalla tua dashboard
+                  </p>
+                </div>
+              )}
 
               <div className="border-t border-surface-4 pt-4 mt-2">
                 <p className="text-xs text-ink-secondary mb-3">Assicurazione (opzionale)</p>

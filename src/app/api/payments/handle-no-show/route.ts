@@ -14,9 +14,8 @@ const noShowSchema = z.object({
   reason: z.string().optional()
 });
 
-// 15 min dal meeting time (che è già landing + 25 min bagagli)
-// Il driver deve prima contattare il passeggero via chat, poi attendere 15 min
-const WAIT_AFTER_MEETING_MS = 15 * 60 * 1000;
+// noShowAvailableAt è già calcolato in flight-monitor come landing + baggageWait + 20 min
+// Non serve più una costante separata — si confronta direttamente con il campo DB
 
 export async function POST(req: NextRequest) {
   try {
@@ -70,25 +69,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verifica che siano trascorsi 20 min dal meeting time (landing + 25 min + 20 min attesa)
-    const meetingTime = member.rideGroup.meetingTime;
-    if (!meetingTime) {
-      // Se meetingTime non è settato (volo non ancora atterrato), usa targetPickupTime
-      const pickupRef = member.rideGroup.targetPickupTime;
-      const elapsed = Date.now() - pickupRef.getTime();
-      if (elapsed < WAIT_AFTER_MEETING_MS) {
-        const remaining = Math.ceil((WAIT_AFTER_MEETING_MS - elapsed) / 60000);
+    // Verifica che il tempo minimo sia scaduto
+    const noShowAvailableAt = member.rideGroup.noShowAvailableAt;
+    if (noShowAvailableAt && new Date() < noShowAvailableAt) {
+      const remaining = Math.ceil((noShowAvailableAt.getTime() - Date.now()) / 60000);
+      return NextResponse.json(
+        { error: `Attendi ancora ${remaining} minuti prima di poter marcare il no-show` },
+        { status: 400 }
+      );
+    }
+
+    // Se il passeggero ha premuto "Sono qui", deve essere passato almeno 20 min dal suo press
+    if (member.arrivedAtPickup) {
+      const ARRIVED_WAIT_MS = 20 * 60 * 1000;
+      const elapsedSinceArrival = Date.now() - member.arrivedAtPickup.getTime();
+      if (elapsedSinceArrival < ARRIVED_WAIT_MS) {
+        const remaining = Math.ceil((ARRIVED_WAIT_MS - elapsedSinceArrival) / 60000);
         return NextResponse.json(
-          { error: `Attendi ancora ${remaining} minuti prima di marcare il no-show` },
-          { status: 400 }
-        );
-      }
-    } else {
-      const elapsed = Date.now() - meetingTime.getTime();
-      if (elapsed < WAIT_AFTER_MEETING_MS) {
-        const remaining = Math.ceil((WAIT_AFTER_MEETING_MS - elapsed) / 60000);
-        return NextResponse.json(
-          { error: `Attendi ancora ${remaining} minuti al punto di incontro prima di marcare il no-show` },
+          { error: `Il passeggero ha segnalato la propria presenza al punto di incontro. Attendi ancora ${remaining} minuti.` },
           { status: 400 }
         );
       }

@@ -61,8 +61,10 @@ export async function GET(request: NextRequest) {
       const passengers = group.members.map((m) => ({
         id: m.booking.user.id,
         name: m.booking.user.name,
-        groupMemberId: m.id, // ← ID reale del GroupMember per no-show
+        groupMemberId: m.id,
+        arrivedAtPickup: m.arrivedAtPickup?.toISOString() ?? null,
       }));
+      const arrivedCount = group.members.filter(m => m.arrivedAtPickup !== null).length;
 
       const destinations = group.members.map((m) => ({
         city: m.booking.dropoffLocation.split(',')[0] || m.booking.dropoffLocation,
@@ -96,6 +98,11 @@ export async function GET(request: NextRequest) {
         totalPrice: Math.round(totalPrice * 100) / 100,
         status: rideStatus as 'pending' | 'accepted' | 'completed' | 'rejected',
         pickupTime: group.targetPickupTime.toISOString(),
+        flightStatus: group.flightStatus,
+        meetingPoint: group.meetingPoint,
+        noShowAvailableAt: group.noShowAvailableAt?.toISOString() ?? null,
+        arrivedCount,
+        totalPassengers: group.members.length,
       };
     };
 
