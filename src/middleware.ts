@@ -71,12 +71,14 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/dashboard/:path*',
+    '/account/:path*',
     '/flight-search',
     '/matching',
     '/checkout/:path*',
     '/tracking/:path*',
     '/driver/dashboard/:path*',
     '/driver/ride/:path*',
+    '/driver/earnings/:path*',
     '/admin/:path*',
   ],
 };
