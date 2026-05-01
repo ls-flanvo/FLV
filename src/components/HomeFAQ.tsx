@@ -14,7 +14,7 @@ const faqs = [
   },
   {
     q: 'Posso cancellare la prenotazione?',
-    a: 'Sì. Puoi cancellare gratuitamente fino al momento in cui il driver accetta la corsa — in qualsiasi momento prima. Se il driver non ha ancora accettato, la pre-autorizzazione sulla carta viene rilasciata integralmente. Dopo che il driver accetta, la cancellazione non è più possibile. Se il tuo volo viene cancellato dalla compagnia aerea, rimborso completo sempre.',
+    a: 'Sì. Puoi cancellare gratuitamente fino al momento in cui il driver accetta la corsa. Dopo l\'accettazione la cancellazione non è consentita, ma in caso di forza maggiore al pickup (bagagli smarriti, emergenza medica) puoi aprire una disputa entro 24 ore dall\'orario di pickup — il team Flanvo valuta e decide. Se il volo viene cancellato dalla compagnia aerea, rimborso completo sempre.',
   },
   {
     q: 'Chi sono i passeggeri nel gruppo?',
