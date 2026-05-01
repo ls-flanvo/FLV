@@ -93,12 +93,12 @@ export default function DashboardPage() {
           )}
         </div>
         {hasBookings && (
-          <Link
-            href="/flight-search"
+          <button
+            onClick={() => router.push('/flight-search')}
             className="flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all text-sm shadow-teal"
           >
             <Plus className="w-4 h-4" /> Nuova corsa
-          </Link>
+          </button>
         )}
       </div>
 
@@ -131,12 +131,12 @@ export default function DashboardPage() {
           </p>
 
           {/* Main CTA */}
-          <Link
-            href="/flight-search"
+          <button
+            onClick={() => router.push('/flight-search')}
             className="flex items-center gap-3 px-8 py-4 bg-primary-500 text-[#0B0B0B] font-bold text-lg rounded-2xl hover:bg-primary-400 active:scale-[0.98] transition-all shadow-teal mb-4"
           >
             Cerca la mia corsa <ArrowRight className="w-5 h-5" />
-          </Link>
+          </button>
 
           {/* Mini how-it-works */}
           <div className="flex items-center gap-6 mt-6 text-xs text-ink-muted">
