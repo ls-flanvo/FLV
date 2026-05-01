@@ -383,8 +383,8 @@ export default function GuidaConNoiPage() {
       {/* ── TIMELINE CORSA ───────────────────────────── */}
       <section className="py-20">
         <div className="max-w-5xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Come funziona una corsa</h2>
-          <p className="text-ink-secondary mb-14">Dal volo al pagamento — ecco cosa succede ogni volta che accetti una corsa Flanvo.</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3 text-center">Come funziona una corsa</h2>
+          <p className="text-ink-secondary mb-14 text-center">Dal volo al pagamento — ecco cosa succede ogni volta che accetti una corsa Flanvo.</p>
 
           {/* Steps data */}
           {(() => {
