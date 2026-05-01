@@ -234,7 +234,7 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
               <div className="space-y-2">
                 {[
                   'Addebito solo al drop-off',
-                  'Rimborso 100% se cancelli >24h dal volo',
+                  'Rimborso completo fino ad accettazione driver',
                   'Pagamento sicuro Stripe',
                 ].map((t) => (
                   <div key={t} className="flex items-center gap-2 text-xs text-ink-muted">

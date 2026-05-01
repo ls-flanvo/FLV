@@ -109,10 +109,10 @@ export async function sendCancellationConfirmed(
 ) {
   const refundNote = params.refunded
     ? `<p style="color:#16a34a;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px">
-        ✓ ${params.refundPercent === 100 ? 'Rimborso completo' : `Rimborso del ${params.refundPercent ?? 50}%`} — elaborato automaticamente entro 5–7 giorni lavorativi.
+        ✓ Rimborso completo — la pre-autorizzazione è stata rilasciata. I fondi saranno disponibili entro 5–7 giorni lavorativi.
        </p>`
-    : `<p style="color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px">
-        Cancellazione entro 12h dal volo — nessun rimborso previsto secondo la Policy Flanvo.
+    : `<p style="color:#6b7280;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px">
+        Nessun addebito effettuato — la prenotazione è stata cancellata senza costi.
        </p>`;
   await send(
     to,
@@ -274,11 +274,11 @@ export async function sendCancellationPenalty(
       <h1 style="color:#0a0a0a;font-size:24px;font-weight:700;margin:0 0 12px">Conferma cancellazione</h1>
       <p style="color:#444;line-height:1.6">Ciao ${params.userName}, la prenotazione per il volo <strong>${params.flightNumber}</strong> è stata cancellata.</p>
       <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:20px;margin:20px 0">
-        <p style="margin:0 0 8px;font-weight:700;color:#dc2626">Cancellazione entro 12h dal volo — nessun rimborso</p>
-        <p style="margin:0;color:#7f1d1d;font-size:14px;line-height:1.5">Secondo la Policy Flanvo §5.1, l'importo di <strong>€${params.amount.toFixed(2)}</strong> è stato addebitato sulla tua carta.</p>
+        <p style="margin:0 0 8px;font-weight:700;color:#dc2626">No-show dopo accettazione driver — nessun rimborso</p>
+        <p style="margin:0;color:#7f1d1d;font-size:14px;line-height:1.5">Il driver aveva già accettato la corsa. L'importo di <strong>€${params.amount.toFixed(2)}</strong> è stato addebitato sulla tua carta a copertura del servizio.</p>
         <p style="margin:8px 0 0;font-size:12px;color:#991b1b">Ricevuta n° ${params.receiptId}</p>
       </div>
-      <p style="color:#666;font-size:13px">Per contestazioni scrivi a <a href="mailto:hello@flanvo.com" style="color:#00C2B5">hello@flanvo.com</a> entro 14 giorni.</p>
+      <p style="color:#666;font-size:13px">Hai avuto un imprevisto al pickup? Apri una disputa entro 24h su <a href="mailto:hello@flanvo.com" style="color:#00C2B5">hello@flanvo.com</a>.</p>
     `)
   );
 }

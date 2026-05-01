@@ -14,11 +14,11 @@ Passeggeri dello stesso volo condividono un van verso destinazioni simili. Si ri
 COME FUNZIONA:
 L'utente inserisce volo e destinazione. Il sistema trova altri passeggeri nella stessa zona. Il pagamento viene pre-autorizzato e addebitato solo al drop-off.
 
-POLICY CANCELLAZIONE (Politica B):
-Oltre 24h prima del volo: rimborso completo.
-Tra 12h e 24h prima del volo: rimborso del 50%.
-Meno di 12h prima del volo: nessun rimborso.
-Se il gruppo non si forma mai: rimborso completo sempre.
+POLICY CANCELLAZIONE:
+Puoi cancellare gratuitamente in qualsiasi momento fino a quando il driver non accetta la corsa.
+Dopo che il driver accetta: nessun rimborso possibile.
+Se il volo viene cancellato dalla compagnia aerea: rimborso completo sempre.
+Se non ti presenti al pickup per cause di forza maggiore (bagagli smarriti, emergenza medica): apri una disputa entro 24h dal pickup — il team esamina e decide.
 
 AUTISTI:
 Verificati dall'admin con patente, CQC e assicurazione. Pagati tramite Stripe Connect al drop-off.

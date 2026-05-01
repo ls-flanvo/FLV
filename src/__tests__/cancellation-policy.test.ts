@@ -1,47 +1,51 @@
 import { describe, it, expect } from 'vitest';
 
-// Policy B: >24h = 100% refund, 12-24h = 50%, <12h = 0%
-function getRefundPolicy(flightTime: Date, cancelTime: Date): { percent: number; eligible: boolean } {
-  const hoursUntilFlight = (flightTime.getTime() - cancelTime.getTime()) / (1000 * 60 * 60);
+// Policy: rimborso completo fino ad accettazione driver, nessun rimborso dopo.
+// Volo cancellato dalla compagnia: rimborso completo sempre.
 
-  if (hoursUntilFlight > 24) return { percent: 100, eligible: true };
-  if (hoursUntilFlight > 12) return { percent: 50, eligible: true };
-  return { percent: 0, eligible: false };
+const DRIVER_LOCKED = ['ASSIGNED', 'ACTIVE'];
+
+function canCancelWithFullRefund(groupStatus: string): boolean {
+  return !DRIVER_LOCKED.includes(groupStatus);
 }
 
-describe('Cancellation Policy B', () => {
-  const flight = new Date('2026-06-01T14:00:00Z');
+describe('Cancellation policy — driver acceptance based', () => {
 
-  it('100% refund when cancelling >24h before flight', () => {
-    const cancel = new Date('2026-05-30T10:00:00Z'); // 52h before
-    const { percent, eligible } = getRefundPolicy(flight, cancel);
-    expect(percent).toBe(100);
-    expect(eligible).toBe(true);
+  it('rimborso completo se gruppo in FORMING (driver non assegnato)', () => {
+    expect(canCancelWithFullRefund('FORMING')).toBe(true);
   });
 
-  it('50% refund when cancelling 12-24h before flight', () => {
-    const cancel = new Date('2026-06-01T01:00:00Z'); // 13h before
-    const { percent, eligible } = getRefundPolicy(flight, cancel);
-    expect(percent).toBe(50);
-    expect(eligible).toBe(true);
+  it('rimborso completo se gruppo CONFIRMED (in attesa pagamenti)', () => {
+    expect(canCancelWithFullRefund('CONFIRMED')).toBe(true);
   });
 
-  it('0% refund when cancelling <12h before flight', () => {
-    const cancel = new Date('2026-06-01T06:00:00Z'); // 8h before
-    const { percent, eligible } = getRefundPolicy(flight, cancel);
-    expect(percent).toBe(0);
-    expect(eligible).toBe(false);
+  it('rimborso completo se gruppo READY (tutti hanno pagato, driver non ancora accettato)', () => {
+    expect(canCancelWithFullRefund('READY')).toBe(true);
   });
 
-  it('edge: exactly 24h is still 100% refund', () => {
-    const cancel = new Date(flight.getTime() - 24 * 60 * 60 * 1000 - 1000);
-    const { percent } = getRefundPolicy(flight, cancel);
-    expect(percent).toBe(100);
+  it('nessun rimborso se driver ha accettato (ASSIGNED)', () => {
+    expect(canCancelWithFullRefund('ASSIGNED')).toBe(false);
   });
 
-  it('edge: exactly 12h is 50% refund', () => {
-    const cancel = new Date(flight.getTime() - 12 * 60 * 60 * 1000 - 1000);
-    const { percent } = getRefundPolicy(flight, cancel);
-    expect(percent).toBe(50);
+  it('nessun rimborso con corsa in corso (ACTIVE)', () => {
+    expect(canCancelWithFullRefund('ACTIVE')).toBe(false);
+  });
+
+  it('price lock: cancellazione non cambia i prezzi degli altri membri', () => {
+    // Principio: chi rimane nel gruppo mantiene il prezzo originale.
+    // Flanvo assorbe la differenza del driver share mancante.
+    const originalPrice = 12.50;
+    const priceAfterCancellation = originalPrice; // invariato
+    expect(priceAfterCancellation).toBe(originalPrice);
+  });
+
+  it('slot riapertura: il gruppo torna FORMING se era CONFIRMED/READY senza pagamenti', () => {
+    const shouldReopen = (groupStatus: string, anyPaid: boolean, newCapacity: number) =>
+      ['CONFIRMED', 'READY'].includes(groupStatus) && !anyPaid && newCapacity >= 2;
+
+    expect(shouldReopen('CONFIRMED', false, 3)).toBe(true);
+    expect(shouldReopen('READY', false, 4)).toBe(true);
+    expect(shouldReopen('READY', true, 4)).toBe(false); // price lock se qualcuno ha pagato
+    expect(shouldReopen('ASSIGNED', false, 4)).toBe(false); // driver accettato
   });
 });

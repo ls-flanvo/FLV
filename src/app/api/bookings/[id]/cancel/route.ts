@@ -100,29 +100,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           const newCapacity = Math.max(0, member.rideGroup.currentCapacity - booking.passengers);
           const newLuggage = Math.max(0, member.rideGroup.currentLuggage - (booking.luggage ?? 0));
 
-          // Se nessuno ha ancora pagato e ci sono ancora pax → ricalcola prezzi per i rimanenti
-          const remainingMembers = await tx.groupMember.findMany({
-            where: { rideGroupId: member.rideGroup.id, status: { not: 'CANCELLED' }, id: { not: member.id } },
-            include: { booking: { select: { dropoffLat: true, dropoffLng: true, pickupLat: true, pickupLng: true, passengers: true, id: true } } },
-          });
-          const anyPaid = remainingMembers.some(m => m.paymentStatus === 'AUTHORIZED');
+          // Price lock: i prezzi degli altri membri non cambiano mai (Flanvo assorbe la differenza)
+          const anyPaid = await tx.groupMember.count({
+            where: { rideGroupId: member.rideGroup.id, status: { not: 'CANCELLED' }, id: { not: member.id }, paymentStatus: 'AUTHORIZED' },
+          }) > 0;
 
-          if (!anyPaid && remainingMembers.length > 0 && newCapacity >= 2) {
-            // Ricalcola prezzi con il nuovo totalPax per chi non ha ancora pagato
-            const { getPricingRates } = await import('@/lib/get-pricing-rates');
-            const { haversineDistance } = await import('@/lib/dbscan-clustering');
-            const rates = await getPricingRates();
-            for (const m of remainingMembers) {
-              const km = haversineDistance(m.booking.pickupLat, m.booking.pickupLng, m.booking.dropoffLat, m.booking.dropoffLng);
-              const driverShare = (km * rates.driverRatePerKm) / newCapacity;
-              const flanvoRate = km >= 100 ? rates.flanvoTier3Rate : km >= 51 ? rates.flanvoTier2Rate : rates.flanvoTier1Rate;
-              const pricePerPerson = driverShare + km * flanvoRate + rates.protectionFee;
-              const totalPrice = Math.round(pricePerPerson * m.booking.passengers * 100) / 100;
-              await tx.booking.update({ where: { id: m.booking.id }, data: { estimatedPrice: totalPrice } });
-            }
-          }
-
-          // Il gruppo torna FORMING se era CONFIRMED/READY e ci sono ancora pax
+          // Il gruppo torna FORMING se era CONFIRMED/READY, nessuno ha ancora pagato, e rimangono ≥2 pax
           const shouldReopen = ['CONFIRMED', 'READY'].includes(member.rideGroup.status) && newCapacity >= 2 && !anyPaid;
 
           await tx.rideGroup.update({
