@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     // Lazy check: chiudi gruppi scaduti ad ogni ricerca
     checkAndCloseExpiredGroups().catch(() => {});
-    const { flightCode, destination, arrivalAirport, passengers = 1 } = await request.json();
+    const { flightCode, destination, arrivalAirport, passengers: paxCount = 1 } = await request.json();
 
     if (!flightCode) {
       return NextResponse.json({ error: 'Codice volo mancante' }, { status: 400 });
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Pricing corretto: driver share diviso tra tutti, flanvo fee per km del passeggero
-        const totalPax = group.currentCapacity + passengers;
+        const totalPax = group.currentCapacity + (paxCount as number);
         const totalDriverCost = estimatedKm * rates.driverRatePerKm;
         const driverSharePerPax = totalDriverCost / totalPax;
 
