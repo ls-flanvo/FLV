@@ -150,24 +150,38 @@ export default function CancellationModal({
                   </div>
                 )}
 
-                {/* Motivo (opzionale per cancellazioni volontarie) */}
-                {!isRefundEligible && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Motivo cancellazione (opzionale)
-                    </label>
-                    <textarea
-                      value={cancellationReason}
-                      onChange={(e) => setCancellationReason(e.target.value)}
-                      placeholder="Aiutaci a migliorare il servizio..."
-                      rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
-                    />
+                {!isRefundEligible && isPaid && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-start space-x-3">
+                      <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h3 className="font-semibold text-red-900 mb-1">
+                          Cancellazione dopo il pagamento — Nessun rimborso
+                        </h3>
+                        <p className="text-sm text-red-700">
+                          Hai già pagato e il driver ha accettato la corsa. Cancellando, <strong>non riceverai alcun rimborso</strong> (Policy Flanvo §4). Per forza maggiore documentata puoi aprire una disputa entro 24 ore dall'orario di pickup.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                {/* Checkbox conferma no rimborso */}
-                {!isRefundEligible && (
+                {/* Motivo (opzionale) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Motivo cancellazione (opzionale)
+                  </label>
+                  <textarea
+                    value={cancellationReason}
+                    onChange={(e) => setCancellationReason(e.target.value)}
+                    placeholder="Aiutaci a migliorare il servizio..."
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
+                  />
+                </div>
+
+                {/* Checkbox conferma no rimborso — solo se già pagato */}
+                {!isRefundEligible && isPaid && (
                   <div className="flex items-start space-x-3">
                     <input
                       type="checkbox"
@@ -177,7 +191,7 @@ export default function CancellationModal({
                       className="mt-1 w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
                     />
                     <label htmlFor="no-refund" className="text-sm text-gray-700">
-                      Comprendo che cancellando il pagamento verrà <strong>addebitato immediatamente</strong> e non è previsto alcun rimborso. Accetto le condizioni Flanvo.
+                      Ho letto la policy e comprendo che <strong>non riceverò alcun rimborso</strong>. Accetto le condizioni Flanvo.
                     </label>
                   </div>
                 )}
@@ -193,11 +207,11 @@ export default function CancellationModal({
                   </Button>
                   <Button
                     onClick={handleInitialCancel}
-                    disabled={!isRefundEligible && !isPaid && !understandNoRefund && false}
+                    disabled={isPaid && !isRefundEligible && !understandNoRefund}
                     className="flex-1"
                     variant="danger"
                   >
-                    {!isPaid && !isRefundEligible ? 'Sì, cancella' : 'Continua'}
+                    {!isPaid && !isRefundEligible ? 'Sì, cancella gratuitamente' : 'Continua'}
                   </Button>
                 </div>
               </div>

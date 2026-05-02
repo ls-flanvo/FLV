@@ -117,7 +117,7 @@ export default function BookingCard({ booking }: { booking: Booking }) {
   const meetingLanded = rideGroup?.flightStatus === 'landed' && rideGroup?.meetingPoint;
   const status = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
   const isActive = ['IN_PROGRESS'].includes(booking.status);
-  const isCancellable = ['PENDING', 'IN_MATCHING', 'CONFIRMED'].includes(booking.status);
+  const isCancellable = ['PENDING', 'IN_MATCHING', 'CONFIRMED', 'MATCHED'].includes(booking.status);
   const isConfirmed = booking.status === 'CONFIRMED';
   const isMatched = booking.status === 'MATCHED' && !isPaid;
   const isAuthorized = booking.status === 'MATCHED' && isPaid;
