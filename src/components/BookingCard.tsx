@@ -117,7 +117,7 @@ export default function BookingCard({ booking }: { booking: Booking }) {
   const meetingLanded = rideGroup?.flightStatus === 'landed' && rideGroup?.meetingPoint;
   const status = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
   const isActive = ['IN_PROGRESS'].includes(booking.status);
-  const isCancellable = ['PENDING', 'IN_MATCHING', 'CONFIRMED', 'MATCHED'].includes(booking.status);
+  const isCancellable = ['PENDING', 'IN_MATCHING', 'MATCHED'].includes(booking.status);
   const isConfirmed = booking.status === 'CONFIRMED';
   const isMatched = booking.status === 'MATCHED' && !isPaid;
   const isAuthorized = booking.status === 'MATCHED' && isPaid;
@@ -434,6 +434,12 @@ export default function BookingCard({ booking }: { booking: Booking }) {
             >
               <XCircle className="w-3.5 h-3.5" /> Cancella prenotazione
             </button>
+          )}
+
+          {isConfirmed && (
+            <p className="text-center text-xs text-ink-muted px-2 py-1.5 leading-relaxed">
+              🔒 Gruppo formato — non hai ancora pagato nulla. Potrai cancellare dopo che il driver accetta.
+            </p>
           )}
 
           {isActive && (

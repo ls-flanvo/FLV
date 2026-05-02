@@ -126,6 +126,9 @@ export default function RideMatchCard({ match, onSelect, disabled = false }: Rid
           Prenota questo gruppo
           <ChevronRight className="w-4 h-4" />
         </button>
+        <p className="text-center text-xs text-ink-muted mt-2.5 leading-relaxed">
+          Nessun pagamento ora · Potrai uscire liberamente finché il gruppo non è completo
+        </p>
       </div>
     </div>
   );
