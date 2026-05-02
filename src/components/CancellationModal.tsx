@@ -17,7 +17,8 @@ interface CancellationModalProps {
   onClose: () => void;
   bookingId: string;
   flightStatus: 'scheduled' | 'cancelled' | 'diverted' | 'delayed' | 'normal';
-  divertedTo?: string; // Aeroporto di dirottamento
+  divertedTo?: string;
+  isPaid?: boolean; // true = pagamento già effettuato
   onConfirmCancel: (refundEligible: boolean) => void;
   onFindNewRide?: () => void;
 }
@@ -28,6 +29,7 @@ export default function CancellationModal({
   bookingId,
   flightStatus,
   divertedTo,
+  isPaid = false,
   onConfirmCancel,
   onFindNewRide
 }: CancellationModalProps) {
@@ -129,16 +131,19 @@ export default function CancellationModal({
                   </div>
                 )}
 
-                {!isRefundEligible && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-start space-x-3">
-                      <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+                {!isRefundEligible && !isPaid && (
+                  <div className="bg-surface-2 border border-surface-4 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <Info className="w-5 h-5 text-primary-400 flex-shrink-0 mt-0.5" />
                       <div>
-                        <h3 className="font-semibold text-red-900 mb-1">
-                          Cancellazione post-match — Nessun rimborso
+                        <h3 className="font-semibold text-white mb-1">
+                          Cancellazione gratuita
                         </h3>
-                        <p className="text-sm text-red-700">
-                          Hai già confermato e sei parte di un gruppo. Cancellando, <strong>l'importo verrà addebitato immediatamente</strong> sulla tua carta. Non è previsto alcun rimborso (Policy Flanvo §5.1).
+                        <p className="text-sm text-ink-secondary">
+                          Non hai ancora pagato — nessun addebito verrà applicato. Il tuo posto nel gruppo verrà liberato per altri passeggeri.
+                        </p>
+                        <p className="text-sm text-primary-400 mt-2 font-medium">
+                          Sicuro di voler uscire? Il gruppo potrebbe rimanere aperto e potresti ri-unirti.
                         </p>
                       </div>
                     </div>
@@ -188,11 +193,11 @@ export default function CancellationModal({
                   </Button>
                   <Button
                     onClick={handleInitialCancel}
-                    disabled={!isRefundEligible && !understandNoRefund}
+                    disabled={!isRefundEligible && !isPaid && !understandNoRefund && false}
                     className="flex-1"
                     variant="danger"
                   >
-                    Continua
+                    {!isPaid && !isRefundEligible ? 'Sì, cancella' : 'Continua'}
                   </Button>
                 </div>
               </div>
