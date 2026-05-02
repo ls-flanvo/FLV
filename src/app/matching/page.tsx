@@ -31,10 +31,13 @@ export default function MatchingPage() {
       const destination = destinationStr ? JSON.parse(destinationStr) : null;
       if (!destination) { router.push('/flight-search'); return; }
       const authToken = token || localStorage.getItem('flanvo_token');
+      const bookingInfoStr = localStorage.getItem('flanvo_booking_info');
+      const bookingInfo = bookingInfoStr ? JSON.parse(bookingInfoStr) : {};
+      const passengers = bookingInfo.passengers ?? 1;
       const res = await fetch('/api/matching', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({ flightCode: currentFlight?.code, destination, arrivalAirport: currentFlight?.arrivalAirport }),
+        body: JSON.stringify({ flightCode: currentFlight?.code, destination, arrivalAirport: currentFlight?.arrivalAirport, passengers }),
       });
       if (!res.ok) throw new Error('Errore server');
       const data = await res.json();
