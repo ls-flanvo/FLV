@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
 
       kmOnboard = distance;
       // Driver share: costo totale route diviso tra i passeggeri del gruppo
-      const groupSize = member.rideGroup.members.length || 1;
+      const groupSize = member.rideGroup.members.filter(m => m.status !== 'CANCELLED').length || 1;
       driverShare = (distance * rates.driverRatePerKm) / groupSize;
     }
 
