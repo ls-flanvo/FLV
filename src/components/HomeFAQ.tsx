@@ -21,6 +21,10 @@ const faqs = [
     a: 'Tutti i passeggeri del tuo stesso volo, registrati su Flanvo, con destinazioni simili alla tua. Il numero massimo è 7 persone per van.',
   },
   {
+    q: 'Cosa succede se il gruppo non raggiunge 7 persone?',
+    a: 'Il gruppo si chiude automaticamente 3 ore prima della partenza del volo, anche se non è al completo. Il prezzo stimato è visibile nella dashboard già al momento della registrazione — prima ancora che il driver accetti. Non paghi nulla finché il driver non conferma la corsa.',
+  },
+  {
     q: 'Cosa succede se il mio volo è in ritardo?',
     a: 'Flanvo monitora il tuo volo in tempo reale. Se ci sono ritardi, il driver viene avvisato automaticamente e il pickup si adatta. Non devi fare nulla.',
   },
