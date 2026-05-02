@@ -20,17 +20,22 @@ const membersInclude = {
 export async function checkAndCloseExpiredGroups() {
   try {
     const rates = await getPricingRates();
-    const windowMs = rates.matchingWindowHours * 60 * 60 * 1000;
+    const windowMs = rates.matchingWindowHours * 60 * 60 * 1000; // default 3h
+    const thresholdTime = new Date(Date.now() + windowMs);
 
+    // Chiudi se il volo parte entro 3h (flightDepartureTime) oppure, se non noto, se il pickup è entro 3h
     const expiredGroups = await prisma.rideGroup.findMany({
       where: {
         status: 'FORMING',
         currentCapacity: { gte: 2 },
-        targetPickupTime: { lte: new Date(Date.now() + windowMs) },
+        OR: [
+          { flightDepartureTime: { lte: thresholdTime } },
+          { flightDepartureTime: null, targetPickupTime: { lte: thresholdTime } },
+        ],
       },
       select: {
         id: true, currentCapacity: true, targetPickupTime: true,
-        flightNumber: true, arrivalAirport: true,
+        flightDepartureTime: true, flightNumber: true, arrivalAirport: true,
         members: membersInclude,
       },
     });
@@ -50,7 +55,7 @@ export async function closeGroupImmediately(groupId: string) {
       where: { id: groupId },
       select: {
         id: true, currentCapacity: true, targetPickupTime: true,
-        flightNumber: true, arrivalAirport: true, status: true,
+        flightDepartureTime: true, flightNumber: true, arrivalAirport: true, status: true,
         members: membersInclude,
       },
     });
@@ -65,6 +70,7 @@ type GroupForClose = {
   id: string;
   currentCapacity: number;
   targetPickupTime: Date;
+  flightDepartureTime?: Date | null;
   flightNumber: string;
   arrivalAirport?: string | null;
   members: Array<{

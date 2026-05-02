@@ -8,7 +8,6 @@ import Stripe from 'stripe';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' });
 
 const CANCELLABLE_STATUSES = ['PENDING', 'CONFIRMED', 'IN_MATCHING', 'MATCHED'];
-const DRIVER_LOCKED_GROUP_STATUSES = ['ASSIGNED', 'ACTIVE'];
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -28,22 +27,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     if (!booking) return NextResponse.json({ error: 'Prenotazione non trovata' }, { status: 404 });
 
     const cancellable = CANCELLABLE_STATUSES.includes(booking.status);
-    const driverAccepted = DRIVER_LOCKED_GROUP_STATUSES.includes(
-      booking.groupMember?.rideGroup?.status ?? ''
-    );
-    const refundEligible = cancellable && !driverAccepted;
+    const groupStatus = booking.groupMember?.rideGroup?.status ?? '';
+    const rideInProgress = ['ACTIVE', 'COMPLETED'].includes(groupStatus);
+    const isPaid = ['AUTHORIZED', 'CAPTURED'].includes(booking.groupMember?.paymentStatus ?? '');
 
     return NextResponse.json({
       bookingId: booking.id,
       status: booking.status,
-      cancellable: refundEligible,
-      hasPaymentIntent: !!booking.groupMember?.paymentIntentId,
-      refundPercent: refundEligible ? 100 : 0,
-      cancellationPolicy: !cancellable
-        ? 'Impossibile cancellare: corsa in corso o completata'
-        : driverAccepted
-        ? 'Nessun rimborso: il driver ha già accettato la corsa'
-        : 'Rimborso completo — il driver non ha ancora accettato',
+      cancellable: cancellable && !rideInProgress,
+      isPaid,
+      refundPercent: isPaid ? 0 : 100,
     });
   } catch (error) {
     return authErrorResponse(error);
@@ -59,7 +52,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       include: {
         groupMember: {
           include: {
-            rideGroup: { select: { id: true, status: true, currentCapacity: true, currentLuggage: true } },
+            rideGroup: {
+              select: {
+                id: true, status: true, currentCapacity: true, currentLuggage: true,
+                flightNumber: true,
+                ride: { select: { driver: { select: { userId: true } } } },
+              },
+            },
           },
         },
       },
@@ -71,57 +70,56 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     const member = booking.groupMember;
-    const driverAccepted = DRIVER_LOCKED_GROUP_STATUSES.includes(member?.rideGroup?.status ?? '');
+    const groupStatus = member?.rideGroup?.status ?? '';
 
-    if (driverAccepted) {
-      return NextResponse.json(
-        { error: 'Il driver ha già accettato la corsa. Cancellazione non consentita.' },
-        { status: 409 }
-      );
+    if (['ACTIVE', 'COMPLETED'].includes(groupStatus)) {
+      return NextResponse.json({ error: 'La corsa è già in corso — cancellazione non consentita.' }, { status: 409 });
     }
 
-    // Rimborso completo — rilascia la pre-autorizzazione Stripe se presente
-    let refundedAmount = 0;
-    if (member?.paymentIntentId && member.paymentStatus === 'AUTHORIZED') {
+    const wasAuthorized = member?.paymentStatus === 'AUTHORIZED';
+    const wasCaptured = member?.paymentStatus === 'CAPTURED';
+
+    if (wasAuthorized && member?.paymentIntentId) {
       await stripe.paymentIntents.cancel(member.paymentIntentId).catch(console.error);
-      refundedAmount = member.totalPrice ?? 0;
-      await prisma.groupMember.update({
-        where: { id: member.id },
-        data: { paymentStatus: 'REFUNDED' },
-      });
     }
 
-    // Aggiorna DB + gestisci gruppo residuo
+    let shouldReopen = false;
+    let shouldCancelGroup = false;
+
     await prisma.$transaction(async (tx) => {
       await tx.booking.update({ where: { id: booking.id }, data: { status: 'CANCELLED' } });
+
       if (member) {
-        await tx.groupMember.update({ where: { id: member.id }, data: { status: 'CANCELLED' } });
+        await tx.groupMember.update({
+          where: { id: member.id },
+          data: {
+            status: 'CANCELLED',
+            ...(wasAuthorized ? { paymentStatus: 'REFUNDED' } : {}),
+          },
+        });
+
         if (member.rideGroup) {
           const newCapacity = Math.max(0, member.rideGroup.currentCapacity - booking.passengers);
           const newLuggage = Math.max(0, member.rideGroup.currentLuggage - (booking.luggage ?? 0));
 
-          // Price lock: i prezzi degli altri membri non cambiano mai (Flanvo assorbe la differenza)
-          const anyPaid = await tx.groupMember.count({
-            where: { rideGroupId: member.rideGroup.id, status: { not: 'CANCELLED' }, id: { not: member.id }, paymentStatus: 'AUTHORIZED' },
-          }) > 0;
-
-          // Il gruppo torna FORMING se era CONFIRMED/READY, nessuno ha ancora pagato, e rimangono ≥2 pax
-          const shouldReopen = ['CONFIRMED', 'READY'].includes(member.rideGroup.status) && newCapacity >= 2 && !anyPaid;
+          shouldReopen = member.rideGroup.status === 'CONFIRMED' && newCapacity >= 2;
+          shouldCancelGroup = newCapacity === 0;
 
           await tx.rideGroup.update({
             where: { id: member.rideGroup.id },
             data: {
               currentCapacity: newCapacity,
               currentLuggage: newLuggage,
-              ...(shouldReopen ? { status: 'FORMING' } : {}),
-              ...(newCapacity === 0 ? { status: 'CANCELLED' } : {}),
+              ...(shouldCancelGroup ? { status: 'CANCELLED' }
+                : shouldReopen ? { status: 'FORMING' }
+                : {}),
             },
           });
         }
       }
     });
 
-    // Notifica
+    // Notifica passeggero
     const userRecord = await prisma.user.findUnique({
       where: { id: payload.userId },
       select: { email: true, name: true },
@@ -132,24 +130,52 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         userId: payload.userId,
         type: 'BOOKING_CANCELLED',
         title: 'Prenotazione cancellata',
-        body: refundedAmount > 0
-          ? `Prenotazione volo ${booking.flightNumber} cancellata. Rimborso completo di €${refundedAmount.toFixed(2)} in elaborazione.`
+        body: wasCaptured
+          ? `Prenotazione volo ${booking.flightNumber} cancellata. Il pagamento non è rimborsabile — apri una disputa entro 24h se hai una forza maggiore documentata.`
           : `Prenotazione volo ${booking.flightNumber} cancellata. Nessun addebito effettuato.`,
-        data: { bookingId: booking.id, refundedAmount },
+        data: { bookingId: booking.id },
       }).catch(() => {});
 
       sendCancellationConfirmed(userRecord.email, {
         flightNumber: booking.flightNumber,
-        refunded: refundedAmount > 0,
+        refundType: wasCaptured ? 'paid-no-refund' : false,
       }).catch(() => {});
+    }
+
+    const rideGroup = member?.rideGroup;
+
+    // Punto 3: passeggero MATCHED cancella → notifica il driver (gruppo ASSIGNED)
+    if (groupStatus === 'ASSIGNED' && rideGroup?.ride?.driver?.userId) {
+      createNotification({
+        userId: rideGroup.ride.driver.userId,
+        type: 'BOOKING_CANCELLED',
+        title: 'Passeggero uscito dalla corsa',
+        body: `Un passeggero del volo ${booking.flightNumber} ha cancellato la prenotazione. Controlla i dettagli della corsa nella dashboard.`,
+        data: { rideGroupId: rideGroup.id },
+      }).catch(() => {});
+    }
+
+    // Punto 4: gruppo torna FORMING → notifica tutti i driver che la corsa non è più disponibile
+    if (shouldReopen && rideGroup?.id) {
+      const drivers = await prisma.driver.findMany({
+        where: { isVerified: true, isAvailable: true },
+        select: { userId: true },
+      });
+      for (const d of drivers) {
+        createNotification({
+          userId: d.userId,
+          type: 'BOOKING_CANCELLED',
+          title: 'Corsa non più disponibile',
+          body: `La corsa per il volo ${booking.flightNumber} è tornata in formazione — un passeggero è uscito dal gruppo. Non è più accettabile.`,
+          data: { rideGroupId: rideGroup.id },
+        }).catch(() => {});
+      }
     }
 
     return NextResponse.json({
       success: true,
-      refundPercent: 100,
-      refundedAmount,
-      message: refundedAmount > 0
-        ? `Rimborso completo di €${refundedAmount.toFixed(2)} in elaborazione`
+      message: wasCaptured
+        ? 'Prenotazione cancellata — il pagamento non è rimborsabile'
         : 'Prenotazione cancellata senza addebiti',
     });
   } catch (error) {

@@ -134,8 +134,8 @@ export default function PrezziPage() {
         <div className="bg-surface-1 border border-surface-4 rounded-2xl p-6 md:p-8 mb-14">
           <h2 className="text-xl font-bold text-white mb-5">Politica di cancellazione</h2>
           <p className="text-sm text-ink-secondary mb-5 leading-relaxed">
-            La pre-autorizzazione viene effettuata al momento della conferma. I fondi vengono addebitati al momento dell&apos;accettazione del driver. Puoi cancellare con rimborso completo in qualsiasi momento — finché il driver non ha accettato la corsa.
-            Dopo l&apos;accettazione, la cancellazione non è rimborsabile: il driver ha già rinunciato ad altri impegni.
+            Il pagamento viene addebitato immediatamente quando il driver accetta la corsa. Prima di quel momento puoi cancellare gratuitamente senza nessun addebito.
+            Dopo aver pagato, puoi comunque cancellare ma il pagamento non viene rimborsato automaticamente: il driver ha già rinunciato ad altri impegni.
             In caso di <strong className="text-white">forza maggiore al pickup</strong> (bagagli smarriti dall&apos;airline, emergenza medica, ritardo involontario) puoi aprire una disputa entro 24 ore: Flanvo rimborsa la propria quota e il driver trattiene la sua compensazione per la presenza. Per voli cancellati o dirottati si applica la procedura EU 261/2004.
           </p>
           <div className="space-y-3">

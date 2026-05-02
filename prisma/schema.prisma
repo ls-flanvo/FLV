@@ -357,9 +357,11 @@ model RideGroup {
   status            GroupStatus   @default(FORMING)
   
   // Timeline Tracking
-  bookingCloseTime  DateTime?     // T-60
-  matchConfirmTime  DateTime?     // T-40
-  passengerNotifyTime DateTime?   // T-30
+  bookingCloseTime      DateTime?   // T-60
+  matchConfirmTime      DateTime?   // T-40
+  passengerNotifyTime   DateTime?   // T-30
+  flightDepartureTime   DateTime?   // Orario partenza volo dall'aeroporto di origine
+  driverEscalatedAt     DateTime?   // T-2h dalla partenza: seconda notifica driver
   
   // Mapbox Cache (per evitare ricalcoli)
   matrixCacheId     String?       // ID della distance matrix cache

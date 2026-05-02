@@ -114,7 +114,7 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white">Completa la prenotazione</h1>
-          <p className="text-ink-secondary text-sm mt-1">Pre-autorizzazione carta di credito</p>
+          <p className="text-ink-secondary text-sm mt-1">Conferma pagamento sicuro</p>
         </div>
 
         {/* Pre-auth explanation — prominent */}
@@ -123,11 +123,11 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
             <ShieldCheck className="w-4 h-4 text-primary-400" />
           </div>
           <div>
-            <p className="text-sm font-bold text-white mb-1">La tua carta non viene addebitata ora</p>
+            <p className="text-sm font-bold text-white mb-1">Pagamento sicuro tramite Stripe</p>
             <p className="text-xs text-ink-secondary leading-relaxed">
-              Autorizziamo temporaneamente l&apos;importo su Stripe per garantire il tuo posto nel gruppo.
-              L&apos;addebito reale avviene <strong className="text-white">solo quando arrivi a destinazione</strong>.
-              Se il gruppo non si forma, l&apos;autorizzazione decade automaticamente.
+              Il pagamento viene confermato immediatamente e il tuo posto è garantito.
+              Se il driver non si presenta, ricevi il <strong className="text-white">rimborso completo automatico</strong>.
+              Nessun dato di carta viene archiviato su Flanvo.
             </p>
           </div>
         </div>
@@ -225,7 +225,7 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
                   </div>
                 )}
                 <div className="flex justify-between pt-3 border-t border-surface-4">
-                  <span className="font-bold text-white">Pre-autorizzato</span>
+                  <span className="font-bold text-white">Totale</span>
                   <span className="text-2xl font-black text-primary-400">€{paymentAmount.toFixed(2)}</span>
                 </div>
               </div>

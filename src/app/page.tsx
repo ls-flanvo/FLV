@@ -201,7 +201,7 @@ export default function LandingPage() {
         {(() => {
           const steps = [
             { n: '1', title: 'Cerca la tua corsa',    body: 'Inserisci il codice volo e la destinazione. L\'algoritmo trova i passeggeri del tuo stesso volo diretti nella tua zona.' },
-            { n: '2', title: 'Conferma il posto',      body: 'Blocchi il posto nel gruppo con una pre-autorizzazione. Nessun addebito ora — paghi all\'accettazione del driver.' },
+            { n: '2', title: 'Conferma il posto',      body: 'Registri la richiesta gratuitamente. Nessun pagamento ora — paghi solo quando il driver accetta la corsa.' },
             { n: '3', title: 'Volo atterrato',           body: 'Quando il volo atterra ricevi una notifica — i passeggeri premono \'Sono qui\' quando sono all\'uscita arrivi, il driver raggiunge il punto di incontro in 5-10 minuti.' },
             { n: '4', title: 'Arrivi a destinazione',  body: 'Il driver ti porta a casa. Paghi solo i tuoi km effettivi — nessuna divisione fissa del costo totale.' },
           ];

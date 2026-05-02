@@ -93,7 +93,7 @@ export async function sendBookingConfirmation(
         ${params.estimatedPrice ? `<p style="margin:6px 0;color:#333"><strong>Prezzo stimato:</strong> €${params.estimatedPrice.toFixed(2)}</p>` : ''}
       </div>
       <p style="color:#666;font-size:13px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px">
-        ✓ Nessun addebito ora — il pagamento avviene solo al drop-off.
+        ✓ Nessun addebito ora — pagherai quando il driver accetta la corsa.
       </p>
       <a href="${APP_URL}/dashboard"
          style="display:inline-block;background:#00D1B2;color:#0a0a0a;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:20px 0;font-size:15px">
@@ -105,15 +105,24 @@ export async function sendBookingConfirmation(
 
 export async function sendCancellationConfirmed(
   to: string,
-  params: { flightNumber: string; refunded: boolean; refundPercent?: number }
+  params: { flightNumber: string; refundType: 'full' | 'fee' | 'paid-no-refund' | false }
 ) {
-  const refundNote = params.refunded
-    ? `<p style="color:#16a34a;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px">
-        ✓ Rimborso completo — la pre-autorizzazione è stata rilasciata. I fondi saranno disponibili entro 5–7 giorni lavorativi.
-       </p>`
-    : `<p style="color:#6b7280;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px">
-        Nessun addebito effettuato — la prenotazione è stata cancellata senza costi.
-       </p>`;
+  const refundNote =
+    params.refundType === 'full'
+      ? `<p style="color:#16a34a;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px">
+          ✓ Rimborso integrale in elaborazione — sia la quota Flanvo che il compenso driver sono stati rimborsati. I fondi saranno disponibili entro 5–7 giorni lavorativi.
+         </p>`
+      : params.refundType === 'fee'
+      ? `<p style="color:#16a34a;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px">
+          ✓ Rimborso parziale in elaborazione — la quota servizio Flanvo è stata rimborsata. Il compenso del driver per la presenza rimane confermato (Policy §4b). I fondi Flanvo saranno disponibili entro 5–7 giorni lavorativi.
+         </p>`
+      : params.refundType === 'paid-no-refund'
+      ? `<p style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:12px">
+          Il pagamento effettuato non verrà rimborsato automaticamente (Policy §4). Se hai una forza maggiore documentata (emergenza medica, bagagli smarriti), apri una disputa entro 24 ore scrivendo a <a href="mailto:hello@flanvo.com" style="color:#b45309">hello@flanvo.com</a>.
+         </p>`
+      : `<p style="color:#6b7280;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px">
+          Nessun addebito effettuato — la prenotazione è stata cancellata senza costi.
+         </p>`;
   await send(
     to,
     `Prenotazione cancellata — Volo ${params.flightNumber}`,
@@ -145,7 +154,7 @@ export async function sendGroupConfirmed(
         ${params.driverName ? `<p style="margin:6px 0;color:#333"><strong>Autista:</strong> ${params.driverName}</p>` : ''}
         ${params.finalPrice ? `<p style="margin:10px 0 0;font-size:20px;font-weight:700;color:#00C2B5">Il tuo prezzo: €${params.finalPrice.toFixed(2)}</p>` : ''}
       </div>
-      <p style="color:#666;font-size:13px">Il pagamento verrà addebitato solo al momento del drop-off a destinazione.</p>
+      <p style="color:#666;font-size:13px">Il pagamento è stato confermato al momento dell'accettazione del driver.</p>
       <a href="${APP_URL}/dashboard"
          style="display:inline-block;background:#00D1B2;color:#0a0a0a;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:20px 0;font-size:15px">
         Segui la tua corsa →
@@ -168,7 +177,7 @@ export async function sendGroupReady(to: string, data: {
       <div style="background:#141414;border:1px solid #2A2A2A;border-radius:12px;padding:24px;margin:24px 0;text-align:center">
         <p style="color:#A1A1AA;margin:0 0 4px;font-size:13px">Il tuo prezzo finale</p>
         <p style="font-size:42px;font-weight:900;color:#00D1B2;margin:0;letter-spacing:-0.02em">€${data.pricePerPerson.toFixed(2)}</p>
-        <p style="color:#555;font-size:12px;margin:6px 0 0">Pagamento solo al drop-off</p>
+        <p style="color:#555;font-size:12px;margin:6px 0 0">Pagamento all'accettazione del driver</p>
       </div>
       <p style="color:#A1A1AA">Hai <strong style="color:#fff">24 ore</strong> per confermare il tuo posto.</p>
       <a href="${data.appUrl}/checkout/${data.groupMemberId}" style="display:block;margin:20px 0;padding:16px 32px;background:#00D1B2;color:#0B0B0B;font-weight:700;border-radius:12px;text-decoration:none;font-size:16px;text-align:center">
@@ -363,6 +372,40 @@ export async function sendPickupReminder(
       <a href="${APP_URL}/dashboard"
          style="display:inline-block;background:#00D1B2;color:#0a0a0a;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:20px 0;font-size:15px">
         Apri Tracking Live →
+      </a>
+    `)
+  );
+}
+
+export async function sendAdminNoCoverAlert(params: {
+  flightNumber: string;
+  departureTime: Date;
+  passengerCount: number;
+  totalRefunded: number;
+  rideGroupId: string;
+}) {
+  const adminEmail = process.env.ADMIN_OPS_EMAIL || 'hello@flanvo.com';
+  const dep = params.departureTime.toLocaleString('it-IT', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+  await send(
+    adminEmail,
+    `⚠️ Nessun driver — Corsa annullata automaticamente (${params.flightNumber})`,
+    wrapEmail(`
+      <h1 style="color:#0a0a0a;font-size:22px;font-weight:700;margin:0 0 8px">Corsa annullata — nessun driver trovato</h1>
+      <p style="color:#444;line-height:1.6">Il sistema ha cancellato automaticamente una corsa perché nessun driver ha accettato entro D-2h dalla partenza.</p>
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:20px;margin:20px 0">
+        <p style="margin:6px 0;color:#333"><strong>Volo:</strong> ${params.flightNumber}</p>
+        <p style="margin:6px 0;color:#333"><strong>Partenza:</strong> ${dep}</p>
+        <p style="margin:6px 0;color:#333"><strong>Passeggeri coinvolti:</strong> ${params.passengerCount}</p>
+        <p style="margin:6px 0;color:#333"><strong>Importo rimborsato:</strong> €${params.totalRefunded.toFixed(2)}</p>
+        <p style="margin:6px 0;font-size:12px;color:#666">Group ID: ${params.rideGroupId}</p>
+      </div>
+      <p style="color:#dc2626;font-weight:600">I passeggeri sono stati notificati e hanno 2 ore per organizzarsi prima del decollo.</p>
+      <a href="${APP_URL}/admin/rides/monitor"
+         style="display:inline-block;background:#0a0a0a;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0;font-size:14px">
+        Apri Monitor Corse →
       </a>
     `)
   );

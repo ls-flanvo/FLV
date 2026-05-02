@@ -13,8 +13,8 @@ const sections = [
   {
     icon: CreditCard,
     title: 'Pagamenti protetti da Stripe',
-    body: 'I pagamenti sono gestiti interamente da Stripe, certificato PCI DSS Level 1 — lo standard più elevato per la sicurezza dei dati di pagamento. Flanvo non archivia mai i numeri di carta. Al momento della prenotazione viene eseguita solo una pre-autorizzazione (i fondi vengono bloccati ma non addebitati). L\'addebito reale avviene al momento in cui il driver accetta la corsa — prima del pickup, ma dopo la conferma del servizio.',
-    items: ['Stripe PCI DSS Level 1', 'Nessun dato carta archiviato su Flanvo', 'Pre-autorizzazione — addebito all\'accettazione driver', 'Rimborso automatico se il gruppo non si forma'],
+    body: 'I pagamenti sono gestiti interamente da Stripe, certificato PCI DSS Level 1 — lo standard più elevato per la sicurezza dei dati di pagamento. Flanvo non archivia mai i numeri di carta. Il pagamento viene addebitato immediatamente quando il driver accetta la corsa. Prima di quel momento non avviene nessun addebito. Se nessun driver accetta, la prenotazione si annulla automaticamente senza costi.',
+    items: ['Stripe PCI DSS Level 1', 'Nessun dato carta archiviato su Flanvo', 'Pagamento immediato all\'accettazione del driver', 'Nessun addebito se il driver non accetta'],
   },
   {
     icon: Lock,

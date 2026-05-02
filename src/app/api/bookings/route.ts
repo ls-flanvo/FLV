@@ -105,11 +105,13 @@ export async function POST(request: NextRequest) {
     let memberOrder: number;
 
     const airportCode = (body.arrivalAirport ?? 'CTA').toUpperCase();
+    const flightDepartureTime = body.flightTime ? new Date(body.flightTime) : null;
     const newGroupData = {
       flightNumber: booking.flightNumber,
       arrivalAirport: airportCode,
       direction: booking.direction,
       targetPickupTime: booking.pickupTime,
+      flightDepartureTime,
       basePrice: 0,
       status: 'FORMING' as const,
       currentCapacity: booking.passengers,

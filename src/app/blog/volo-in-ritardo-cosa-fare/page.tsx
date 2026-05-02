@@ -62,7 +62,7 @@ export default function Post() {
 
           <h2 className="text-xl font-bold text-white mt-10 mb-3">Cosa succede se il ritardo è molto lungo</h2>
           <p>
-            Se il ritardo supera una certa soglia e il gruppo non riesce più a formarsi (ad esempio perché altri passeggeri hanno preso alternative), Flanvo ti notifica e annulla la prenotazione con rimborso completo della pre-autorizzazione.
+            Se il ritardo supera molte ore e il volo viene cancellato dalla compagnia, Flanvo ti notifica e annulla la prenotazione automaticamente. Non avendo ancora pagato — il pagamento avviene solo quando il driver accetta, non al momento della registrazione — nessun addebito viene applicato.
           </p>
           <p>
             In questo caso sei libero di prenotare un nuovo gruppo per il nuovo orario di atterraggio, oppure di organizzarti diversamente. Non ci sono penali e non viene addebitato nulla.
@@ -70,7 +70,7 @@ export default function Post() {
 
           <h2 className="text-xl font-bold text-white mt-10 mb-3">Volo cancellato dalla compagnia</h2>
           <p>
-            Se il volo viene cancellato dal vettore — non da te — il rimborso è sempre integrale, indipendentemente da quanto prima della partenza avviene la cancellazione. La pre-autorizzazione decade automaticamente entro 24–48 ore senza che tu debba fare nulla.
+            Se il volo viene cancellato dal vettore — non da te — il rimborso è sempre integrale, indipendentemente da quanto prima della partenza avviene la cancellazione. Il rimborso viene elaborato automaticamente su Stripe entro 5–7 giorni lavorativi, senza che tu debba fare nulla.
           </p>
 
           <h2 className="text-xl font-bold text-white mt-10 mb-3">Perché è diverso da un taxi tradizionale</h2>

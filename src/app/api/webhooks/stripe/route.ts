@@ -307,10 +307,13 @@ async function handleRefundCreated(refund: Stripe.Refund) {
     });
 
     const { sendCancellationConfirmed } = await import('@/lib/email');
+    // Determina il tipo di rimborso dal metadata Stripe
+    const refundMeta = refund.metadata?.type ?? '';
+    const refundType: 'full' | 'fee' =
+      refundMeta === 'DISPUTE_ACCEPTED' ? 'fee' : 'full';
     sendCancellationConfirmed(member.booking.user.email, {
       flightNumber: member.rideGroup?.flightNumber ?? '',
-      refunded: true,
-      refundPercent: 100,
+      refundType,
     }).catch(() => {});
 
   } catch (error: any) {

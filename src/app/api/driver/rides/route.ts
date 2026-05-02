@@ -193,7 +193,7 @@ export async function PATCH(request: NextRequest) {
       });
 
       if (groupWithMembers) {
-        // Driver ha accettato → bookings passano a MATCHED → passeggeri invitati a pre-autorizzare
+        // Driver ha accettato → bookings passano a MATCHED → passeggeri invitati a completare il pagamento
         await prisma.booking.updateMany({
           where: { groupMember: { rideGroupId: rideId, status: { not: 'CANCELLED' } } },
           data: { status: 'MATCHED' },
@@ -205,7 +205,7 @@ export async function PATCH(request: NextRequest) {
             userId: member.booking.userId,
             type: 'RIDE_STARTED',
             title: 'Driver confermato — Procedi al pagamento',
-            body: `Il driver ha accettato il tuo volo ${groupWithMembers.flightNumber}. Vai nella dashboard per pre-autorizzare il pagamento (€${(member.totalPrice ?? 0).toFixed(2)}).`,
+            body: `Il driver ha accettato il tuo volo ${groupWithMembers.flightNumber}. Vai nella dashboard per completare il pagamento (€${(member.totalPrice ?? 0).toFixed(2)}).`,
             data: { rideGroupId: rideId, bookingId: member.bookingId },
           }).catch(() => {});
         }

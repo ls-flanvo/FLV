@@ -53,9 +53,9 @@ export default function Post() {
             Il prezzo viene calcolato in quel momento e non cambia. Non ci sono variazioni in base al traffico, all&apos;orario o a quante persone ci sono in coda per i taxi. Quello che vedi è quello che paghi.
           </p>
 
-          <h2 className="text-xl font-bold text-white mt-10 mb-3">Il pagamento: pre-autorizzazione e addebito all&apos;accettazione</h2>
+          <h2 className="text-xl font-bold text-white mt-10 mb-3">Il pagamento: quando e come avviene</h2>
           <p>
-            Quando confirmi la prenotazione, la tua carta viene pre-autorizzata (i fondi vengono bloccati ma non addebitati). L&apos;addebito reale avviene quando il driver accetta la corsa — prima del pickup, ma dopo che il servizio è confermato. Se la corsa non avviene per mancanza di driver, la pre-autorizzazione decade automaticamente.
+            Registrare la richiesta è gratuito — non inserisci nessun dato di pagamento finché il gruppo non è pronto e un driver non accetta la corsa. In quel momento ricevi una notifica e puoi procedere al pagamento tramite Stripe, che viene addebitato immediatamente. Se nessun driver accetta entro 2 ore dalla partenza del volo, la prenotazione si annulla automaticamente senza nessun costo.
           </p>
 
           <h2 className="text-xl font-bold text-white mt-10 mb-3">Cosa succede se il volo è in ritardo?</h2>
@@ -63,7 +63,7 @@ export default function Post() {
             È la domanda che fanno tutti, ed è legittima. Flanvo monitora il tuo volo in tempo reale tramite API aeree. Quando viene rilevato un ritardo, il driver viene avvisato automaticamente — non devi fare nulla, non devi chiamare nessuno, non rischi di perdere il van.
           </p>
           <p>
-            Se il ritardo è superiore a 2 ore e il gruppo non riesce più a formarsi, ricevi un rimborso completo della pre-autorizzazione. In caso di cancellazione del volo da parte del vettore, il rimborso è sempre integrale.
+            Se il ritardo è superiore a 2 ore e il gruppo non riesce più a formarsi, ricevi un rimborso completo. In caso di cancellazione del volo da parte del vettore, il rimborso è sempre integrale.
           </p>
 
           <h2 className="text-xl font-bold text-white mt-10 mb-3">Come trovo il driver in aeroporto?</h2>

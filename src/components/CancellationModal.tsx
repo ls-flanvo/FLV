@@ -1,24 +1,25 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Badge } from '@/components/ui';
-import { 
-  X, 
-  AlertTriangle, 
-  CheckCircle, 
-  XCircle, 
+import {
+  X,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
   RefreshCw,
   Info,
-  Plane
+  Plane,
+  Users,
 } from 'lucide-react';
 
 interface CancellationModalProps {
   isOpen: boolean;
   onClose: () => void;
   bookingId: string;
+  bookingStatus?: string;
   flightStatus: 'scheduled' | 'cancelled' | 'diverted' | 'delayed' | 'normal';
   divertedTo?: string;
-  isPaid?: boolean; // true = pagamento già effettuato
+  isPaid?: boolean;
   onConfirmCancel: (refundEligible: boolean) => void;
   onFindNewRide?: () => void;
 }
@@ -26,331 +27,263 @@ interface CancellationModalProps {
 export default function CancellationModal({
   isOpen,
   onClose,
-  bookingId,
+  bookingStatus,
   flightStatus,
   divertedTo,
   isPaid = false,
   onConfirmCancel,
-  onFindNewRide
+  onFindNewRide,
 }: CancellationModalProps) {
-  const [cancellationReason, setCancellationReason] = useState('');
   const [understandNoRefund, setUnderstandNoRefund] = useState(false);
-  const [step, setStep] = useState<'reason' | 'confirm' | 'diverted-options'>('reason');
+  const [step, setStep] = useState<'main' | 'diverted-options' | 'refund-confirm'>('main');
 
   if (!isOpen) return null;
 
-  // Determina se c'è diritto al rimborso
   const isRefundEligible = flightStatus === 'cancelled' || flightStatus === 'diverted';
   const isDiverted = flightStatus === 'diverted';
+  const isGroupFormed = bookingStatus === 'CONFIRMED';
 
-  const handleInitialCancel = () => {
-    if (isDiverted) {
-      setStep('diverted-options');
-    } else if (isRefundEligible) {
-      setStep('confirm');
-    } else {
-      setStep('confirm');
-    }
-  };
-
-  const handleConfirmCancellation = () => {
-    onConfirmCancel(isRefundEligible);
+  const handleCancel = () => {
+    if (isDiverted) { setStep('diverted-options'); return; }
+    if (isRefundEligible) { setStep('refund-confirm'); return; }
+    onConfirmCancel(false);
   };
 
   const handleFindNewRide = () => {
-    if (onFindNewRide) {
-      onFindNewRide();
-    }
+    onFindNewRide?.();
     onClose();
   };
 
   return (
     <>
-      {/* Overlay */}
-      <div 
-        className="fixed inset-0 bg-black/50 z-50 animate-fadeIn"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black/60 z-50" onClick={onClose} />
 
-      {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div 
-          className="bg-white rounded-xl shadow-2xl w-full max-w-lg animate-fadeIn"
+        <div
+          className="bg-surface-1 border border-surface-4 rounded-2xl shadow-2xl w-full max-w-md"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-              <AlertTriangle className="w-6 h-6 mr-2 text-yellow-500" />
-              Cancella Prenotazione
-            </h2>
+          <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-surface-4">
+            <h2 className="text-lg font-bold text-white">Cancella prenotazione</h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-surface-3 rounded-xl transition-colors"
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-4 h-4 text-ink-muted" />
             </button>
           </div>
 
-          {/* Content */}
-          <div className="p-6">
-            {/* Step 1: Motivo cancellazione */}
-            {step === 'reason' && (
-              <div className="space-y-6">
-                {/* Status Badge */}
+          <div className="px-6 py-5">
+            {/* ── STEP MAIN ── */}
+            {step === 'main' && (
+              <div className="space-y-5">
+
+                {/* SCENARIO: volo cancellato */}
                 {flightStatus === 'cancelled' && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-start space-x-3">
-                      <XCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h3 className="font-semibold text-red-900 mb-1">
-                          Volo Cancellato dalla Compagnia
-                        </h3>
-                        <p className="text-sm text-red-700">
-                          Hai diritto al rimborso completo della prenotazione.
-                        </p>
-                      </div>
+                  <div className="bg-success/8 border border-success/25 rounded-xl p-4 flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-white mb-1">Rimborso garantito</p>
+                      <p className="text-sm text-ink-secondary">
+                        Il tuo volo è stato cancellato dalla compagnia. Hai diritto al rimborso completo — lo riceverai sullo stesso metodo di pagamento entro 5–7 giorni lavorativi.
+                      </p>
                     </div>
                   </div>
                 )}
 
+                {/* SCENARIO: volo dirottato */}
                 {flightStatus === 'diverted' && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <div className="flex items-start space-x-3">
-                      <Plane className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h3 className="font-semibold text-yellow-900 mb-1">
-                          Volo Dirottato
-                        </h3>
-                        <p className="text-sm text-yellow-700">
-                          Il tuo volo è stato dirottato a <strong>{divertedTo}</strong>.
-                          Puoi cercare un nuovo NCC o cancellare con rimborso completo.
-                        </p>
-                      </div>
+                  <div className="bg-warning/8 border border-warning/25 rounded-xl p-4 flex items-start gap-3">
+                    <Plane className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-white mb-1">Volo dirottato</p>
+                      <p className="text-sm text-ink-secondary">
+                        Il tuo volo è atterrato a <strong className="text-white">{divertedTo}</strong>. Puoi cercare un nuovo trasferimento oppure cancellare con rimborso completo.
+                      </p>
                     </div>
                   </div>
                 )}
 
-                {!isRefundEligible && !isPaid && (
-                  <div className="bg-surface-2 border border-surface-4 rounded-xl p-4">
-                    <div className="flex items-start gap-3">
-                      <Info className="w-5 h-5 text-primary-400 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h3 className="font-semibold text-white mb-1">
-                          Cancellazione gratuita
-                        </h3>
-                        <p className="text-sm text-ink-secondary">
-                          Non hai ancora pagato — nessun addebito verrà applicato. Il tuo posto nel gruppo verrà liberato per altri passeggeri.
-                        </p>
-                        <p className="text-sm text-primary-400 mt-2 font-medium">
-                          Sicuro di voler uscire? Il gruppo potrebbe rimanere aperto e potresti ri-unirti.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
+                {/* SCENARIO: pagato (no rimborso) */}
                 {!isRefundEligible && isPaid && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-start space-x-3">
-                      <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h3 className="font-semibold text-red-900 mb-1">
-                          Cancellazione dopo il pagamento — Nessun rimborso
-                        </h3>
-                        <p className="text-sm text-red-700">
-                          Hai già pagato e il driver ha accettato la corsa. Cancellando, <strong>non riceverai alcun rimborso</strong> (Policy Flanvo §4). Per forza maggiore documentata puoi aprire una disputa entro 24 ore dall'orario di pickup.
-                        </p>
-                      </div>
+                  <div className="bg-surface-2 border border-surface-4 rounded-xl p-4 flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-white mb-1">Il pagamento non verrà rimborsato</p>
+                      <p className="text-sm text-ink-secondary mb-2">
+                        Hai già completato il pagamento. Puoi comunque cancellare, ma non riceverai un rimborso automatico (Policy Flanvo §4).
+                      </p>
+                      <p className="text-sm text-ink-muted">
+                        Hai 24 ore dall'orario di pickup per aprire una disputa in caso di forza maggiore documentata (emergenza medica, volo cancellato, ecc.).
+                      </p>
                     </div>
                   </div>
                 )}
 
-                {/* Motivo (opzionale) */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Motivo cancellazione (opzionale)
-                  </label>
-                  <textarea
-                    value={cancellationReason}
-                    onChange={(e) => setCancellationReason(e.target.value)}
-                    placeholder="Aiutaci a migliorare il servizio..."
-                    rows={3}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
-                  />
-                </div>
+                {/* SCENARIO: non pagato, gruppo formato */}
+                {!isRefundEligible && !isPaid && isGroupFormed && (
+                  <div className="bg-surface-2 border border-surface-4 rounded-xl p-4 flex items-start gap-3">
+                    <Users className="w-5 h-5 text-primary-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-white mb-1">Nessun addebito</p>
+                      <p className="text-sm text-ink-secondary mb-2">
+                        Non hai ancora pagato nulla — puoi uscire liberamente senza alcun costo.
+                      </p>
+                      <p className="text-sm text-ink-muted">
+                        Il gruppo tornerà aperto: un altro passeggero potrà unirsi e il driver verrà rinotificato quando il van è di nuovo al completo.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
-                {/* Checkbox conferma no rimborso — solo se già pagato */}
+                {/* SCENARIO: non pagato, gruppo in formazione */}
+                {!isRefundEligible && !isPaid && !isGroupFormed && (
+                  <div className="bg-surface-2 border border-surface-4 rounded-xl p-4 flex items-start gap-3">
+                    <Info className="w-5 h-5 text-primary-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-white mb-1">Nessun addebito</p>
+                      <p className="text-sm text-ink-secondary">
+                        Non hai ancora pagato nulla — puoi uscire senza alcun costo. Il tuo posto nel gruppo verrà liberato per altri passeggeri.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Checkbox no-rimborso — solo se già pagato */}
                 {!isRefundEligible && isPaid && (
-                  <div className="flex items-start space-x-3">
+                  <label className="flex items-start gap-3 cursor-pointer group">
                     <input
                       type="checkbox"
-                      id="no-refund"
                       checked={understandNoRefund}
                       onChange={(e) => setUnderstandNoRefund(e.target.checked)}
-                      className="mt-1 w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
+                      className="mt-1 w-4 h-4 rounded border-surface-5 bg-surface-3 text-primary-500 focus:ring-primary-500 focus:ring-offset-0 shrink-0"
                     />
-                    <label htmlFor="no-refund" className="text-sm text-gray-700">
-                      Ho letto la policy e comprendo che <strong>non riceverò alcun rimborso</strong>. Accetto le condizioni Flanvo.
-                    </label>
-                  </div>
+                    <span className="text-sm text-ink-secondary group-hover:text-white transition-colors">
+                      Ho capito — confermo la cancellazione sapendo che il pagamento non verrà rimborsato automaticamente.
+                    </span>
+                  </label>
                 )}
 
                 {/* Buttons */}
-                <div className="flex gap-3">
-                  <Button
-                    variant="secondary"
+                <div className="flex gap-3 pt-1">
+                  <button
                     onClick={onClose}
-                    className="flex-1"
+                    className="flex-1 py-3 bg-surface-3 border border-surface-5 text-ink-secondary font-semibold rounded-xl hover:text-white hover:border-surface-4 transition-all text-sm"
                   >
-                    Annulla
-                  </Button>
-                  <Button
-                    onClick={handleInitialCancel}
-                    disabled={isPaid && !isRefundEligible && !understandNoRefund}
-                    className="flex-1"
-                    variant="danger"
-                  >
-                    {!isPaid && !isRefundEligible ? 'Sì, cancella gratuitamente' : 'Continua'}
-                  </Button>
+                    Torna indietro
+                  </button>
+
+                  {isDiverted ? (
+                    <button
+                      onClick={() => setStep('diverted-options')}
+                      className="flex-1 py-3 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all text-sm"
+                    >
+                      Vedi opzioni
+                    </button>
+                  ) : isRefundEligible ? (
+                    <button
+                      onClick={() => setStep('refund-confirm')}
+                      className="flex-1 py-3 bg-success text-[#0B0B0B] font-bold rounded-xl hover:opacity-90 transition-all text-sm"
+                    >
+                      Continua
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleCancel}
+                      disabled={isPaid && !understandNoRefund}
+                      className="flex-1 py-3 bg-danger/90 text-white font-bold rounded-xl hover:bg-danger transition-all text-sm disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      {isPaid ? 'Cancella prenotazione' : isGroupFormed ? 'Sì, esco dal gruppo' : 'Conferma cancellazione'}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Step 2: Opzioni volo dirottato */}
-            {step === 'diverted-options' && isDiverted && (
-              <div className="space-y-6">
-                <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <RefreshCw className="w-8 h-8 text-yellow-600" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">
-                    Cosa vuoi fare?
-                  </h3>
-                  <p className="text-gray-600">
-                    Il tuo volo è stato dirottato a <strong>{divertedTo}</strong>
-                  </p>
-                </div>
+            {/* ── STEP DIVERTED-OPTIONS ── */}
+            {step === 'diverted-options' && (
+              <div className="space-y-4">
+                <p className="text-sm text-ink-secondary text-center">
+                  Il tuo volo è atterrato a <strong className="text-white">{divertedTo}</strong>. Cosa vuoi fare?
+                </p>
 
-                <div className="space-y-3">
-                  {/* Opzione 1: Trova nuovo NCC */}
-                  <button
-                    onClick={handleFindNewRide}
-                    className="w-full p-4 border-2 border-primary-500 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors text-left"
-                  >
-                    <div className="flex items-start space-x-3">
-                      <CheckCircle className="w-6 h-6 text-primary-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-1">
-                          Cerca Nuovo NCC
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          Trova un trasferimento dall'aeroporto di dirottamento. La tua prenotazione rimane attiva.
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-
-                  {/* Opzione 2: Cancella con rimborso */}
-                  <button
-                    onClick={() => setStep('confirm')}
-                    className="w-full p-4 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <div className="flex items-start space-x-3">
-                      <XCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-1">
-                          Cancella e Ottieni Rimborso
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          Cancella la prenotazione e ricevi il rimborso completo entro 5-7 giorni lavorativi.
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-
-                <Button
-                  variant="secondary"
-                  onClick={onClose}
-                  className="w-full"
+                <button
+                  onClick={handleFindNewRide}
+                  className="w-full p-4 bg-surface-2 border-2 border-primary-500/40 rounded-xl hover:border-primary-500 transition-all text-left group"
                 >
-                  Torna Indietro
-                </Button>
+                  <div className="flex items-start gap-3">
+                    <RefreshCw className="w-5 h-5 text-primary-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-white mb-0.5">Cerca un nuovo trasferimento</p>
+                      <p className="text-sm text-ink-muted">La prenotazione rimane attiva — prenoti un nuovo NCC dall'aeroporto di dirottamento.</p>
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setStep('refund-confirm')}
+                  className="w-full p-4 bg-surface-2 border border-surface-5 rounded-xl hover:border-surface-4 transition-all text-left"
+                >
+                  <div className="flex items-start gap-3">
+                    <XCircle className="w-5 h-5 text-danger shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-white mb-0.5">Cancella e ricevi il rimborso</p>
+                      <p className="text-sm text-ink-muted">Rimborso completo entro 5–7 giorni lavorativi.</p>
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={onClose}
+                  className="w-full py-3 text-sm text-ink-muted hover:text-ink-secondary transition-colors"
+                >
+                  ← Torna indietro
+                </button>
               </div>
             )}
 
-            {/* Step 3: Conferma finale */}
-            {step === 'confirm' && (
-              <div className="space-y-6">
+            {/* ── STEP REFUND-CONFIRM ── */}
+            {step === 'refund-confirm' && (
+              <div className="space-y-5">
                 <div className="text-center">
-                  <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                    isRefundEligible ? 'bg-green-100' : 'bg-red-100'
-                  }`}>
-                    {isRefundEligible ? (
-                      <CheckCircle className="w-8 h-8 text-green-600" />
-                    ) : (
-                      <XCircle className="w-8 h-8 text-red-600" />
-                    )}
+                  <div className="w-14 h-14 bg-success/10 border border-success/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-7 h-7 text-success" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">
-                    Conferma Cancellazione
-                  </h3>
-                  <p className="text-gray-600">
-                    {isRefundEligible 
-                      ? 'Riceverai il rimborso completo entro 5-7 giorni lavorativi.'
-                      : 'Questa azione è irreversibile e non prevede alcun rimborso.'
-                    }
+                  <p className="font-bold text-white text-lg mb-1">Conferma rimborso</p>
+                  <p className="text-sm text-ink-secondary">
+                    Motivo: <span className="text-white">{flightStatus === 'cancelled' ? 'Volo cancellato dalla compagnia' : 'Volo dirottato'}</span>
                   </p>
                 </div>
 
-                {/* Riepilogo rimborso */}
-                {isRefundEligible && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-green-900 mb-2">
-                      Dettagli Rimborso
-                    </h4>
-                    <div className="space-y-1 text-sm text-green-800">
-                      <p>• Rimborso: 100% dell'importo pagato</p>
-                      <p>• Metodo: Stesso metodo di pagamento</p>
-                      <p>• Tempistiche: 5-7 giorni lavorativi</p>
-                      <p>• Motivo: {flightStatus === 'cancelled' ? 'Volo cancellato' : 'Volo dirottato'}</p>
-                    </div>
+                <div className="bg-surface-2 border border-surface-4 rounded-xl p-4 space-y-2 text-sm">
+                  <div className="flex justify-between text-ink-secondary">
+                    <span>Rimborso</span>
+                    <span className="text-success font-semibold">100%</span>
                   </div>
-                )}
-
-                {/* Warning no rimborso */}
-                {!isRefundEligible && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-red-900 mb-2 flex items-center">
-                      <AlertTriangle className="w-5 h-5 mr-2" />
-                      Addebito immediato
-                    </h4>
-                    <div className="text-sm text-red-800 space-y-1">
-                      <p>• Il pagamento verrà <strong>catturato adesso</strong> sulla tua carta</p>
-                      <p>• Nessun rimborso sarà erogato (Policy §5.1)</p>
-                      <p>• Riceverai ricevuta via email dell'addebito</p>
-                      <p>• Questa azione non può essere annullata</p>
-                    </div>
+                  <div className="flex justify-between text-ink-secondary">
+                    <span>Metodo</span>
+                    <span className="text-white">Stesso metodo di pagamento</span>
                   </div>
-                )}
+                  <div className="flex justify-between text-ink-secondary">
+                    <span>Tempistiche</span>
+                    <span className="text-white">5–7 giorni lavorativi</span>
+                  </div>
+                </div>
 
-                {/* Buttons */}
                 <div className="flex gap-3">
-                  <Button
-                    variant="secondary"
-                    onClick={() => setStep('reason')}
-                    className="flex-1"
+                  <button
+                    onClick={() => setStep('main')}
+                    className="flex-1 py-3 bg-surface-3 border border-surface-5 text-ink-secondary font-semibold rounded-xl hover:text-white transition-all text-sm"
                   >
                     Indietro
-                  </Button>
-                  <Button
-                    onClick={handleConfirmCancellation}
-                    className="flex-1"
-                    variant="danger"
+                  </button>
+                  <button
+                    onClick={() => onConfirmCancel(true)}
+                    className="flex-1 py-3 bg-success text-[#0B0B0B] font-bold rounded-xl hover:opacity-90 transition-all text-sm"
                   >
-                    {isRefundEligible ? 'Conferma e Rimborsa' : 'Conferma Cancellazione'}
-                  </Button>
+                    Conferma e rimborsa
+                  </button>
                 </div>
               </div>
             )}

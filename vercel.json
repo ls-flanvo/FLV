@@ -1,1 +1,16 @@
-{}
+{
+  "crons": [
+    {
+      "path": "/api/cron/close-groups?secret=flanvo-cron-2026-xk9mp3",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/escalate-groups?secret=flanvo-cron-2026-xk9mp3",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/monitor-flights?secret=flanvo-cron-2026-xk9mp3",
+      "schedule": "*/10 * * * *"
+    }
+  ]
+}

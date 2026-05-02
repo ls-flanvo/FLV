@@ -10,11 +10,11 @@ const faqs = [
   },
   {
     q: 'Quando vengo addebitato?',
-    a: 'Il pagamento viene pre-autorizzato al momento della conferma (i fondi vengono solo bloccati, non addebitati). L\'addebito reale avviene solo al drop-off, una volta completata la corsa.',
+    a: 'Il pagamento viene addebitato immediatamente quando il driver accetta la corsa. Fino a quel momento non viene applicato nessun addebito. Se nessun driver accetta entro 2 ore dalla partenza del volo, non paghi nulla e la prenotazione viene cancellata automaticamente.',
   },
   {
     q: 'Posso cancellare la prenotazione?',
-    a: 'Sì. Puoi cancellare gratuitamente fino a quando il driver non accetta la corsa. Dopo l\'accettazione, la cancellazione non è consentita. Per forza maggiore al pickup (bagagli smarriti, emergenza medica) apri una disputa entro 24 ore. Per volo cancellato o dirottato dalla compagnia aerea, Flanvo attiva automaticamente una procedura di assistenza: ricevi la ricevuta ufficiale e le istruzioni per richiedere il rimborso all\'airline ai sensi del Reg. UE 261/2004 — è la compagnia a rimborsarti, non Flanvo.',
+    a: 'Sì. Puoi cancellare gratuitamente finché non hai effettuato il pagamento. Dopo aver pagato, puoi comunque cancellare ma il pagamento non viene rimborsato automaticamente. Per forza maggiore al pickup (bagagli smarriti, emergenza medica) apri una disputa entro 24 ore. Per volo cancellato o dirottato dalla compagnia aerea, Flanvo attiva automaticamente una procedura di assistenza: ricevi la ricevuta ufficiale e le istruzioni per richiedere il rimborso all\'airline ai sensi del Reg. UE 261/2004 — è la compagnia a rimborsarti, non Flanvo.',
   },
   {
     q: 'Chi sono i passeggeri nel gruppo?',

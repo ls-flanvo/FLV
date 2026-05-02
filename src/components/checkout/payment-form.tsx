@@ -85,7 +85,7 @@ export function PaymentForm({ clientSecret, amount, onSuccess, onError }: Paymen
             Elaborazione...
           </>
         ) : (
-          `Pre-autorizza €${amount.toFixed(2)}`
+          `Paga €${amount.toFixed(2)}`
         )}
       </button>
 

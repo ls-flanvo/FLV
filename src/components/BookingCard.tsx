@@ -117,7 +117,7 @@ export default function BookingCard({ booking }: { booking: Booking }) {
   const meetingLanded = rideGroup?.flightStatus === 'landed' && rideGroup?.meetingPoint;
   const status = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
   const isActive = ['IN_PROGRESS'].includes(booking.status);
-  const isCancellable = ['PENDING', 'IN_MATCHING', 'MATCHED'].includes(booking.status);
+  const isCancellable = ['PENDING', 'IN_MATCHING', 'CONFIRMED', 'MATCHED'].includes(booking.status);
   const isConfirmed = booking.status === 'CONFIRMED';
   const isMatched = booking.status === 'MATCHED' && !isPaid;
   const isAuthorized = booking.status === 'MATCHED' && isPaid;
@@ -267,7 +267,7 @@ export default function BookingCard({ booking }: { booking: Booking }) {
             <div className="bg-success/8 border border-success/25 rounded-xl px-4 py-3">
               <p className="text-xs font-bold text-success mb-1">Gruppo trovato!</p>
               <p className="text-xs text-ink-secondary mb-3">
-                Conferma e pre-autorizza il pagamento per assicurarti il posto. Paghi solo al drop-off.
+                Il driver ha accettato il tuo gruppo. Completa il pagamento per assicurarti il posto.
               </p>
               <Link href={`/checkout/${groupId}`}>
                 <button className="w-full py-3 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all text-sm">
@@ -301,7 +301,7 @@ export default function BookingCard({ booking }: { booking: Booking }) {
               </div>
               <div>
                 <p className="text-xs font-bold text-primary-400">Pagamento autorizzato</p>
-                <p className="text-xs text-ink-muted">Verrai addebitato solo al drop-off</p>
+                <p className="text-xs text-ink-muted">Pagamento confermato · posto assicurato</p>
               </div>
             </div>
           )}
@@ -436,12 +436,6 @@ export default function BookingCard({ booking }: { booking: Booking }) {
             </button>
           )}
 
-          {isConfirmed && (
-            <p className="text-center text-xs text-ink-muted px-2 py-1.5 leading-relaxed">
-              🔒 Gruppo formato — non hai ancora pagato nulla. Potrai cancellare dopo che il driver accetta.
-            </p>
-          )}
-
           {isActive && (
             <>
               <div className="grid grid-cols-2 gap-2">
@@ -558,6 +552,7 @@ export default function BookingCard({ booking }: { booking: Booking }) {
       <CancellationModal
         isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)}
         bookingId={booking.id}
+        bookingStatus={booking.status}
         flightStatus={booking.status === 'CANCELLED' ? 'cancelled' : 'normal'}
         divertedTo={undefined}
         isPaid={isPaid}
