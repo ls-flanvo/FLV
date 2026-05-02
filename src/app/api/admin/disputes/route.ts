@@ -56,13 +56,14 @@ export async function PATCH(req: NextRequest) {
 
     if (action === 'APPROVED') {
       const member = dispute.booking.groupMember;
-      if (member?.paymentIntentId && (member as { paymentStatus?: string }).paymentStatus === 'AUTHORIZED') {
+      if (member?.paymentIntentId && (member as { paymentStatus?: string }).paymentStatus === 'CAPTURED') {
         const amountCents = Math.round((refundAmount ?? member.totalPrice ?? 0) * 100);
-        if (amountCents >= (member.totalPrice ?? 0) * 100) {
-          await stripe.paymentIntents.cancel(member.paymentIntentId).catch(console.error);
-        } else {
-          const captureCents = Math.round((member.totalPrice ?? 0) * 100) - amountCents;
-          await stripe.paymentIntents.capture(member.paymentIntentId, { amount_to_capture: captureCents }).catch(console.error);
+        if (amountCents > 0) {
+          await stripe.refunds.create({
+            payment_intent: member.paymentIntentId,
+            amount: amountCents,
+            metadata: { type: 'DISPUTE_REFUND', disputeId, adminId: payload.userId },
+          }).catch(console.error);
         }
         await prisma.groupMember.update({
           where: { id: member.id },
