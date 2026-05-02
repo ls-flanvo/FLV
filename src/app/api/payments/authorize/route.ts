@@ -31,9 +31,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 });
     }
 
-    // Idempotente — già autorizzato
-    if (member.paymentStatus === 'AUTHORIZED') {
-      return NextResponse.json({ success: true, alreadyAuthorized: true });
+    // Idempotente — già catturato
+    if (member.paymentStatus === 'CAPTURED') {
+      return NextResponse.json({ success: true, alreadyCaptured: true });
     }
 
     // Verifica che Stripe abbia davvero autorizzato
@@ -45,10 +45,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Aggiorna DB
+    // Cattura immediata — Flanvo incassa subito, trasferisce al driver al drop-off
+    const amountCents = Math.round((member.totalPrice ?? 0) * 100);
+    if (amountCents > 0) {
+      await stripe.paymentIntents.capture(paymentIntentId, { amount_to_capture: amountCents });
+    }
+
+    // Aggiorna DB → CAPTURED
     await prisma.groupMember.update({
       where: { id: member.id },
-      data: { paymentStatus: 'AUTHORIZED' },
+      data: { paymentStatus: 'CAPTURED', capturedAt: new Date() },
     });
 
     // Notifica in-app al passeggero
@@ -56,8 +62,8 @@ export async function POST(req: NextRequest) {
     createNotification({
       userId: member.booking.userId,
       type: 'BOOKING_CONFIRMED',
-      title: 'Pagamento autorizzato',
-      body: `Pre-autorizzazione ${priceLabel} confermata per il volo ${member.rideGroup.flightNumber}. L'addebito avverrà quando il driver accetta la corsa.`,
+      title: 'Pagamento confermato',
+      body: `Pagamento ${priceLabel} confermato per il volo ${member.rideGroup.flightNumber}. Il driver è stato informato.`,
       data: { paymentIntentId, flightNumber: member.rideGroup.flightNumber },
     }).catch(() => {});
 
@@ -75,18 +81,9 @@ export async function POST(req: NextRequest) {
       where: { rideGroupId: member.rideGroup.id, status: { not: 'CANCELLED' } },
       select: { paymentStatus: true },
     });
-    const allPaid = freshMembers.every(m => m.paymentStatus === 'AUTHORIZED');
+    const allPaid = freshMembers.every(m => m.paymentStatus === 'CAPTURED');
 
-    if (allPaid) {
-      // Transizione gruppo a READY → il driver può ora vedere e accettare la corsa
-      await prisma.rideGroup.update({
-        where: { id: member.rideGroup.id },
-        data: { status: 'READY' },
-      });
-      notifyDriversGroupReady(member.rideGroup.id).catch(() => {});
-    }
-
-    return NextResponse.json({ success: true, authorized: true, amount: member.totalPrice, allPaid });
+    return NextResponse.json({ success: true, captured: true, amount: member.totalPrice, allPaid });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Input non valido', details: error.errors }, { status: 400 });
