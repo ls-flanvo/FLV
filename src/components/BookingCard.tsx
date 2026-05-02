@@ -15,9 +15,9 @@ import DisputeModal from './DisputeModal';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
   PENDING:      { label: 'Cerchiamo compagni...',  color: 'text-warning',     dot: 'bg-warning' },
-  CONFIRMED:    { label: 'Confermato',             color: 'text-primary-400', dot: 'bg-primary-500' },
+  CONFIRMED:    { label: 'Gruppo completo · Attesa driver', color: 'text-primary-400', dot: 'bg-primary-500' },
   IN_MATCHING:  { label: 'Matching...',            color: 'text-primary-400', dot: 'bg-primary-500' },
-  MATCHED:      { label: 'Gruppo pronto! Paga',    color: 'text-success',     dot: 'bg-success' },
+  MATCHED:      { label: 'Driver confermato · Paga ora', color: 'text-success', dot: 'bg-success' },
   IN_PROGRESS:  { label: 'In viaggio',             color: 'text-success',     dot: 'bg-success' },
   COMPLETED:    { label: 'Completata',             color: 'text-ink-muted',   dot: 'bg-ink-muted' },
   CANCELLED:    { label: 'Cancellata',             color: 'text-danger',      dot: 'bg-danger' },
@@ -118,6 +118,7 @@ export default function BookingCard({ booking }: { booking: Booking }) {
   const status = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
   const isActive = ['IN_PROGRESS'].includes(booking.status);
   const isCancellable = ['PENDING', 'IN_MATCHING', 'CONFIRMED', 'MATCHED', 'IN_PROGRESS'].includes(booking.status);
+  const isConfirmed = booking.status === 'CONFIRMED';
   const isMatched = booking.status === 'MATCHED' && !isPaid;
   const isAuthorized = booking.status === 'MATCHED' && isPaid;
   const isPending = booking.status === 'PENDING';
@@ -367,6 +368,25 @@ export default function BookingCard({ booking }: { booking: Booking }) {
               <p className="text-xs text-ink-muted">
                 Nessun pagamento ora. Ricevi email quando il gruppo è pronto.
               </p>
+            </div>
+          )}
+
+          {/* CONFIRMED — gruppo pieno, in attesa del driver */}
+          {isConfirmed && (
+            <div className="bg-primary-500/8 border border-primary-500/25 rounded-xl px-4 py-3">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-2 h-2 bg-primary-500 rounded-full animate-pulse shrink-0" />
+                <p className="text-xs font-semibold text-primary-400">Gruppo completo · In attesa del driver</p>
+              </div>
+              <p className="text-xs text-ink-secondary">
+                Il van è al completo. Ti avvisiamo non appena un driver accetta la corsa.
+              </p>
+              {booking.estimatedPrice && (
+                <p className="text-xs text-ink-muted mt-1.5">
+                  Prezzo stimato: <strong className="text-white">€{booking.estimatedPrice.toFixed(2)}</strong>
+                  {passengers > 1 && <> · ~€{(booking.estimatedPrice / passengers).toFixed(2)} a persona</>}
+                </p>
+              )}
             </div>
           )}
 

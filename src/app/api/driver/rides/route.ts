@@ -37,10 +37,10 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Corse disponibili: solo READY (tutti i passeggeri hanno pagato), senza driver
+    // Corse disponibili: CONFIRMED (gruppo completo, in attesa driver), senza driver
     const availableGroups = await prisma.rideGroup.findMany({
       where: {
-        status: 'READY',
+        status: 'CONFIRMED',
         ride: { is: null },
       },
       include: {
@@ -152,7 +152,7 @@ export async function PATCH(request: NextRequest) {
             where: { id: rideId },
             select: { status: true },
           });
-          if (!fresh || fresh.status !== 'READY') {
+          if (!fresh || fresh.status !== 'CONFIRMED') {
             throw new Error('ALREADY_TAKEN');
           }
           await tx.rideGroup.update({ where: { id: rideId }, data: { status: 'ASSIGNED' } });
@@ -193,30 +193,20 @@ export async function PATCH(request: NextRequest) {
       });
 
       if (groupWithMembers) {
-        for (const member of groupWithMembers.members) {
-          if (member.paymentIntentId && member.paymentStatus === 'AUTHORIZED') {
-            try {
-              const amountCents = Math.round((member.totalPrice ?? 0) * 100);
-              if (amountCents > 0) {
-                await stripe.paymentIntents.capture(member.paymentIntentId, { amount_to_capture: amountCents });
-                await prisma.groupMember.update({
-                  where: { id: member.id },
-                  data: { paymentStatus: 'CAPTURED', capturedAt: new Date() },
-                });
-              }
-            } catch (e) {
-              console.error(`Capture failed for member ${member.id}:`, e);
-            }
-          }
+        // Driver ha accettato → bookings passano a MATCHED → passeggeri invitati a pre-autorizzare
+        await prisma.booking.updateMany({
+          where: { groupMember: { rideGroupId: rideId, status: { not: 'CANCELLED' } } },
+          data: { status: 'MATCHED' },
+        });
 
-          // Notifica passeggero
-          const { createNotification } = await import('@/lib/notify');
+        const { createNotification } = await import('@/lib/notify');
+        for (const member of groupWithMembers.members) {
           createNotification({
             userId: member.booking.userId,
             type: 'RIDE_STARTED',
-            title: 'Driver assegnato',
-            body: `Il tuo driver (${driver.vehicleModel}, targa ${driver.vehiclePlate}) è stato assegnato. Il pagamento è stato confermato.`,
-            data: { rideGroupId: rideId },
+            title: 'Driver confermato — Procedi al pagamento',
+            body: `Il driver ha accettato il tuo volo ${groupWithMembers.flightNumber}. Vai nella dashboard per pre-autorizzare il pagamento (€${(member.totalPrice ?? 0).toFixed(2)}).`,
+            data: { rideGroupId: rideId, bookingId: member.bookingId },
           }).catch(() => {});
         }
       }

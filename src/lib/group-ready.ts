@@ -121,40 +121,47 @@ async function closeGroup(group: GroupForClose, rates: Awaited<ReturnType<typeof
     });
   }
 
-  // Gruppo CONFIRMED — passeggeri invitati a pagare, driver non ancora notificato
+  // Gruppo CONFIRMED — in attesa del driver, passeggeri NON ancora invitati a pagare
   await prisma.rideGroup.update({
     where: { id: group.id },
     data: { status: 'CONFIRMED', totalPrice: Math.round(totalGroupPrice * 100) / 100 },
   });
 
-  // Ogni booking riceve il proprio prezzo effettivo
-  for (const { memberId, price } of memberPrices) {
+  // Ogni booking → CONFIRMED (non MATCHED), salva driverShare nel GroupMember
+  for (const member of group.members) {
+    const mp = memberPrices.find(m => m.memberId === member.id);
+    if (!mp) continue;
+    const kmOnboard = haversineDistance(
+      pickupLat, pickupLng,
+      member.booking.dropoffLat, member.booking.dropoffLng
+    );
+    const flanvoRate = kmOnboard >= 100 ? rates.flanvoTier3Rate : kmOnboard >= 51 ? rates.flanvoTier2Rate : rates.flanvoTier1Rate;
+    const driverSharePerPerson = (kmOnboard * rates.driverRatePerKm) / totalPax;
+    const flanvoFee = kmOnboard * flanvoRate;
+
+    await prisma.groupMember.update({
+      where: { id: member.id },
+      data: { kmOnboard, driverShare: driverSharePerPerson, flanvoFee, flanvoFeeRate: flanvoRate, totalPrice: mp.price },
+    });
     await prisma.booking.updateMany({
-      where: { groupMember: { id: memberId } },
-      data: { status: 'MATCHED', estimatedPrice: price },
+      where: { groupMember: { id: member.id } },
+      data: { status: 'CONFIRMED', estimatedPrice: mp.price },
     });
   }
 
-  // Notifica passeggeri: vai a pagare
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://flv-psi.vercel.app';
-  for (const { bookingUserId, memberId, price, userName, userEmail } of memberPrices) {
+  // Notifica passeggeri: gruppo completo, in attesa del driver
+  for (const { bookingUserId, memberId, price } of memberPrices) {
     createNotification({
       userId: bookingUserId,
       type: 'GROUP_READY',
-      title: 'Gruppo trovato — Conferma e paga',
-      body: `Il tuo gruppo per il volo ${group.flightNumber} è pronto (${totalPax} passeggeri). Il tuo totale: €${price.toFixed(2)}. Vai nella dashboard per confermare.`,
+      title: 'Gruppo completo — In attesa del driver',
+      body: `Il tuo gruppo per il volo ${group.flightNumber} è completo (${totalPax} passeggeri). Prezzo stimato: €${price.toFixed(2)}. Ti avvisiamo quando il driver accetta.`,
       data: { groupMemberId: memberId, flightNumber: group.flightNumber, price },
     }).catch(() => {});
-
-    sendGroupReady(userEmail, {
-      userName,
-      flightNumber: group.flightNumber,
-      groupSize: totalPax,
-      pricePerPerson: price,
-      groupMemberId: memberId,
-      appUrl,
-    }).catch(() => {});
   }
+
+  // Notifica driver immediatamente
+  await notifyDriversGroupReady(group.id);
 }
 
 // Chiamata da payments/authorize dopo che TUTTI i passeggeri hanno pagato
