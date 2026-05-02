@@ -231,7 +231,7 @@ export default function BookingCard({ booking }: { booking: Booking }) {
                 )}
               </div>
               <span className="text-xs text-ink-muted">
-                {rideGroup.members.length} {rideGroup.members.length === 1 ? 'passeggero' : 'passeggeri'} nel gruppo
+                {rideGroup.members.reduce((s, m) => s + (m.booking?.passengers ?? 1), 0)} passeggeri nel gruppo
               </span>
             </div>
           )}
