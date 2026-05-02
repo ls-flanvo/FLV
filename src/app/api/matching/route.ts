@@ -61,10 +61,12 @@ export async function POST(request: NextRequest) {
         const avgDropoffLng =
           memberBookings.reduce((s, b) => s + b.dropoffLng, 0) / memberBookings.length;
 
-        // Distanza media dall'aeroporto reale alle destinazioni
+        // Usa destinazione reale del passeggero se disponibile, altrimenti centroide del gruppo
+        const pricingLat = destination?.lat ?? avgDropoffLat;
+        const pricingLng = destination?.lng ?? avgDropoffLng;
         const estimatedKm = haversineDistance(
           airportLat, airportLng,
-          avgDropoffLat, avgDropoffLng
+          pricingLat, pricingLng
         );
 
         // Se la destinazione dell'utente è troppo lontana dal centroide del gruppo, salta
