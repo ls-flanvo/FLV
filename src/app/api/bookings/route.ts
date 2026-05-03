@@ -145,9 +145,10 @@ export async function POST(request: NextRequest) {
       select: { currentCapacity: true, maxCapacity: true },
     });
 
-    // Van pieno (7 pax) → chiudi subito senza aspettare le 3 ore
+    // Van pieno (7 pax) → chiudi subito e attendi prima di rispondere
+    // così il passeggero vede già "Gruppo completo · Attesa driver" in dashboard
     if (updatedGroup && updatedGroup.currentCapacity >= updatedGroup.maxCapacity) {
-      closeGroupImmediately(rideGroup.id).catch(() => {});
+      await closeGroupImmediately(rideGroup.id);
     }
 
     // Calcola stima prezzo corrente (solo indicativa, mostrata in dashboard)
