@@ -87,10 +87,17 @@ type GroupForClose = {
 };
 
 async function closeGroup(group: GroupForClose, rates: Awaited<ReturnType<typeof getPricingRates>>) {
-  if (group.members.length === 0) return;
+  // Rifetch dei membri freschi dal DB — evita race condition con pgbouncer
+  // dove il membro appena scritto non è visibile sulla connessione pooled iniziale
+  const freshMembers = await prisma.groupMember.findMany({
+    where: { rideGroupId: group.id },
+    include: { booking: { select: bookingSelect } },
+  });
 
-  const pickupLat = group.members[0].booking.pickupLat;
-  const pickupLng = group.members[0].booking.pickupLng;
+  if (freshMembers.length === 0) return;
+
+  const pickupLat = freshMembers[0].booking.pickupLat;
+  const pickupLng = freshMembers[0].booking.pickupLng;
   const totalPax = group.currentCapacity;
 
   // Prezzo individuale per ogni prenotazione: distanza effettiva × passeggeri della prenotazione
@@ -103,7 +110,7 @@ async function closeGroup(group: GroupForClose, rates: Awaited<ReturnType<typeof
     userEmail: string;
   }[] = [];
 
-  for (const member of group.members) {
+  for (const member of freshMembers) {
     const kmOnboard = haversineDistance(
       pickupLat, pickupLng,
       member.booking.dropoffLat, member.booking.dropoffLng
@@ -134,7 +141,7 @@ async function closeGroup(group: GroupForClose, rates: Awaited<ReturnType<typeof
   });
 
   // Ogni booking → CONFIRMED (non MATCHED), salva driverShare nel GroupMember
-  for (const member of group.members) {
+  for (const member of freshMembers) {
     const mp = memberPrices.find(m => m.memberId === member.id);
     if (!mp) continue;
     const kmOnboard = haversineDistance(
