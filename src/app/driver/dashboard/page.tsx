@@ -98,7 +98,7 @@ export default function DriverDashboardPage() {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
       body: JSON.stringify({ rideId, status: 'accepted' }),
     });
-    if (res.ok) setRides(r => r.map(x => x.id === rideId ? { ...x, status: 'accepted' as const } : x));
+    if (res.ok) router.push(`/driver/ride/${rideId}`);
   };
 
   const handleReject = async (rideId: string) => {

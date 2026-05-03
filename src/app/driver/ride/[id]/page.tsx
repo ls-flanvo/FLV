@@ -40,6 +40,8 @@ export default function DriverNavigationPage({ params }: { params: { id: string 
   const [chatOpen, setChatOpen] = useState(false);
   const [docOpen, setDocOpen] = useState(false);
   const [arrivedCount, setArrivedCount] = useState(0);
+  const [paidCount, setPaidCount] = useState(0);
+  const [totalPassengers, setTotalPassengers] = useState(0);
   const [noShowAvailableAt, setNoShowAvailableAt] = useState<string | null>(null);
   const [flightStatus, setFlightStatus] = useState<string | null>(null);
   const [meetingPoint, setMeetingPoint] = useState<string | null>(null);
@@ -80,6 +82,8 @@ export default function DriverNavigationPage({ params }: { params: { id: string 
         if (ride?.flight?.code) setFlightCode(ride.flight.code);
         if (ride?.pickupTime) setPickupTime(ride.pickupTime);
         if (ride?.arrivedCount !== undefined) setArrivedCount(ride.arrivedCount);
+        if (ride?.paidCount !== undefined) setPaidCount(ride.paidCount);
+        if (ride?.totalPassengers !== undefined) setTotalPassengers(ride.totalPassengers);
         if (ride?.noShowAvailableAt) setNoShowAvailableAt(ride.noShowAvailableAt);
         if (ride?.meetingPoint) setMeetingPoint(ride.meetingPoint);
         if (!ride) return;
@@ -138,6 +142,8 @@ export default function DriverNavigationPage({ params }: { params: { id: string 
         .then(data => {
           const r = data.rides?.find((x: { id: string }) => x.id === params.id);
           if (r?.arrivedCount !== undefined) setArrivedCount(r.arrivedCount);
+          if (r?.paidCount !== undefined) setPaidCount(r.paidCount);
+          if (r?.totalPassengers !== undefined) setTotalPassengers(r.totalPassengers);
           if (r?.flightStatus) setFlightStatus(r.flightStatus);
         }).catch(() => {});
     }, 30_000);
@@ -321,6 +327,19 @@ const handleStartRide = async () => {
             {flightStatus === 'landed' ? 'ATTERRATO' : flightStatus === 'delayed' ? 'IN RITARDO' : flightStatus === 'cancelled' ? 'CANCELLATO' : 'IN VOLO'}
           </div>
 
+          {/* Banner pagamento — visibile finché non tutti hanno pagato */}
+          {totalPassengers > 0 && paidCount < totalPassengers && (
+            <div className="bg-warning/8 border border-warning/20 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-warning">In attesa del pagamento</p>
+                <p className="text-xs text-ink-muted mt-0.5">{paidCount} di {totalPassengers} prenotazioni confermate</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xl font-black text-warning">{paidCount}/{totalPassengers}</p>
+              </div>
+            </div>
+          )}
+
           {/* Titolo e istruzione principale */}
           {flightStatus !== 'landed' ? (
             <div className="mb-6">
@@ -360,42 +379,69 @@ const handleStartRide = async () => {
             </div>
           )}
 
-          {/* Lista passeggeri con badge "sono qui" */}
+          {/* Lista passeggeri con luminosità: arrivati=pieno, in attesa=opaco */}
           <div className="bg-surface-1 border border-surface-4 rounded-2xl p-4 mb-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-bold text-ink-secondary">Passeggeri ({activePax})</p>
-              {arrivedCount > 0 && (
+              <p className="text-xs font-bold text-ink-secondary">Prenotazioni ({activePax})</p>
+              {flightStatus === 'landed' && (
                 <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
                   arrivedCount === activePax
                     ? 'bg-success/15 text-success border border-success/25'
-                    : 'bg-warning/15 text-warning border border-warning/25'
+                    : arrivedCount >= moveThreshold
+                    ? 'bg-primary-500/15 text-primary-400 border border-primary-500/25'
+                    : 'bg-surface-2 text-ink-muted border border-surface-5'
                 }`}>
-                  {arrivedCount === activePax ? '✓ Tutti all\'uscita' : `${arrivedCount}/${activePax} all'uscita`}
+                  {arrivedCount === activePax
+                    ? '✓ Tutti all\'uscita'
+                    : arrivedCount >= moveThreshold
+                    ? `${arrivedCount}/${activePax} — puoi partire`
+                    : `${arrivedCount}/${activePax} all'uscita`}
                 </span>
               )}
             </div>
             <div className="space-y-2">
-              {dropoffStops.map(s => (
-                <div key={s.id} className="flex items-center gap-3 py-1">
-                  <div className="w-7 h-7 bg-primary-500/15 rounded-lg flex items-center justify-center text-primary-400 text-xs font-bold shrink-0">
-                    {s.passenger.name.charAt(0)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-medium text-white">{s.passenger.name}</p>
-                      {s.passenger.arrivedAtPickup
-                        ? <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-success/15 border border-success/25 rounded-md text-[10px] font-bold text-success">
-                            <CheckCircle className="w-2.5 h-2.5" /> All&apos;uscita
-                          </span>
-                        : noShowAvailable
-                        ? <span className="text-[10px] font-bold text-red-400">Non si è presentato</span>
-                        : null}
+              {dropoffStops.map(s => {
+                const arrived = !!s.passenger.arrivedAtPickup;
+                const isLanded = flightStatus === 'landed';
+                return (
+                  <div key={s.id} className={`flex items-center gap-3 py-1.5 px-2 rounded-xl transition-all ${
+                    arrived ? 'bg-success/5 border border-success/15' : ''
+                  } ${isLanded && !arrived && !noShowAvailable ? 'opacity-50' : ''}`}>
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                      arrived ? 'bg-success/20 text-success' : 'bg-primary-500/15 text-primary-400'
+                    }`}>
+                      {s.passenger.name.charAt(0)}
                     </div>
-                    <p className="text-xs text-ink-muted truncate">{s.address}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className={`text-sm font-medium ${arrived ? 'text-success' : 'text-white'}`}>{s.passenger.name}</p>
+                        {arrived
+                          ? <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-success/15 border border-success/25 rounded-md text-[10px] font-bold text-success">
+                              <CheckCircle className="w-2.5 h-2.5" /> All&apos;uscita
+                            </span>
+                          : noShowAvailable
+                          ? <span className="text-[10px] font-bold text-red-400">Non si è presentato</span>
+                          : null}
+                      </div>
+                      <p className="text-xs text-ink-muted truncate">{s.address}</p>
+                    </div>
+                    {arrived && (
+                      <button onClick={() => setChatOpen(true)}
+                        className="p-1.5 rounded-lg text-ink-muted hover:text-primary-400 hover:bg-primary-500/10 transition-all">
+                        <MessageCircle className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
+
+            {/* Spiegazione soglia — solo dopo atterraggio */}
+            {flightStatus === 'landed' && arrivedCount < moveThreshold && (
+              <p className="text-[11px] text-ink-muted mt-3 text-center">
+                Aspetta almeno {moveThreshold} su {activePax} passeggeri prima di muoverti
+              </p>
+            )}
           </div>
 
           {/* Stato spostamento — cambia in base a quanti hanno premuto */}
@@ -485,6 +531,14 @@ const handleStartRide = async () => {
             </div>
           )}
 
+          {/* Chat con i passeggeri — sempre disponibile */}
+          <button
+            onClick={() => setChatOpen(true)}
+            className="w-full flex items-center justify-center gap-2 py-3 mb-3 bg-surface-2 border border-surface-5 text-ink-secondary rounded-2xl hover:text-white hover:border-primary-500/30 transition-all text-sm font-semibold"
+          >
+            <MessageCircle className="w-4 h-4 text-primary-400" /> Chat con i passeggeri
+          </button>
+
           {/* Fix 5: tutti no-show → chiudi servizio */}
           {allNoShow ? (
             <button
@@ -529,6 +583,16 @@ const handleStartRide = async () => {
             </button>
           </div>
         </div>
+
+        {/* Chat passeggeri — pre_start */}
+        {rideGroupId && (
+          <DriverChat
+            isOpen={chatOpen}
+            onClose={() => setChatOpen(false)}
+            driverName="Tu (Driver)"
+            groupId={rideGroupId}
+          />
+        )}
       </div>
     );
   }
