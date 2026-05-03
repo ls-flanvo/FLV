@@ -127,7 +127,7 @@ export interface DriverRide {
   id: string;
   rideGroupId: string;
   flight: Flight;
-  passengers: { id: string; name: string; groupMemberId: string; arrivedAtPickup: string | null }[];
+  passengers: { id: string; name: string; groupMemberId: string; arrivedAtPickup: string | null; passengers: number; paid: boolean; cancelled: boolean }[];
   destinations: Destination[];
   totalPrice: number;
   status: 'pending' | 'accepted' | 'in_progress' | 'completed';

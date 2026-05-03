@@ -28,6 +28,8 @@ export default function DriverDashboardPage() {
   const [selectedPassenger, setSelectedPassenger] = useState<{ name: string; phone: string } | null>(null);
   const [stripeStatus, setStripeStatus] = useState<'loading' | 'not_started' | 'incomplete' | 'pending_verification' | 'active'>('loading');
   const [stats, setStats] = useState({ todayRides: 0, earnings: 0, rating: 5.0, totalTrips: 0 });
+  const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
+  const [noShowLoading, setNoShowLoading] = useState<string | null>(null);
 
   const { user, isAuthenticated, token } = useAuthStore();
   const router = useRouter();
@@ -39,6 +41,13 @@ export default function DriverDashboardPage() {
     fetchStripeStatus();
     startLocationTracking();
   }, [isAuthenticated, user, router]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Polling automatico ogni 15s quando il tab "accepted" è attivo
+  useEffect(() => {
+    if (activeTab !== 'accepted') return;
+    const interval = setInterval(fetchRides, 15000);
+    return () => clearInterval(interval);
+  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startLocationTracking = () => {
     if (!navigator.geolocation) return;
@@ -111,7 +120,20 @@ export default function DriverDashboardPage() {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
       body: JSON.stringify({ rideId, status: 'rejected' }),
     });
-    if (res.ok) setRides(r => r.filter(x => x.id !== rideId));
+    if (res.ok) { setCancelConfirmId(null); setRides(r => r.filter(x => x.id !== rideId)); }
+  };
+
+  const handleNoShow = async (rideId: string, memberId: string) => {
+    setNoShowLoading(memberId);
+    try {
+      const t = token || localStorage.getItem('flanvo_token');
+      const res = await fetch('/api/driver/rides', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+        body: JSON.stringify({ rideId, status: 'no_show', memberId }),
+      });
+      if (res.ok) await fetchRides();
+    } finally { setNoShowLoading(null); }
   };
 
   const filtered = rides.filter(r => r.status === activeTab);
@@ -346,15 +368,23 @@ export default function DriverDashboardPage() {
                   const allPaid = ride.paidCount >= ride.totalPassengers;
                   const landed = ride.flightStatus === 'landed';
                   const inFlight = ride.flightStatus === 'active' || ride.flightStatus === 'departed';
-                  const moveThreshold = ride.totalPassengers <= 2 ? ride.totalPassengers
-                    : ride.totalPassengers <= 4 ? Math.ceil(ride.totalPassengers * 0.75)
-                    : Math.ceil(ride.totalPassengers * 0.6);
-                  const canStart = ride.arrivedCount >= moveThreshold;
+                  const firstArrived = ride.arrivedCount > 0;
+                  const noShowTime = ride.noShowAvailableAt ? new Date(ride.noShowAvailableAt) <= new Date() : false;
+
+                  // Soglia calcolata sui booking ancora attivi (esclusi no-show/cancellati)
+                  const activeBookings = ride.passengers.filter(p => !p.cancelled);
+                  const moveThreshold = activeBookings.length <= 2 ? activeBookings.length
+                    : activeBookings.length <= 4 ? Math.ceil(activeBookings.length * 0.75)
+                    : Math.ceil(activeBookings.length * 0.6);
+                  const canStart = landed && ride.arrivedCount >= moveThreshold && firstArrived;
+
+                  const isCancelConfirm = cancelConfirmId === ride.id;
+                  const canCancel = ride.paidCount === 0 && !landed;
 
                   return (
                     <div className="pt-4 border-t border-surface-4 space-y-3">
 
-                      {/* Badge volo con stati */}
+                      {/* Badge volo 3 stati */}
                       <div className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border ${
                         landed ? 'bg-success/8 border-success/20'
                         : inFlight ? 'bg-primary-500/8 border-primary-500/20'
@@ -366,17 +396,13 @@ export default function DriverDashboardPage() {
                           : 'bg-ink-muted'
                         }`} />
                         <div className="flex-1">
-                          <p className={`text-sm font-semibold ${
-                            landed ? 'text-success' : inFlight ? 'text-primary-400' : 'text-ink-secondary'
-                          }`}>
+                          <p className={`text-sm font-semibold ${landed ? 'text-success' : inFlight ? 'text-primary-400' : 'text-ink-secondary'}`}>
                             {landed ? 'Volo atterrato' : inFlight ? 'Volo in corso' : 'In attesa decollo'}
                           </p>
                           <p className="text-[11px] text-ink-muted mt-0.5">
-                            {landed
-                              ? 'I passeggeri stanno ritirando i bagagli'
-                              : inFlight
-                              ? 'Il badge diventerà verde all\'atterraggio'
-                              : 'Il badge si illuminerà al decollo · poi verde all\'atterraggio'}
+                            {landed ? 'I passeggeri stanno uscendo dall\'aeroporto'
+                              : inFlight ? 'Il badge diventerà verde all\'atterraggio'
+                              : 'Si illuminerà al decollo · verde all\'atterraggio'}
                           </p>
                         </div>
                       </div>
@@ -385,45 +411,128 @@ export default function DriverDashboardPage() {
                       {!allPaid && (
                         <div className="bg-warning/8 border border-warning/20 rounded-xl px-4 py-3 flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-semibold text-warning">In attesa del pagamento</p>
+                            <p className="text-sm font-semibold text-warning">In attesa pagamento</p>
                             <p className="text-xs text-ink-muted mt-0.5">{ride.paidCount}/{ride.totalPassengers} prenotazioni confermate</p>
                           </div>
                           <p className="text-xl font-black text-warning">{ride.paidCount}/{ride.totalPassengers}</p>
                         </div>
                       )}
 
-                      {/* Chat — solo dopo atterraggio */}
-                      {landed && (
-                        <button
-                          onClick={() => { setChatGroupId(ride.rideGroupId); setChatOpen(true); setSelectedPassenger({ name: 'Gruppo', phone: '' }); }}
-                          className="w-full flex items-center justify-center gap-2 py-3 bg-surface-2 border border-surface-5 rounded-xl text-ink-secondary hover:text-white hover:border-primary-500/30 transition-all text-sm font-semibold"
-                        >
-                          <MessageCircle className="w-4 h-4 text-primary-400" /> Chat con i passeggeri
-                        </button>
-                      )}
-
-                      {/* Sezione arrivi — solo dopo atterraggio */}
-                      {landed && (
-                        <div className="bg-surface-2 border border-surface-5 rounded-xl px-4 py-3">
-                          <p className="text-xs font-semibold text-ink-secondary mb-2">
-                            Passeggeri all&apos;uscita: {ride.arrivedCount}/{ride.totalPassengers}
-                            {!canStart && <span className="text-ink-muted font-normal ml-1">· ne servono ancora {moveThreshold - ride.arrivedCount}</span>}
-                          </p>
-                          <div className="h-1.5 bg-surface-4 rounded-full overflow-hidden">
-                            <div className="h-full bg-primary-500 rounded-full transition-all duration-500"
-                              style={{ width: `${Math.min(100, (ride.arrivedCount / moveThreshold) * 100)}%` }} />
+                      {/* Annulla corsa — solo prima dell'atterraggio e se nessuno ha pagato */}
+                      {canCancel && (
+                        isCancelConfirm ? (
+                          <div className="bg-danger/8 border border-danger/20 rounded-xl px-4 py-3 space-y-3">
+                            <p className="text-sm font-semibold text-danger">Annullare la corsa?</p>
+                            <p className="text-xs text-ink-muted">Il gruppo tornerà disponibile per altri driver. I passeggeri verranno notificati.</p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleReject(ride.id)}
+                                className="flex-1 py-2.5 bg-danger/15 text-danger border border-danger/30 rounded-xl text-sm font-bold hover:bg-danger/25 transition-all"
+                              >
+                                Sì, annulla
+                              </button>
+                              <button
+                                onClick={() => setCancelConfirmId(null)}
+                                className="flex-1 py-2.5 bg-surface-3 text-ink-secondary border border-surface-5 rounded-xl text-sm font-semibold hover:text-white transition-all"
+                              >
+                                No, torna
+                              </button>
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <button
+                            onClick={() => setCancelConfirmId(ride.id)}
+                            className="w-full flex items-center justify-center gap-2 py-2.5 text-xs text-danger/60 hover:text-danger border border-transparent hover:border-danger/20 rounded-xl transition-all"
+                          >
+                            <XCircle className="w-3.5 h-3.5" /> Annulla corsa
+                          </button>
+                        )
                       )}
 
-                      {/* Inizia corsa — solo quando soglia raggiunta */}
+                      {/* DOPO ATTERRAGGIO */}
+                      {landed && (
+                        <>
+                          {/* In attesa che il primo arrivi */}
+                          {!firstArrived && (
+                            <div className="bg-surface-2 border border-surface-5 rounded-xl px-4 py-3 flex items-center gap-2.5">
+                              <span className="w-2 h-2 bg-primary-500 rounded-full animate-pulse shrink-0" />
+                              <p className="text-sm text-ink-secondary">In attesa che i passeggeri escano dall&apos;aeroporto...</p>
+                            </div>
+                          )}
+
+                          {/* Lista arrivi per prenotazione — dal primo "Sono qui" */}
+                          {firstArrived && (
+                            <div className="bg-surface-2 border border-surface-5 rounded-xl overflow-hidden">
+                              <div className="px-4 py-2.5 border-b border-surface-4">
+                                <p className="text-xs font-semibold text-ink-secondary">
+                                  Passeggeri all&apos;uscita · {ride.arrivedCount}/{activeBookings.length} prenotazioni
+                                  {!canStart && (
+                                    <span className="text-ink-muted font-normal ml-1">
+                                      · ancora {Math.max(0, moveThreshold - ride.arrivedCount)} necessari
+                                    </span>
+                                  )}
+                                </p>
+                              </div>
+                              <div className="divide-y divide-surface-4">
+                                {ride.passengers.map((p) => (
+                                  <div key={p.groupMemberId} className={`px-4 py-2.5 flex items-center justify-between gap-3 ${p.cancelled ? 'opacity-40' : ''}`}>
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                                        p.arrivedAtPickup ? 'bg-success/15 text-success'
+                                        : p.cancelled ? 'bg-surface-3 text-ink-muted'
+                                        : 'bg-surface-3 text-ink-muted'
+                                      }`}>
+                                        {p.arrivedAtPickup ? '✓' : p.cancelled ? '✕' : p.name.charAt(0)}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-medium text-white truncate">{p.name}</p>
+                                        <p className="text-[11px] text-ink-muted">{p.passengers} pax</p>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      {p.arrivedAtPickup ? (
+                                        <span className="text-xs font-semibold text-success">Arrivato</span>
+                                      ) : p.cancelled ? (
+                                        <span className="text-xs text-ink-muted">No show</span>
+                                      ) : noShowTime ? (
+                                        <button
+                                          onClick={() => handleNoShow(ride.id, p.groupMemberId)}
+                                          disabled={noShowLoading === p.groupMemberId}
+                                          className="text-xs px-2.5 py-1.5 bg-danger/10 text-danger border border-danger/20 rounded-lg hover:bg-danger/20 transition-all disabled:opacity-40 font-semibold"
+                                        >
+                                          {noShowLoading === p.groupMemberId ? '...' : 'No show'}
+                                        </button>
+                                      ) : (
+                                        <span className="text-xs text-warning">Atteso</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Chat con i passeggeri */}
+                          <button
+                            onClick={() => { setChatGroupId(ride.rideGroupId); setChatOpen(true); setSelectedPassenger({ name: 'Gruppo', phone: '' }); }}
+                            className="w-full flex items-center justify-center gap-2 py-2.5 bg-surface-2 border border-surface-5 rounded-xl text-ink-secondary hover:text-white hover:border-primary-500/30 transition-all text-sm font-semibold"
+                          >
+                            <MessageCircle className="w-4 h-4 text-primary-400" /> Chat con i passeggeri
+                          </button>
+                        </>
+                      )}
+
+                      {/* Inizia corsa */}
                       <Link href={`/driver/ride/${ride.id}`}>
                         <button
                           disabled={!canStart}
                           className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                           <Zap className="w-4 h-4" />
-                          {canStart ? 'Inizia corsa' : `Aspetta — ${Math.max(0, moveThreshold - ride.arrivedCount)} ancora attesi`}
+                          {canStart ? 'Inizia corsa'
+                            : !landed ? 'In attesa dell\'atterraggio'
+                            : !firstArrived ? 'In attesa passeggeri all\'uscita'
+                            : `Aspetta — ${Math.max(0, moveThreshold - ride.arrivedCount)} ancora all\'uscita`}
                         </button>
                       </Link>
 

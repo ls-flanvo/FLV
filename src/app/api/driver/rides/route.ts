@@ -48,8 +48,11 @@ export async function GET(request: NextRequest) {
         name: m.booking.user.name,
         groupMemberId: m.id,
         arrivedAtPickup: m.arrivedAtPickup?.toISOString() ?? null,
+        passengers: m.booking.passengers,
+        paid: m.paymentStatus === 'CAPTURED',
+        cancelled: m.status === 'CANCELLED' || m.status === 'NO_SHOW',
       }));
-      const arrivedCount = group.members.filter(m => m.arrivedAtPickup !== null).length;
+      const arrivedCount = group.members.filter(m => m.arrivedAtPickup !== null && m.status !== 'CANCELLED' && m.status !== 'NO_SHOW').length;
       const paidCount = group.members.filter(m => m.paymentStatus === 'CAPTURED').length;
 
       const destinations = group.members.map((m) => ({
@@ -120,7 +123,7 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const payload = await requireDriver(request);
-    const { rideId, status } = await request.json();
+    const { rideId, status, memberId } = await request.json();
 
     if (!rideId || !status) {
       return NextResponse.json({ error: 'rideId e status sono obbligatori' }, { status: 400 });
@@ -247,17 +250,79 @@ export async function PATCH(request: NextRequest) {
         where: { groupMember: { rideGroupId: rideId } },
         data: { status: 'IN_PROGRESS' },
       });
-    } else if (status === 'rejected') {
-      await prisma.rideGroup.update({
+    } else if (status === 'no_show') {
+      if (!memberId) {
+        return NextResponse.json({ error: 'memberId obbligatorio' }, { status: 400 });
+      }
+      const group = await prisma.rideGroup.findUnique({
         where: { id: rideId },
-        data: { status: 'CONFIRMED' },
+        select: { noShowAvailableAt: true, flightNumber: true },
       });
+      if (!group?.noShowAvailableAt || new Date() < group.noShowAvailableAt) {
+        return NextResponse.json({ error: 'No-show non ancora disponibile' }, { status: 403 });
+      }
+      const member = await prisma.groupMember.findUnique({
+        where: { id: memberId },
+        include: { booking: { include: { user: true } } },
+      });
+      if (!member) {
+        return NextResponse.json({ error: 'Prenotazione non trovata' }, { status: 404 });
+      }
+      await prisma.groupMember.update({
+        where: { id: memberId },
+        data: { status: 'NO_SHOW' },
+      });
+      await prisma.booking.update({
+        where: { id: member.bookingId },
+        data: { status: 'CANCELLED' },
+      });
+      const { createNotification } = await import('@/lib/notify');
+      createNotification({
+        userId: member.booking.userId,
+        type: 'BOOKING_CANCELLED',
+        title: 'Prenotazione cancellata — No show',
+        body: `Non ti sei presentato all'uscita arrivi per il volo ${group.flightNumber}. La prenotazione è stata cancellata.`,
+        data: { bookingId: member.bookingId },
+      }).catch(() => {});
+    } else if (status === 'rejected') {
+      const groupWithMembers = await prisma.rideGroup.findUnique({
+        where: { id: rideId },
+        include: {
+          members: {
+            where: { status: { not: 'CANCELLED' } },
+            include: { booking: { include: { user: true } } },
+          },
+        },
+      });
+
+      await prisma.rideGroup.update({ where: { id: rideId }, data: { status: 'CONFIRMED' } });
+
       const existingRide = await prisma.ride.findUnique({ where: { groupId: rideId } });
       if (existingRide?.driverId === driver.id) {
         await prisma.ride.update({
           where: { id: existingRide.id },
           data: { driverId: null, status: 'SCHEDULED' },
         });
+      }
+
+      // Reset bookings a CONFIRMED (nuovo driver le deve riaccettare)
+      await prisma.booking.updateMany({
+        where: { groupMember: { rideGroupId: rideId, status: { not: 'CANCELLED' } } },
+        data: { status: 'CONFIRMED' },
+      });
+
+      // Notifica passeggeri
+      if (groupWithMembers) {
+        const { createNotification } = await import('@/lib/notify');
+        for (const member of groupWithMembers.members) {
+          createNotification({
+            userId: member.booking.userId,
+            type: 'BOOKING_CANCELLED',
+            title: 'Driver ha cancellato la corsa',
+            body: `Il driver ha rinunciato alla corsa per il volo ${groupWithMembers.flightNumber}. Stiamo cercando un nuovo driver.`,
+            data: { rideGroupId: rideId },
+          }).catch(() => {});
+        }
       }
     }
 
