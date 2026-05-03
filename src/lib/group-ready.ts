@@ -184,12 +184,14 @@ export async function notifyDriversGroupReady(rideGroupId: string) {
       where: { id: rideGroupId },
       select: {
         flightNumber: true, currentCapacity: true, arrivalAirport: true,
-        members: { select: { totalPrice: true } },
+        totalRouteKm: true,
+        members: { select: { driverShare: true } },
       },
     });
     if (!group) return;
 
-    const totalEarnings = group.members.reduce((s, m) => s + (m.totalPrice ?? 0), 0);
+    // Mostra solo la quota driver, non il totale del gruppo (che include la fee Flanvo)
+    const driverEarnings = group.members.reduce((s, m) => s + (m.driverShare ?? 0), 0);
     const airportCode = group.arrivalAirport ?? 'CTA';
 
     const drivers = await prisma.driver.findMany({
@@ -202,8 +204,8 @@ export async function notifyDriversGroupReady(rideGroupId: string) {
         userId: d.userId,
         type: 'GROUP_READY',
         title: 'Nuova corsa disponibile',
-        body: `Volo ${group.flightNumber} — ${group.currentCapacity} passeggeri. Compenso totale: €${totalEarnings.toFixed(2)}. Accetta dalla dashboard.`,
-        data: { rideGroupId, flightNumber: group.flightNumber, totalPax: group.currentCapacity, totalEarnings },
+        body: `Volo ${group.flightNumber} — ${group.currentCapacity} passeggeri${group.totalRouteKm ? ` · ${Math.round(group.totalRouteKm)} km` : ''}. Guadagno: €${driverEarnings.toFixed(2)}. Accetta dalla dashboard.`,
+        data: { rideGroupId, flightNumber: group.flightNumber, totalPax: group.currentCapacity, driverEarnings },
       }).catch(() => {});
 
       sendNewRideAvailable(d.user.email, {

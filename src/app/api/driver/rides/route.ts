@@ -105,6 +105,8 @@ export async function GET(request: NextRequest) {
         arrivedCount,
         paidCount,
         totalPassengers: group.members.length,
+        totalRouteKm: group.totalRouteKm ?? null,
+        flightDepartureTime: group.flightDepartureTime?.toISOString() ?? null,
       };
     };
 

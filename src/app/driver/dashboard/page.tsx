@@ -221,19 +221,48 @@ export default function DriverDashboardPage() {
           {filtered.map((ride) => (
             <div key={ride.id} className="bg-surface-1 border border-surface-4 rounded-2xl overflow-hidden bg-card-gradient">
               {/* Ride header */}
-              <div className="px-5 pt-5 pb-4 border-b border-surface-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary-500/10 rounded-xl">
-                    <Navigation className="w-5 h-5 text-primary-400" />
+              <div className="px-5 pt-5 pb-4 border-b border-surface-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary-500/10 rounded-xl">
+                      <Navigation className="w-5 h-5 text-primary-400" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-white">Volo {ride.flight.code}</p>
+                      <p className="text-xs text-ink-muted">{ride.totalPassengers} passeggeri · {ride.destinations.length} fermate</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-white">Volo {ride.flight.code}</p>
-                    <p className="text-xs text-ink-muted">{ride.flight.airline}</p>
+                  <div className="text-right">
+                    <p className="text-2xl font-black text-primary-400">€{ride.totalPrice}</p>
+                    {ride.totalRouteKm && (
+                      <p className="text-xs text-ink-muted">
+                        {Math.round(ride.totalRouteKm)} km · €{(ride.totalPrice / ride.totalRouteKm).toFixed(2)}/km
+                      </p>
+                    )}
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-black text-primary-400">€{ride.totalPrice}</p>
-                  <p className="text-xs text-ink-muted">compenso · {ride.destinations.length} fermate</p>
+                {/* Dettagli temporali */}
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  {ride.flightDepartureTime && (
+                    <div className="bg-surface-2 rounded-xl px-2 py-1.5">
+                      <p className="text-[10px] text-ink-muted">Partenza volo</p>
+                      <p className="text-xs font-semibold text-white">
+                        {new Date(ride.flightDepartureTime).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  )}
+                  <div className="bg-surface-2 rounded-xl px-2 py-1.5">
+                    <p className="text-[10px] text-ink-muted">Pickup stimato</p>
+                    <p className="text-xs font-semibold text-white">
+                      {new Date(ride.pickupTime).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <div className="bg-surface-2 rounded-xl px-2 py-1.5">
+                    <p className="text-[10px] text-ink-muted">Fine stimata</p>
+                    <p className="text-xs font-semibold text-white">
+                      {new Date(new Date(ride.pickupTime).getTime() + ride.destinations.length * 12 * 60000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
                 </div>
               </div>
 

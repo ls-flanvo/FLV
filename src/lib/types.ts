@@ -134,6 +134,8 @@ export interface DriverRide {
   arrivedCount: number;
   paidCount: number;
   totalPassengers: number;
+  totalRouteKm: number | null;
+  flightDepartureTime: string | null;
   meetingPoint?: string | null;
   noShowAvailableAt?: string | null;
 }
