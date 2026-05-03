@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/jwt';
+import { requireAuth, authErrorResponse } from '@/lib/api-auth';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const token = req.headers.get('Authorization')?.replace('Bearer ', '') || req.cookies.get('flanvo_token')?.value;
-    const payload = token ? await verifyToken(token) : null;
+    const payload = await requireAuth(request);
 
-    const booking = await prisma.booking.findUnique({
-      where: { id: params.id },
+    const booking = await prisma.booking.findFirst({
+      where: { id: params.id, userId: payload.userId },
       select: {
-        id: true, status: true,
+        status: true,
         groupMember: {
           select: {
             rideGroup: {
               select: {
-                status: true, currentCapacity: true, maxCapacity: true,
-                members: { select: { id: true }, where: { status: { not: 'CANCELLED' } } },
+                status: true,
+                currentCapacity: true,
+                maxCapacity: true,
               },
             },
           },
@@ -24,22 +24,18 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       },
     });
 
-    if (!booking) return NextResponse.json({ error: 'Non trovato' }, { status: 404 });
-    if (payload?.userId && booking.groupMember?.rideGroup) {
-      const group = booking.groupMember.rideGroup;
-      return NextResponse.json({
-        status: booking.status,
-        group: {
-          status: group.status,
-          current: group.currentCapacity,
-          max: group.maxCapacity,
-        },
-      });
-    }
+    if (!booking) return NextResponse.json({ error: 'Non trovata' }, { status: 404 });
 
-    return NextResponse.json({ status: booking.status, group: null });
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: 'Errore' }, { status: 500 });
+    const rideGroup = booking.groupMember?.rideGroup;
+
+    return NextResponse.json({
+      status: booking.status,
+      groupStatus: rideGroup?.status ?? null,
+      group: rideGroup
+        ? { current: rideGroup.currentCapacity, max: rideGroup.maxCapacity }
+        : null,
+    });
+  } catch (error) {
+    return authErrorResponse(error);
   }
 }

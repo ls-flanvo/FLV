@@ -98,6 +98,10 @@ export default function BookingCard({ booking }: { booking: Booking }) {
         });
         const data = await res.json();
         if (data.group) setGroupStatus({ current: data.group.current, max: data.group.max });
+        // Ricarica la pagina se lo status è cambiato (van pieno o T-3h scattato)
+        if (data.status && data.status !== booking.status) {
+          window.location.reload();
+        }
       } catch { /* silent */ }
     };
     poll();
