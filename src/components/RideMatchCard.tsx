@@ -6,17 +6,18 @@ interface RideMatchCardProps {
   match: RideMatch;
   onSelect: (match: RideMatch) => void;
   disabled?: boolean;
+  myPassengers?: number;
 }
 
 function ScoreDot({ score }: { score: number }) {
   const color =
-    score >= 85 ? 'bg-success' : score >= 70 ? 'bg-warning' : 'bg-ink-muted';
+    score >= 70 ? 'bg-success' : score >= 50 ? 'bg-warning' : 'bg-ink-muted';
   return (
     <span className={`inline-block w-2 h-2 rounded-full ${color} mr-1.5`} />
   );
 }
 
-export default function RideMatchCard({ match, onSelect, disabled = false }: RideMatchCardProps) {
+export default function RideMatchCard({ match, onSelect, disabled = false, myPassengers = 1 }: RideMatchCardProps) {
   const savings = Math.round(match.pricePerPerson * 2.5 - match.pricePerPerson);
   const departureTime = new Date(match.departureTime).toLocaleTimeString('it-IT', {
     hour: '2-digit', minute: '2-digit',
@@ -74,8 +75,8 @@ export default function RideMatchCard({ match, onSelect, disabled = false }: Rid
             <div className="flex items-center justify-center gap-1 mb-0.5">
               <Users className="w-3.5 h-3.5 text-ink-muted" />
             </div>
-            <p className="text-base font-bold text-white">{match.totalPassengers ?? match.passengers.length}</p>
-            <p className="text-xs text-ink-muted">con te</p>
+            <p className="text-base font-bold text-white">{myPassengers}</p>
+            <p className="text-xs text-ink-muted">{myPassengers === 1 ? 'tuo posto' : 'tuoi posti'}</p>
           </div>
           <div className="bg-surface-3 rounded-xl px-3 py-2.5 text-center">
             <div className="flex items-center justify-center gap-1 mb-0.5">
@@ -112,7 +113,7 @@ export default function RideMatchCard({ match, onSelect, disabled = false }: Rid
           </div>
           <div className="text-xs text-ink-muted">
             <span className="text-white font-medium">{match.seats} {match.seats !== 1 ? 'posti' : 'posto'}</span>{' '}
-            {match.seats !== 1 ? 'disponibili' : 'disponibile'}
+            {match.seats !== 1 ? 'disponibili nel gruppo' : 'disponibile nel gruppo'}
             {' · '}pickup {departureTime}
           </div>
         </div>

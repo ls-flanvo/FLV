@@ -407,7 +407,7 @@ export default function BookingCard({ booking }: { booking: Booking }) {
               </div>
               <p className="text-xs text-ink-muted mt-1.5">
                 {groupStatus
-                  ? `${groupStatus.max - groupStatus.current} posti ancora disponibili`
+                  ? (() => { const n = groupStatus.max - groupStatus.current; return `${n} ${n === 1 ? 'posto' : 'posti'} ancora ${n === 1 ? 'disponibile' : 'disponibili'}`; })()
                   : 'Ricerca compagni di viaggio...'}
               </p>
             </div>

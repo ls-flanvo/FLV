@@ -13,6 +13,7 @@ export default function MatchingPage() {
   const [error, setError] = useState('');
   const [registering, setRegistering] = useState(false);
   const [registered, setRegistered] = useState(false);
+  const [myPassengers, setMyPassengers] = useState(1);
 
   const { isAuthenticated, token } = useAuthStore();
   const { currentFlight } = useBookingStore();
@@ -34,6 +35,7 @@ export default function MatchingPage() {
       const bookingInfoStr = localStorage.getItem('flanvo_booking_info');
       const bookingInfo = bookingInfoStr ? JSON.parse(bookingInfoStr) : {};
       const passengers = bookingInfo.passengers ?? 1;
+      setMyPassengers(passengers);
       const res = await fetch('/api/matching', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
@@ -250,6 +252,7 @@ export default function MatchingPage() {
                   match={match}
                   onSelect={(m) => registerRequest(m.id)}
                   disabled={registering}
+                  myPassengers={myPassengers}
                 />
               ))}
             </div>
