@@ -65,6 +65,7 @@ export async function GET(request: NextRequest) {
         arrivedAtPickup: m.arrivedAtPickup?.toISOString() ?? null,
       }));
       const arrivedCount = group.members.filter(m => m.arrivedAtPickup !== null).length;
+      const paidCount = group.members.filter(m => m.paymentStatus === 'CAPTURED').length;
 
       const destinations = group.members.map((m) => ({
         city: m.booking.dropoffLocation.split(',')[0] || m.booking.dropoffLocation,
@@ -102,6 +103,7 @@ export async function GET(request: NextRequest) {
         meetingPoint: group.meetingPoint,
         noShowAvailableAt: group.noShowAvailableAt?.toISOString() ?? null,
         arrivedCount,
+        paidCount,
         totalPassengers: group.members.length,
       };
     };

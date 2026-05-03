@@ -233,7 +233,7 @@ export default function DriverDashboardPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-black text-primary-400">€{ride.totalPrice}</p>
-                  <p className="text-xs text-ink-muted">compenso totale</p>
+                  <p className="text-xs text-ink-muted">compenso · {ride.destinations.length} fermate</p>
                 </div>
               </div>
 
@@ -242,25 +242,35 @@ export default function DriverDashboardPage() {
                   {/* Passengers */}
                   <div>
                     <p className="text-xs font-semibold text-ink-secondary mb-2 flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5" /> Passeggeri ({ride.passengers.length})
+                      <Users className="w-3.5 h-3.5" /> Passeggeri ({ride.totalPassengers})
                     </p>
                     <div className="space-y-2">
-                      {ride.passengers.slice(0, 3).map((p, i) => (
-                        <div key={i} className="flex items-center justify-between bg-surface-2 rounded-xl px-3 py-2">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 bg-primary-500/15 rounded-lg flex items-center justify-center text-primary-400 text-xs font-bold">
-                              {p.name.charAt(0)}
+                      {ride.passengers.map((p, i) => {
+                        const canChat = ride.flightStatus === 'landed' && ride.arrivedCount > 0;
+                        return (
+                          <div key={i} className="flex items-center justify-between bg-surface-2 rounded-xl px-3 py-2">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-7 h-7 bg-primary-500/15 rounded-lg flex items-center justify-center text-primary-400 text-xs font-bold">
+                                {p.name.charAt(0)}
+                              </div>
+                              <div>
+                                <span className="text-sm text-white font-medium">{p.name}</span>
+                                {p.arrivedAtPickup && (
+                                  <span className="ml-2 text-[10px] text-success">✓ all&apos;uscita</span>
+                                )}
+                              </div>
                             </div>
-                            <span className="text-sm text-white font-medium">{p.name}</span>
+                            {canChat && (
+                              <button
+                                onClick={() => { setSelectedPassenger({ name: p.name, phone: '' }); setChatGroupId(ride.rideGroupId); setChatOpen(true); }}
+                                className="p-1.5 rounded-lg text-ink-muted hover:text-primary-400 hover:bg-primary-500/10 transition-all"
+                              >
+                                <MessageCircle className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
-                          <button
-                            onClick={() => { setSelectedPassenger({ name: p.name, phone: '' }); setChatGroupId(ride.rideGroupId); setChatOpen(true); }}
-                            className="p-1.5 rounded-lg text-ink-muted hover:text-primary-400 hover:bg-primary-500/10 transition-all"
-                          >
-                            <MessageCircle className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -307,15 +317,71 @@ export default function DriverDashboardPage() {
                   </div>
                 )}
 
-                {ride.status === 'accepted' && (
-                  <div className="flex gap-3 pt-4 border-t border-surface-4">
-                    <Link href={`/driver/ride/${ride.id}`} className="flex-1">
-                      <button className="w-full flex items-center justify-center gap-2 py-3 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all">
-                        <Zap className="w-4 h-4" /> Inizia navigazione
-                      </button>
-                    </Link>
-                  </div>
-                )}
+                {ride.status === 'accepted' && (() => {
+                  const allPaid = ride.paidCount >= ride.totalPassengers;
+                  const landed = ride.flightStatus === 'landed';
+                  const someArrived = ride.arrivedCount > 0;
+
+                  if (!allPaid) {
+                    return (
+                      <div className="pt-4 border-t border-surface-4">
+                        <div className="bg-warning/8 border border-warning/20 rounded-xl px-4 py-3 flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-warning">In attesa del pagamento</p>
+                            <p className="text-xs text-ink-muted mt-0.5">{ride.paidCount}/{ride.totalPassengers} passeggeri hanno pagato</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-ink-muted">Completato</p>
+                            <p className="text-sm font-bold text-white">{Math.round((ride.paidCount / ride.totalPassengers) * 100)}%</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (!landed) {
+                    return (
+                      <div className="pt-4 border-t border-surface-4">
+                        <div className="bg-primary-500/8 border border-primary-500/20 rounded-xl px-4 py-3 flex items-center gap-3">
+                          <span className="w-2 h-2 bg-primary-500 rounded-full animate-pulse shrink-0" />
+                          <div>
+                            <p className="text-sm font-semibold text-primary-400">Volo in avvicinamento</p>
+                            <p className="text-xs text-ink-muted mt-0.5">Tutti i passeggeri hanno pagato · attendi l&apos;atterraggio</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (!someArrived) {
+                    return (
+                      <div className="pt-4 border-t border-surface-4">
+                        <div className="bg-success/8 border border-success/20 rounded-xl px-4 py-3 flex items-center gap-3">
+                          <span className="w-2 h-2 bg-success rounded-full animate-pulse shrink-0" />
+                          <div>
+                            <p className="text-sm font-semibold text-success">Volo atterrato</p>
+                            <p className="text-xs text-ink-muted mt-0.5">I passeggeri stanno ritirando i bagagli · attendi la notifica &quot;Sono qui&quot;</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="pt-4 border-t border-surface-4">
+                      {ride.arrivedCount < ride.totalPassengers && (
+                        <p className="text-xs text-ink-muted text-center mb-3">
+                          {ride.arrivedCount}/{ride.totalPassengers} passeggeri all&apos;uscita
+                        </p>
+                      )}
+                      <Link href={`/driver/ride/${ride.id}`} className="flex-1">
+                        <button className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all">
+                          <Zap className="w-4 h-4" /> Inizia navigazione
+                        </button>
+                      </Link>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           ))}

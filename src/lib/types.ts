@@ -125,9 +125,15 @@ export interface DriverRide {
   id: string;
   rideGroupId: string;
   flight: Flight;
-  passengers: User[];
+  passengers: { id: string; name: string; groupMemberId: string; arrivedAtPickup: string | null }[];
   destinations: Destination[];
   totalPrice: number;
   status: 'pending' | 'accepted' | 'in_progress' | 'completed';
   pickupTime: string;
+  flightStatus: string | null;
+  arrivedCount: number;
+  paidCount: number;
+  totalPassengers: number;
+  meetingPoint?: string | null;
+  noShowAvailableAt?: string | null;
 }
