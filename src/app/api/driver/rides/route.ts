@@ -18,42 +18,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Profilo autista non trovato' }, { status: 404 });
     }
 
-    // Corse assegnate a questo driver
-    const assignedGroups = await prisma.rideGroup.findMany({
-      where: {
-        ride: { driverId: driver.id },
-      },
+    const memberInclude = {
       include: {
-        members: {
-          include: {
-            booking: {
-              include: {
-                user: { select: { id: true, name: true } },
-              },
-            },
+        booking: {
+          select: {
+            id: true, userId: true, dropoffLocation: true, dropoffLat: true, dropoffLng: true,
+            passengers: true, user: { select: { id: true, name: true } },
           },
         },
-        ride: true,
       },
+    } as const;
+
+    // Corse assegnate a questo driver
+    const assignedGroups = await prisma.rideGroup.findMany({
+      where: { ride: { driverId: driver.id } },
+      include: { members: memberInclude, ride: true },
     });
 
     // Corse disponibili: CONFIRMED (gruppo completo, in attesa driver), senza driver
     const availableGroups = await prisma.rideGroup.findMany({
-      where: {
-        status: 'CONFIRMED',
-        ride: { is: null },
-      },
-      include: {
-        members: {
-          include: {
-            booking: {
-              include: {
-                user: { select: { id: true, name: true } },
-              },
-            },
-          },
-        },
-      },
+      where: { status: 'CONFIRMED', ride: { is: null } },
+      include: { members: memberInclude },
       take: 10,
     });
 
@@ -74,8 +59,10 @@ export async function GET(request: NextRequest) {
         lng: m.booking.dropoffLng,
       }));
 
-      // Il driver vede solo il suo netto (driverShare) — la fee Flanvo è sul passeggero
-      const totalPrice = group.members.reduce((sum, m) => sum + (m.driverShare ?? 0), 0);
+      // Compenso driver: driverShare (per persona) × passeggeri del booking
+      const totalPrice = group.members.reduce((sum, m) => sum + (m.driverShare ?? 0) * (m.booking?.passengers ?? 1), 0);
+      // Passeggeri totali reali (somma delle persone fisiche, non dei booking)
+      const totalPaxReal = group.members.reduce((sum, m) => sum + (m.booking?.passengers ?? 1), 0);
       const rideStatus = isAssigned && 'ride' in group && group.ride
         ? group.ride.status.toLowerCase()
         : 'pending';
@@ -104,7 +91,8 @@ export async function GET(request: NextRequest) {
         noShowAvailableAt: group.noShowAvailableAt?.toISOString() ?? null,
         arrivedCount,
         paidCount,
-        totalPassengers: group.members.length,
+        totalPassengers: group.members.length,   // n° booking (per "Prenotazioni")
+        totalPaxReal,                             // n° persone fisiche (per "X passeggeri")
         totalRouteKm: group.totalRouteKm ?? null,
         flightDepartureTime: group.flightDepartureTime?.toISOString() ?? null,
       };

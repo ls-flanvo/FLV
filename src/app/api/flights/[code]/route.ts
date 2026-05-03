@@ -25,8 +25,10 @@ async function fetchFromAviationStack(flightCode: string) {
     const coords = AIRPORT_COORDS[arrivalCode];
 
     const scheduledTime = flight.arrival?.scheduled ?? new Date().toISOString();
+    const departureTime = flight.departure?.scheduled ?? null;
     const actualTime = flight.arrival?.actual ?? null;
     const delay = flight.arrival?.delay ?? 0;
+    const departureAirportName = flight.departure?.airport ?? null;
 
     const statusMap: Record<string, string> = {
       scheduled: 'scheduled', active: 'departed', landed: 'landed',
@@ -43,6 +45,8 @@ async function fetchFromAviationStack(flightCode: string) {
       arrivalLat: coords?.lat ?? null,
       arrivalLng: coords?.lng ?? null,
       scheduledTime,
+      departureTime,
+      departureAirportName,
       actualTime,
       delayMins: delay,
       status: statusMap[flight.flight_status] ?? 'scheduled',
@@ -101,6 +105,8 @@ export async function GET(
         arrivalLat: arrival.lat,
         arrivalLng: arrival.lng,
         scheduledTime,
+        departureTime: new Date(new Date(scheduledTime).getTime() - 90 * 60000).toISOString(),
+        departureAirportName: 'Londra Gatwick',
         actualTime: null,
         delayMins: 0,
         status: 'scheduled' as const,

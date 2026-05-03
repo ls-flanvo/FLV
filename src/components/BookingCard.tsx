@@ -213,7 +213,7 @@ export default function BookingCard({ booking }: { booking: Booking }) {
           <div className="flex items-center gap-2 text-xs text-ink-muted">
             <Clock className="w-3.5 h-3.5 shrink-0" />
             <span>
-              Arrivo previsto: <strong className="text-white">{formatFlightTime(booking.pickupTime, { showDate: true })}</strong>
+              Pickup aeroporto: <strong className="text-white">{formatFlightTime(booking.pickupTime, { showDate: true })}</strong>
               {' '}·{' '}{formatCountdown(booking.pickupTime)}
             </span>
           </div>

@@ -260,7 +260,12 @@ export default function FlightSearchPage() {
                   <div className="flex items-center gap-3">
                     <div className="text-center">
                       <p className="text-xl font-bold text-white">{flight.departureAirport}</p>
-                      <p className="text-xs text-ink-muted">Partenza</p>
+                      <p className="text-xs text-ink-muted">{flight.departureAirportName || flight.departureAirport}</p>
+                      {flight.departureTime && (
+                        <p className="text-sm font-semibold text-white mt-0.5">
+                          {new Date(flight.departureTime).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      )}
                     </div>
                     <div className="flex-1 flex items-center gap-1">
                       <div className="h-px flex-1 bg-surface-5" />
@@ -270,16 +275,16 @@ export default function FlightSearchPage() {
                     <div className="text-center">
                       <p className="text-xl font-bold text-white">{flight.arrivalAirport}</p>
                       <p className="text-xs text-ink-muted">{flight.arrivalAirportName || 'Arrivo'}</p>
+                      <p className="text-sm font-semibold text-white mt-0.5">
+                        {new Date(flight.scheduledTime).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-4 border-t border-surface-4 flex items-center gap-2 text-sm text-ink-secondary">
-                    <Clock className="w-4 h-4" />
+                  <div className="mt-3 pt-3 border-t border-surface-4 flex items-center gap-2 text-xs text-ink-muted">
+                    <Clock className="w-3.5 h-3.5" />
                     <span>
-                      {new Date(flight.scheduledTime).toLocaleString('it-IT', {
-                        day: 'numeric', month: 'short',
-                        hour: '2-digit', minute: '2-digit',
-                      })}
+                      {new Date(flight.scheduledTime).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}
                     </span>
                     {flight.delayMins > 0 && (
                       <span className="text-warning ml-auto font-medium">

@@ -98,7 +98,10 @@ export default function DriverDashboardPage() {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
       body: JSON.stringify({ rideId, status: 'accepted' }),
     });
-    if (res.ok) router.push(`/driver/ride/${rideId}`);
+    if (res.ok) {
+      await fetchRides();
+      setActiveTab('accepted');
+    }
   };
 
   const handleReject = async (rideId: string) => {
@@ -229,7 +232,7 @@ export default function DriverDashboardPage() {
                     </div>
                     <div>
                       <p className="font-bold text-white">Volo {ride.flight.code}</p>
-                      <p className="text-xs text-ink-muted">{ride.totalPassengers} passeggeri · {ride.destinations.length} fermate</p>
+                      <p className="text-xs text-ink-muted">{ride.totalPaxReal ?? ride.totalPassengers} passeggeri · {ride.destinations.length} fermate</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -258,7 +261,7 @@ export default function DriverDashboardPage() {
                     </p>
                   </div>
                   <div className="bg-surface-2 rounded-xl px-2 py-1.5">
-                    <p className="text-[10px] text-ink-muted">Fine stimata</p>
+                    <p className="text-[10px] text-ink-muted">Fine corsa</p>
                     <p className="text-xs font-semibold text-white">
                       {new Date(new Date(ride.pickupTime).getTime() + ride.destinations.length * 12 * 60000).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
                     </p>
@@ -271,7 +274,7 @@ export default function DriverDashboardPage() {
                   {/* Passengers */}
                   <div>
                     <p className="text-xs font-semibold text-ink-secondary mb-2 flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5" /> Passeggeri ({ride.totalPassengers})
+                      <Users className="w-3.5 h-3.5" /> Prenotazioni ({ride.totalPassengers})
                     </p>
                     <div className="space-y-2">
                       {ride.passengers.map((p, i) => {
@@ -322,13 +325,6 @@ export default function DriverDashboardPage() {
                       ))}
                     </div>
 
-                    {/* Pickup time */}
-                    <div className="mt-2 flex items-center gap-2 text-xs text-ink-secondary">
-                      <Clock className="w-3.5 h-3.5" />
-                      {new Date(ride.pickupTime).toLocaleString('it-IT', {
-                        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
-                      })}
-                    </div>
                   </div>
                 </div>
 
@@ -349,65 +345,88 @@ export default function DriverDashboardPage() {
                 {ride.status === 'accepted' && (() => {
                   const allPaid = ride.paidCount >= ride.totalPassengers;
                   const landed = ride.flightStatus === 'landed';
-                  const someArrived = ride.arrivedCount > 0;
+                  const inFlight = ride.flightStatus === 'active' || ride.flightStatus === 'departed';
+                  const moveThreshold = ride.totalPassengers <= 2 ? ride.totalPassengers
+                    : ride.totalPassengers <= 4 ? Math.ceil(ride.totalPassengers * 0.75)
+                    : Math.ceil(ride.totalPassengers * 0.6);
+                  const canStart = ride.arrivedCount >= moveThreshold;
 
-                  if (!allPaid) {
-                    return (
-                      <div className="pt-4 border-t border-surface-4">
+                  return (
+                    <div className="pt-4 border-t border-surface-4 space-y-3">
+
+                      {/* Badge volo con stati */}
+                      <div className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border ${
+                        landed ? 'bg-success/8 border-success/20'
+                        : inFlight ? 'bg-primary-500/8 border-primary-500/20'
+                        : 'bg-surface-2 border-surface-5'
+                      }`}>
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${
+                          landed ? 'bg-success animate-pulse'
+                          : inFlight ? 'bg-primary-500 animate-pulse'
+                          : 'bg-ink-muted'
+                        }`} />
+                        <div className="flex-1">
+                          <p className={`text-sm font-semibold ${
+                            landed ? 'text-success' : inFlight ? 'text-primary-400' : 'text-ink-secondary'
+                          }`}>
+                            {landed ? 'Volo atterrato' : inFlight ? 'Volo in corso' : 'In attesa decollo'}
+                          </p>
+                          <p className="text-[11px] text-ink-muted mt-0.5">
+                            {landed
+                              ? 'I passeggeri stanno ritirando i bagagli'
+                              : inFlight
+                              ? 'Il badge diventerà verde all\'atterraggio'
+                              : 'Il badge si illuminerà al decollo · poi verde all\'atterraggio'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Banner pagamento */}
+                      {!allPaid && (
                         <div className="bg-warning/8 border border-warning/20 rounded-xl px-4 py-3 flex items-center justify-between">
                           <div>
                             <p className="text-sm font-semibold text-warning">In attesa del pagamento</p>
-                            <p className="text-xs text-ink-muted mt-0.5">{ride.paidCount}/{ride.totalPassengers} passeggeri hanno pagato</p>
+                            <p className="text-xs text-ink-muted mt-0.5">{ride.paidCount}/{ride.totalPassengers} prenotazioni confermate</p>
                           </div>
-                          <div className="text-right">
-                            <p className="text-xs text-ink-muted">Completato</p>
-                            <p className="text-sm font-bold text-white">{Math.round((ride.paidCount / ride.totalPassengers) * 100)}%</p>
-                          </div>
+                          <p className="text-xl font-black text-warning">{ride.paidCount}/{ride.totalPassengers}</p>
                         </div>
-                      </div>
-                    );
-                  }
-
-                  if (!landed) {
-                    return (
-                      <div className="pt-4 border-t border-surface-4">
-                        <div className="bg-primary-500/8 border border-primary-500/20 rounded-xl px-4 py-3 flex items-center gap-3">
-                          <span className="w-2 h-2 bg-primary-500 rounded-full animate-pulse shrink-0" />
-                          <div>
-                            <p className="text-sm font-semibold text-primary-400">Volo in avvicinamento</p>
-                            <p className="text-xs text-ink-muted mt-0.5">Tutti i passeggeri hanno pagato · attendi l&apos;atterraggio</p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  if (!someArrived) {
-                    return (
-                      <div className="pt-4 border-t border-surface-4">
-                        <div className="bg-success/8 border border-success/20 rounded-xl px-4 py-3 flex items-center gap-3">
-                          <span className="w-2 h-2 bg-success rounded-full animate-pulse shrink-0" />
-                          <div>
-                            <p className="text-sm font-semibold text-success">Volo atterrato</p>
-                            <p className="text-xs text-ink-muted mt-0.5">I passeggeri stanno ritirando i bagagli · attendi la notifica &quot;Sono qui&quot;</p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="pt-4 border-t border-surface-4">
-                      {ride.arrivedCount < ride.totalPassengers && (
-                        <p className="text-xs text-ink-muted text-center mb-3">
-                          {ride.arrivedCount}/{ride.totalPassengers} passeggeri all&apos;uscita
-                        </p>
                       )}
-                      <Link href={`/driver/ride/${ride.id}`} className="flex-1">
-                        <button className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all">
-                          <Zap className="w-4 h-4" /> Inizia navigazione
+
+                      {/* Chat — solo dopo atterraggio */}
+                      {landed && (
+                        <button
+                          onClick={() => { setChatGroupId(ride.rideGroupId); setChatOpen(true); setSelectedPassenger({ name: 'Gruppo', phone: '' }); }}
+                          className="w-full flex items-center justify-center gap-2 py-3 bg-surface-2 border border-surface-5 rounded-xl text-ink-secondary hover:text-white hover:border-primary-500/30 transition-all text-sm font-semibold"
+                        >
+                          <MessageCircle className="w-4 h-4 text-primary-400" /> Chat con i passeggeri
+                        </button>
+                      )}
+
+                      {/* Sezione arrivi — solo dopo atterraggio */}
+                      {landed && (
+                        <div className="bg-surface-2 border border-surface-5 rounded-xl px-4 py-3">
+                          <p className="text-xs font-semibold text-ink-secondary mb-2">
+                            Passeggeri all&apos;uscita: {ride.arrivedCount}/{ride.totalPassengers}
+                            {!canStart && <span className="text-ink-muted font-normal ml-1">· ne servono ancora {moveThreshold - ride.arrivedCount}</span>}
+                          </p>
+                          <div className="h-1.5 bg-surface-4 rounded-full overflow-hidden">
+                            <div className="h-full bg-primary-500 rounded-full transition-all duration-500"
+                              style={{ width: `${Math.min(100, (ride.arrivedCount / moveThreshold) * 100)}%` }} />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Inizia corsa — solo quando soglia raggiunta */}
+                      <Link href={`/driver/ride/${ride.id}`}>
+                        <button
+                          disabled={!canStart}
+                          className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <Zap className="w-4 h-4" />
+                          {canStart ? 'Inizia corsa' : `Aspetta — ${Math.max(0, moveThreshold - ride.arrivedCount)} ancora attesi`}
                         </button>
                       </Link>
+
                     </div>
                   );
                 })()}

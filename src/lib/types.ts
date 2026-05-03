@@ -11,6 +11,8 @@ export interface Flight {
   code: string;
   airline: string;
   departureAirport: string;
+  departureAirportName?: string | null;
+  departureTime?: string | null;
   arrivalAirport: string;
   arrivalAirportName?: string;
   arrivalLat?: number | null;
@@ -134,6 +136,7 @@ export interface DriverRide {
   arrivedCount: number;
   paidCount: number;
   totalPassengers: number;
+  totalPaxReal: number;
   totalRouteKm: number | null;
   flightDepartureTime: string | null;
   meetingPoint?: string | null;
