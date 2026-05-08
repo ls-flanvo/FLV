@@ -222,24 +222,34 @@ export default function BookingCard({ booking }: { booking: Booking }) {
 
         {/* Body */}
         <div className="px-5 py-4 space-y-3">
-          {/* Destination */}
+          {/* Destination + km */}
           <div className="flex items-start gap-2.5">
             <MapPin className="w-4 h-4 text-ink-muted shrink-0 mt-0.5" />
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-xs text-ink-muted mb-0.5">Destinazione</p>
               <p className="text-sm font-medium text-white leading-tight">
                 {booking.dropoffLocation || booking.destination?.address || 'Da specificare'}
               </p>
+              {booking.pickupLat && booking.dropoffLat && (() => {
+                const toRad = (d: number) => d * Math.PI / 180;
+                const R = 6371;
+                const dLat = toRad(booking.dropoffLat - booking.pickupLat);
+                const dLng = toRad(booking.dropoffLng - booking.pickupLng);
+                const a = Math.sin(dLat/2)**2 + Math.cos(toRad(booking.pickupLat)) * Math.cos(toRad(booking.dropoffLat)) * Math.sin(dLng/2)**2;
+                const km = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+                return <p className="text-xs text-ink-muted mt-0.5">~{km} km dall&apos;aeroporto</p>;
+              })()}
             </div>
           </div>
 
-          {/* Flight timing */}
-          <div className="flex items-center gap-2 text-xs text-ink-muted">
-            <Clock className="w-3.5 h-3.5 shrink-0" />
-            <span>
-              Pickup aeroporto: <strong className="text-white">{formatFlightTime(booking.pickupTime, { showDate: true })}</strong>
-              {' '}·{' '}{formatCountdown(booking.pickupTime)}
-            </span>
+          {/* Atterraggio + pickup stimato */}
+          <div className="flex items-start gap-2 text-xs text-ink-muted">
+            <Clock className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <div>
+              <span>Atterraggio previsto: <strong className="text-white">{formatFlightTime(booking.pickupTime, { showDate: true })}</strong>
+              {' '}·{' '}{formatCountdown(booking.pickupTime)}</span>
+              <p className="mt-0.5 text-ink-muted opacity-70">Pickup dopo ritiro bagagli (~30-45 min dall&apos;atterraggio)</p>
+            </div>
           </div>
 
           {/* Group avatars — compagni di viaggio */}
@@ -393,8 +403,27 @@ export default function BookingCard({ booking }: { booking: Booking }) {
                 <div className="h-full bg-primary-500 rounded-full transition-all duration-700"
                   style={{ width: `${(groupStatus.current / groupStatus.max) * 100}%` }} />
               </div>
+              <p className="text-xs text-primary-400 font-medium mb-0.5">
+                Più viaggiatori si uniscono, meno paghi — il prezzo scende automaticamente.
+              </p>
               <p className="text-xs text-ink-muted">
-                Quando il gruppo si chiude ricevi una notifica con il prezzo definitivo e 20 minuti per pagare.
+                Alla chiusura del gruppo ricevi il prezzo definitivo e hai 30 minuti per confermare.
+              </p>
+            </div>
+          )}
+
+          {/* PENDING senza groupStatus ancora caricato */}
+          {isPending && !groupStatus && (
+            <div className="bg-surface-2 border border-surface-5 rounded-xl px-4 py-3">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-2 h-2 bg-warning rounded-full animate-pulse shrink-0" />
+                <p className="text-xs font-semibold text-warning">In attesa di compagni di viaggio</p>
+              </div>
+              <p className="text-xs text-primary-400 font-medium mb-0.5">
+                Più viaggiatori si uniscono, meno paghi — il prezzo scende automaticamente.
+              </p>
+              <p className="text-xs text-ink-muted">
+                Alla chiusura del gruppo ricevi il prezzo definitivo e hai 30 minuti per confermare.
               </p>
             </div>
           )}
