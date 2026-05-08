@@ -412,7 +412,7 @@ export default function GuidaConNoiPage() {
             const steps = [
               { n: '1', title: 'Il gruppo si forma',         body: 'Flanvo raggruppa automaticamente i passeggeri dello stesso volo verso destinazioni simili.' },
               { n: '2', title: 'Notifica e accettazione',    body: 'Ricevi volo, destinazione e guadagno stimato. Accetti in 1 tap — hai qualche minuto per decidere.' },
-              { n: '3', title: 'Volo atterrato',             body: "Ricevi notifica all'atterraggio. Il passeggero preme 'Sono qui' quando è all'uscita arrivi — tu raggiungi il punto di incontro dal parcheggio NCC in 5-10 minuti." },
+              { n: '3', title: 'Volo atterrato',             body: "Ricevi notifica all'atterraggio. I passeggeri premono 'Sono qui' quando giungono all'uscita arrivi. Quando il gruppo raggiunge il numero minimo di presenti, raggiungi il punto di incontro dal parcheggio NCC in 5-10 minuti." },
               { n: '4', title: 'Chat con i passeggeri',      body: 'Comunicazione live con il gruppo durante l\'attesa al ritiro bagagli.' },
               { n: '5', title: 'Ritiri i passeggeri',        body: 'I passeggeri ti trovano al punto Flanvo. L\'app calcola il percorso ottimizzato tra i drop-off.' },
               { n: '6', title: 'Pagamento automatico',       body: "All'accettazione della corsa il pagamento viene catturato e trasferito su Stripe Connect. Zero attese." },

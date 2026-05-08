@@ -68,7 +68,7 @@ export default function Post() {
 
           <h2 className="text-xl font-bold text-white mt-10 mb-3">Come trovo il driver in aeroporto?</h2>
           <p>
-            Quando il volo atterra ricevi una notifica. Ritira i bagagli, poi premi &quot;Sono qui&quot; dall&apos;app quando sei all&apos;uscita arrivi. Ogni passeggero del gruppo fa lo stesso. Non appena il numero minimo di presenti è raggiunto, il driver riceve la conferma e parte — non devi aspettare in fila, sei tu a dirgli quando sei pronto.
+            Ricevi una notifica all&apos;atterraggio. Ritira i bagagli e premi &quot;Sono qui&quot; dall&apos;app quando sei all&apos;uscita arrivi — ogni passeggero del gruppo fa lo stesso indipendentemente. Quando il gruppo raggiunge il numero minimo di presenti, il driver riceve la conferma e si avvicina dal parcheggio NCC in 5-10 minuti. Non devi aspettare all&apos;uscita: sei tu a chiamarlo quando sei pronto.
           </p>
           <p>
             Il punto di incontro esatto per ogni aeroporto è disponibile nella pagina <Link href="/aeroporti" className="text-primary-400 hover:text-primary-300 transition-colors">aeroporti serviti</Link>.

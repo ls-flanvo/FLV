@@ -365,7 +365,7 @@ export default function BookingCard({ booking }: { booking: Booking }) {
               <p className="text-xs text-ink-secondary mb-1">Punto di incontro:</p>
               <p className="text-xs font-semibold text-white mb-2">{rideGroup!.meetingPoint}</p>
               <p className="text-xs text-ink-muted mt-1">
-                Premi &quot;Sono qui&quot; nella pagina tracking quando sei all&apos;uscita arrivi — il driver parte quando il gruppo è riunito
+                Premi &quot;Sono qui&quot; nella pagina tracking quando sei all&apos;uscita arrivi — quando il gruppo raggiunge il numero minimo di presenti il driver si avvicina in 5-10 minuti
               </p>
             </div>
           )}

@@ -143,7 +143,7 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
           {[
             { step: '1', text: 'Il tuo posto nel gruppo è confermato e pagato', color: 'bg-success' },
             { step: '2', text: 'Un driver riceve la notifica e accetta la corsa', color: 'bg-primary-500' },
-            { step: '3', text: 'Quando atterri premi "Sono qui" all\'uscita arrivi — il driver parte quando il gruppo è riunito', color: 'bg-primary-500' },
+            { step: '3', text: 'Premi "Sono qui" all\'uscita arrivi — quando il gruppo raggiunge il numero minimo di presenti il driver si avvicina in 5-10 minuti', color: 'bg-primary-500' },
           ].map(({ step, text, color }) => (
             <div key={step} className="flex items-start gap-3">
               <div className={`w-5 h-5 ${color} rounded-full flex items-center justify-center text-[#0B0B0B] text-xs font-bold shrink-0 mt-0.5`}>{step}</div>

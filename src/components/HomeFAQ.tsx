@@ -30,7 +30,7 @@ const faqs = [
   },
   {
     q: 'Come mi trovo con il driver in aeroporto?',
-    a: 'Ricevi il punto di incontro esatto (solitamente all\'uscita Arrivi del terminal). Premi "Sono qui" nell\'app quando sei all\'uscita. Il driver parte quando il numero minimo di passeggeri del gruppo è presente — di solito bastano pochi minuti dall\'atterraggio. Chat diretta disponibile dal momento dell\'atterraggio.',
+    a: 'Ricevi una notifica all\'atterraggio. Premi "Sono qui" nell\'app quando sei all\'uscita arrivi. Quando il gruppo raggiunge il numero minimo di presenti, il driver si avvicina dal parcheggio NCC in 5-10 minuti. Chat diretta disponibile dall\'atterraggio.',
   },
 ];
 

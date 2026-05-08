@@ -202,7 +202,7 @@ export default function LandingPage() {
           const steps = [
             { n: '1', title: 'Cerca la tua corsa',    body: 'Inserisci il codice volo e la destinazione. L\'algoritmo trova i passeggeri del tuo stesso volo diretti nella tua zona.' },
             { n: '2', title: 'Conferma il posto',      body: 'Registri la richiesta gratuitamente — nessun pagamento ora. Quando il gruppo si chiude ricevi il prezzo definitivo e hai 20 minuti per confermare. Solo dopo il driver viene notificato.' },
-            { n: '3', title: 'Volo atterrato',           body: 'Quando il volo atterra ricevi una notifica. Ritira i bagagli e premi \'Sono qui\' all\'uscita arrivi. Il driver parte quando il vostro gruppo è riunito.' },
+            { n: '3', title: 'Volo atterrato',           body: 'Ricevi una notifica all\'atterraggio. Premi \'Sono qui\' quando sei all\'uscita arrivi. Quando il gruppo raggiunge il numero minimo di presenti, il driver si avvicina dal parcheggio NCC in 5-10 minuti.' },
             { n: '4', title: 'Arrivi a destinazione',  body: 'Il driver ti porta a casa. Paghi solo i tuoi km effettivi — nessuna divisione fissa del costo totale.' },
           ];
           const last = steps.length - 1;
@@ -314,7 +314,7 @@ export default function LandingPage() {
               </div>
               <div className="text-center md:text-left">
                 <h3 className="text-xl font-bold text-white mb-1">Zero stress dall&apos;atterraggio alla porta di casa</h3>
-                <p className="text-ink-secondary text-sm">Atterri, premi &quot;Sono qui&quot; all&apos;uscita arrivi — il driver parte quando il vostro gruppo è riunito. Tracking live, chat diretta, nessuna sorpresa sul prezzo.</p>
+                <p className="text-ink-secondary text-sm">Atterri e premi &quot;Sono qui&quot; all&apos;uscita arrivi. Quando il gruppo raggiunge il numero minimo di presenti il driver si avvicina dal parcheggio NCC in 5-10 minuti. Tracking live, chat diretta.</p>
               </div>
               <div className="ml-auto shrink-0 hidden md:block">
                 <div className="flex items-center gap-2 bg-primary-500/10 border border-primary-500/20 rounded-2xl px-5 py-3">
