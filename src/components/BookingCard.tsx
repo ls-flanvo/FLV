@@ -297,6 +297,25 @@ export default function BookingCard({ booking }: { booking: Booking }) {
                   ~€{(booking.estimatedPrice / passengers).toFixed(2)} a persona
                 </p>
               )}
+              {/* Risparmio vs taxi */}
+              {booking.estimatedPrice && booking.pickupLat && booking.dropoffLat && (() => {
+                const toRad = (d: number) => d * Math.PI / 180;
+                const R = 6371;
+                const dLat = toRad(booking.dropoffLat - booking.pickupLat);
+                const dLng = toRad(booking.dropoffLng - booking.pickupLng);
+                const a = Math.sin(dLat/2)**2 + Math.cos(toRad(booking.pickupLat)) * Math.cos(toRad(booking.dropoffLat)) * Math.sin(dLng/2)**2;
+                const km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                const taxiEstimate = Math.round(km * 3.0 + 5);
+                const price = booking.estimatedPrice / passengers;
+                const saving = taxiEstimate - price;
+                const pct = Math.round((saving / taxiEstimate) * 100);
+                if (saving <= 0 || pct <= 0) return null;
+                return (
+                  <p className="text-xs text-success mt-0.5 font-medium">
+                    -{pct}% vs taxi (~€{taxiEstimate})
+                  </p>
+                );
+              })()}
             </div>
           </div>
 
