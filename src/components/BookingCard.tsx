@@ -287,32 +287,43 @@ export default function BookingCard({ booking }: { booking: Booking }) {
             </div>
             <div className="text-right">
               <p className="text-xs text-ink-muted">
-                {isPaid ? 'Pagato' : passengers > 1 ? `Totale (${passengers} pax)` : 'Stimato'}
+                {isPaid ? 'Pagato' : 'Prezzo attuale'}
               </p>
               <p className="text-xl font-black text-primary-400">
                 €{booking.estimatedPrice?.toFixed(2) ?? '—'}
               </p>
-              {!isPaid && passengers > 1 && booking.estimatedPrice && (
-                <p className="text-xs text-ink-muted mt-0.5">
-                  ~€{(booking.estimatedPrice / passengers).toFixed(2)} a persona
-                </p>
-              )}
-              {/* Confronto taxi */}
-              {booking.estimatedPrice && booking.pickupLat && booking.dropoffLat && (() => {
+              {!isPaid && booking.estimatedPrice && booking.pickupLat && booking.dropoffLat && (() => {
+                // Calcola km una sola volta
                 const toRad = (d: number) => d * Math.PI / 180;
                 const R = 6371;
                 const dLat = toRad(booking.dropoffLat - booking.pickupLat);
                 const dLng = toRad(booking.dropoffLng - booking.pickupLng);
                 const a = Math.sin(dLat/2)**2 + Math.cos(toRad(booking.pickupLat)) * Math.cos(toRad(booking.dropoffLat)) * Math.sin(dLng/2)**2;
                 const km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                // Tariffe aeroportuali: €20 uscita aeroporto + tachimetro ~€1.80/km
+
+                // Prezzo con gruppo pieno (max 7 pax) — solo componente km/pax varia
+                const BONUS = 3.50; const FLANVO = km * 0.30; const PROT = 1.00;
+                const currentPax = groupStatus?.current ?? 1;
+                const maxPax = groupStatus?.max ?? 7;
+                const projectedPerPax = (km * 2.0 / maxPax) + BONUS + FLANVO + PROT;
+                const projectedTotal = Math.round(projectedPerPax * passengers * 100) / 100;
+
+                // Taxi
                 const taxiEstimate = 20 + Math.round(km * 1.8);
-                const price = booking.estimatedPrice / passengers;
-                if (taxiEstimate <= price) return null;
+
                 return (
-                  <p className="text-xs text-ink-muted mt-0.5">
-                    taxi stimato ~€{taxiEstimate}
-                  </p>
+                  <>
+                    {currentPax < maxPax && (
+                      <p className="text-xs text-ink-muted mt-0.5">
+                        con gruppo pieno ~€{projectedTotal.toFixed(2)}
+                      </p>
+                    )}
+                    {taxiEstimate > booking.estimatedPrice / passengers && (
+                      <p className="text-xs text-ink-muted mt-0.5">
+                        taxi stimato ~€{taxiEstimate}
+                      </p>
+                    )}
+                  </>
                 );
               })()}
             </div>
