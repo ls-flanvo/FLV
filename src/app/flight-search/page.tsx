@@ -542,7 +542,7 @@ export default function FlightSearchPage() {
                 <CreditCard className="w-5 h-5 text-primary-400 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-semibold text-white mb-1">Senza carta salvata</p>
-                  <p className="text-xs text-ink-muted">Hai 20 minuti per aprire la notifica, inserire la carta, confermare — sotto pressione del countdown.</p>
+                  <p className="text-xs text-ink-muted">Hai 30 minuti per aprire la notifica, inserire la carta, confermare — sotto pressione del countdown.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 mt-3 pt-3 border-t border-surface-4">

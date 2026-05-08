@@ -13,7 +13,7 @@ const sections = [
   {
     icon: CreditCard,
     title: 'Pagamenti protetti da Stripe',
-    body: 'I pagamenti sono gestiti interamente da Stripe, certificato PCI DSS Level 1 — lo standard più elevato per la sicurezza dei dati di pagamento. Flanvo non archivia mai i numeri di carta. Quando il gruppo si chiude ricevi il prezzo definitivo e hai 20 minuti per confermare — solo allora viene addebitato. Se nessun driver accetta entro T-1h dal volo, rimborso automatico completo.',
+    body: 'I pagamenti sono gestiti interamente da Stripe, certificato PCI DSS Level 1 — lo standard più elevato per la sicurezza dei dati di pagamento. Flanvo non archivia mai i numeri di carta. Quando il gruppo si chiude ricevi il prezzo definitivo e hai 30 minuti per confermare — solo allora viene addebitato. Se nessun driver accetta entro T-1h dal volo, rimborso automatico completo.',
     items: ['Stripe PCI DSS Level 1', 'Nessun dato carta archiviato su Flanvo', 'Pagamento solo dopo conferma del prezzo definitivo', 'Rimborso automatico se nessun driver disponibile'],
   },
   {

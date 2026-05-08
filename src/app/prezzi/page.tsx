@@ -15,7 +15,7 @@ const comparison = [
 
 const cancellation = [
   { when: 'Prima della chiusura del gruppo',                           refund: 'Rimborso completo',              color: 'text-primary-400' },
-  { when: 'Non paghi entro 20 minuti dalla chiusura',                 refund: 'Nessun addebito — posto liberato', color: 'text-ink-secondary' },
+  { when: 'Non paghi entro 30 minuti dalla chiusura',                 refund: 'Nessun addebito — posto liberato', color: 'text-ink-secondary' },
   { when: 'Dopo aver pagato — se il driver non accetta entro T-1h',   refund: 'Rimborso completo automatico',   color: 'text-primary-400' },
   { when: 'Dopo aver pagato — driver già assegnato',                  refund: 'Nessun rimborso',                color: 'text-red-400' },
   { when: 'Forza maggiore al pickup (disputa entro 24h)',              refund: 'Flanvo rimborsa propria quota',  color: 'text-warning' },
