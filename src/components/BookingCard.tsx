@@ -14,14 +14,14 @@ import {
 import DisputeModal from './DisputeModal';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
-  PENDING:      { label: 'Cerchiamo compagni...',  color: 'text-warning',     dot: 'bg-warning' },
-  CONFIRMED:    { label: 'Gruppo completo · Attesa driver', color: 'text-primary-400', dot: 'bg-primary-500' },
-  IN_MATCHING:  { label: 'Matching...',            color: 'text-primary-400', dot: 'bg-primary-500' },
-  MATCHED:      { label: 'Driver confermato · Paga ora', color: 'text-success', dot: 'bg-success' },
-  IN_PROGRESS:  { label: 'In viaggio',             color: 'text-success',     dot: 'bg-success' },
-  COMPLETED:    { label: 'Completata',             color: 'text-ink-muted',   dot: 'bg-ink-muted' },
-  CANCELLED:    { label: 'Cancellata',             color: 'text-danger',      dot: 'bg-danger' },
-  NO_MATCH:     { label: 'Nessun match',           color: 'text-ink-muted',   dot: 'bg-ink-muted' },
+  PENDING:      { label: 'Cerchiamo compagni...',         color: 'text-warning',     dot: 'bg-warning' },
+  IN_MATCHING:  { label: 'Matching...',                   color: 'text-primary-400', dot: 'bg-primary-500' },
+  MATCHED:      { label: 'Gruppo chiuso · Paga ora',      color: 'text-warning',     dot: 'bg-warning animate-pulse' },
+  CONFIRMED:    { label: 'Posto confermato · Attesa driver', color: 'text-success',  dot: 'bg-success' },
+  IN_PROGRESS:  { label: 'In viaggio',                   color: 'text-success',     dot: 'bg-success animate-pulse' },
+  COMPLETED:    { label: 'Completata',                   color: 'text-ink-muted',   dot: 'bg-ink-muted' },
+  CANCELLED:    { label: 'Cancellata',                   color: 'text-danger',      dot: 'bg-danger' },
+  NO_MATCH:     { label: 'Nessun match',                 color: 'text-ink-muted',   dot: 'bg-ink-muted' },
 };
 
 const TIP_OPTIONS = [1, 2, 5];
@@ -86,10 +86,28 @@ export default function BookingCard({ booking }: { booking: Booking }) {
   const [isDisputeOpen, setIsDisputeOpen] = useState(false);
 
   const [groupStatus, setGroupStatus] = useState<{ current: number; max: number } | null>(null);
-  const isForming = ['PENDING', 'IN_MATCHING'].includes(booking.status);
+  const [paymentWindowExpiresAt, setPaymentWindowExpiresAt] = useState<string | null>(
+    booking.groupMember?.rideGroup?.paymentWindowExpiresAt ?? null
+  );
+  const [countdown, setCountdown] = useState<string | null>(null);
+  const isPolling = ['PENDING', 'IN_MATCHING', 'MATCHED'].includes(booking.status);
+
+  // Countdown finestra pagamento
+  useEffect(() => {
+    if (!paymentWindowExpiresAt) return;
+    const update = () => {
+      const diff = Math.max(0, Math.floor((new Date(paymentWindowExpiresAt).getTime() - Date.now()) / 1000));
+      const m = Math.floor(diff / 60);
+      const s = diff % 60;
+      setCountdown(diff === 0 ? null : `${m}:${s.toString().padStart(2, '0')}`);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [paymentWindowExpiresAt]);
 
   useEffect(() => {
-    if (!isForming) return;
+    if (!isPolling) return;
     const poll = async () => {
       try {
         const token = localStorage.getItem('flanvo_token');
@@ -98,7 +116,7 @@ export default function BookingCard({ booking }: { booking: Booking }) {
         });
         const data = await res.json();
         if (data.group) setGroupStatus({ current: data.group.current, max: data.group.max });
-        // Ricarica la pagina se lo status è cambiato (van pieno o T-3h scattato)
+        if (data.paymentWindowExpiresAt) setPaymentWindowExpiresAt(data.paymentWindowExpiresAt);
         if (data.status && data.status !== booking.status) {
           window.location.reload();
         }
@@ -107,12 +125,12 @@ export default function BookingCard({ booking }: { booking: Booking }) {
     poll();
     const interval = setInterval(poll, 10000);
     return () => clearInterval(interval);
-  }, [booking.id, isForming]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [booking.id, isPolling]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const groupId = booking.groupMember?.id ?? booking.rideGroupId ?? '';
   const rideGroupId = booking.groupMember?.rideGroupId ?? booking.rideGroupId ?? '';
   const paymentStatus = booking.groupMember?.paymentStatus;
-  const isPaid = paymentStatus === 'AUTHORIZED' || paymentStatus === 'CAPTURED';
+  const isPaid = paymentStatus === 'CAPTURED';
   const rideGroup = booking.groupMember?.rideGroup;
   const chatEnabled =
     rideGroup?.status === 'ACTIVE' ||
@@ -120,15 +138,21 @@ export default function BookingCard({ booking }: { booking: Booking }) {
     (rideGroup?.status === 'ASSIGNED' && rideGroup?.flightStatus === 'landed');
   const meetingLanded = rideGroup?.flightStatus === 'landed' && rideGroup?.meetingPoint;
   const status = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
-  const isActive = ['IN_PROGRESS'].includes(booking.status);
-  const isCancellable = ['PENDING', 'IN_MATCHING', 'CONFIRMED', 'MATCHED'].includes(booking.status);
-  const isConfirmed = booking.status === 'CONFIRMED';
-  const isMatched = booking.status === 'MATCHED' && !isPaid;
-  const isAuthorized = booking.status === 'MATCHED' && isPaid;
+  const isActive = booking.status === 'IN_PROGRESS';
+  // MATCHED = finestra pagamento aperta (paga ora)
+  // CONFIRMED = pagato, in attesa driver
+  const isPaymentWindow = booking.status === 'MATCHED' && !isPaid;
+  const isPaidWaitingDriver = booking.status === 'CONFIRMED' && isPaid;
+  // Cancellabile solo se non ancora pagato
+  const isCancellable = ['PENDING', 'IN_MATCHING', 'MATCHED'].includes(booking.status) && !isPaid;
   const isPending = booking.status === 'PENDING';
   const isCompleted = booking.status === 'COMPLETED';
   const passengers = booking.passengers ?? 1;
   const luggage = booking.luggage ?? booking.luggageCount ?? 1;
+  const isUrgentCountdown = countdown !== null && (() => {
+    const parts = countdown.split(':');
+    return parseInt(parts[0]) < 5;
+  })();
 
   const handleCancelBooking = async (_?: boolean) => {
     const token = localStorage.getItem('flanvo_token');
@@ -253,12 +277,12 @@ export default function BookingCard({ booking }: { booking: Booking }) {
             </div>
             <div className="text-right">
               <p className="text-xs text-ink-muted">
-                {isAuthorized ? 'Pagato' : passengers > 1 ? `Totale (${passengers} pax)` : 'Stimato'}
+                {isPaid ? 'Pagato' : passengers > 1 ? `Totale (${passengers} pax)` : 'Stimato'}
               </p>
               <p className="text-xl font-black text-primary-400">
                 €{booking.estimatedPrice?.toFixed(2) ?? '—'}
               </p>
-              {!isAuthorized && passengers > 1 && booking.estimatedPrice && (
+              {!isPaid && passengers > 1 && booking.estimatedPrice && (
                 <p className="text-xs text-ink-muted mt-0.5">
                   ~€{(booking.estimatedPrice / passengers).toFixed(2)} a persona
                 </p>
@@ -266,15 +290,28 @@ export default function BookingCard({ booking }: { booking: Booking }) {
             </div>
           </div>
 
-          {/* MATCHED — gruppo pronto, in attesa di pagamento */}
-          {isMatched && (
-            <div className="bg-success/8 border border-success/25 rounded-xl px-4 py-3">
-              <p className="text-xs font-bold text-success mb-1">Gruppo trovato!</p>
-              <p className="text-xs text-ink-secondary mb-3">
-                Il driver ha accettato il tuo gruppo. Completa il pagamento per assicurarti il posto.
+          {/* MATCHED — finestra pagamento aperta */}
+          {isPaymentWindow && (
+            <div className={`rounded-xl px-4 py-3 border ${isUrgentCountdown ? 'bg-danger/8 border-danger/20' : 'bg-warning/8 border-warning/20'}`}>
+              <div className="flex items-center justify-between mb-2">
+                <p className={`text-xs font-bold ${isUrgentCountdown ? 'text-danger' : 'text-warning'}`}>
+                  {isUrgentCountdown ? '⚠️ Stai per perdere il posto' : 'Gruppo chiuso — Paga ora'}
+                </p>
+                {countdown && (
+                  <span className={`text-lg font-black tabular-nums ${isUrgentCountdown ? 'text-danger' : 'text-warning'}`}>
+                    {countdown}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-ink-muted mb-3">
+                Il prezzo è definitivo. Dopo la scadenza il posto viene liberato automaticamente.
               </p>
               <Link href={`/checkout/${groupId}`}>
-                <button className="w-full py-3 bg-primary-500 text-[#0B0B0B] font-bold rounded-xl hover:bg-primary-400 transition-all text-sm">
+                <button className={`w-full py-3 font-bold rounded-xl transition-all text-sm ${
+                  isUrgentCountdown
+                    ? 'bg-danger text-white hover:bg-danger/90'
+                    : 'bg-primary-500 text-[#0B0B0B] hover:bg-primary-400'
+                }`}>
                   Conferma e paga →
                 </button>
               </Link>
@@ -297,15 +334,15 @@ export default function BookingCard({ booking }: { booking: Booking }) {
             </Link>
           )}
 
-          {/* MATCHED + AUTHORIZED — pagamento già autorizzato */}
-          {isAuthorized && (
-            <div className="bg-primary-500/8 border border-primary-500/25 rounded-xl px-4 py-3 flex items-center gap-3">
-              <div className="w-7 h-7 bg-primary-500/15 rounded-lg flex items-center justify-center shrink-0">
-                <span className="text-primary-400 text-sm">✓</span>
+          {/* CONFIRMED — pagato, in attesa driver */}
+          {isPaidWaitingDriver && (
+            <div className="bg-success/8 border border-success/25 rounded-xl px-4 py-3 flex items-center gap-3">
+              <div className="w-7 h-7 bg-success/15 rounded-lg flex items-center justify-center shrink-0">
+                <span className="text-success text-sm font-bold">✓</span>
               </div>
               <div>
-                <p className="text-xs font-bold text-primary-400">Pagamento autorizzato</p>
-                <p className="text-xs text-ink-muted">Pagamento confermato · posto assicurato</p>
+                <p className="text-xs font-bold text-success">Posto confermato</p>
+                <p className="text-xs text-ink-muted">Pagamento ricevuto · in attesa che un driver accetti</p>
               </div>
             </div>
           )}
@@ -344,81 +381,26 @@ export default function BookingCard({ booking }: { booking: Booking }) {
             </button>
           )}
 
-          {/* PENDING — in attesa di compagni */}
-          {isPending && (
+          {/* PENDING/IN_MATCHING con gruppo in formazione */}
+          {isPending && groupStatus && (
             <div className="bg-surface-2 border border-surface-5 rounded-xl px-4 py-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-warning rounded-full animate-pulse shrink-0" />
-                  <p className="text-xs font-semibold text-warning">Cerchiamo compagni...</p>
-                </div>
-                {booking.groupMember?.rideGroup?.currentCapacity && (
-                  <span className="text-xs text-ink-muted">
-                    {booking.groupMember.rideGroup.currentCapacity} in attesa
-                  </span>
-                )}
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="w-2 h-2 bg-warning rounded-full animate-pulse shrink-0" />
+                <p className="text-xs font-semibold text-warning">Gruppo in formazione</p>
+                <span className="ml-auto text-xs font-bold text-primary-400">{groupStatus.current}/{groupStatus.max}</span>
               </div>
-              {booking.estimatedPrice && (
-                <p className="text-xs text-ink-secondary mb-1">
-                  {passengers > 1
-                ? <>Totale stimato: <strong className="text-white">~€{booking.estimatedPrice.toFixed(2)}</strong> · ~€{(booking.estimatedPrice / passengers).toFixed(2)} a persona</>
-                : <>Stima: <strong className="text-white">~€{booking.estimatedPrice.toFixed(2)}</strong> a persona</>
-              }
-                  {booking.groupMember?.rideGroup?.currentCapacity && booking.groupMember.rideGroup.currentCapacity < 7 && (
-                    <span className="text-success ml-1">· più siete, meno pagate</span>
-                  )}
-                </p>
-              )}
+              <div className="h-1.5 bg-surface-4 rounded-full overflow-hidden mb-2">
+                <div className="h-full bg-primary-500 rounded-full transition-all duration-700"
+                  style={{ width: `${(groupStatus.current / groupStatus.max) * 100}%` }} />
+              </div>
               <p className="text-xs text-ink-muted">
-                Nessun pagamento ora. Ricevi email quando il gruppo è pronto.
+                Quando il gruppo si chiude ricevi una notifica con il prezzo definitivo e 20 minuti per pagare.
               </p>
             </div>
           )}
 
-          {/* CONFIRMED — gruppo pieno, in attesa del driver */}
-          {isConfirmed && (
-            <div className="bg-primary-500/8 border border-primary-500/25 rounded-xl px-4 py-3">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="w-2 h-2 bg-primary-500 rounded-full animate-pulse shrink-0" />
-                <p className="text-xs font-semibold text-primary-400">Gruppo completo · In attesa del driver</p>
-              </div>
-              <p className="text-xs text-ink-secondary">
-                Il van è al completo. Ti avvisiamo non appena un driver accetta la corsa.
-              </p>
-              {booking.estimatedPrice && (
-                <p className="text-xs text-ink-muted mt-1.5">
-                  Prezzo stimato: <strong className="text-white">€{booking.estimatedPrice.toFixed(2)}</strong>
-                  {passengers > 1 && <> · ~€{(booking.estimatedPrice / passengers).toFixed(2)} a persona</>}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Group formation progress */}
-          {isForming && (
-            <div className="bg-surface-2 border border-surface-5 rounded-xl px-4 py-3">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold text-ink-secondary">Gruppo in formazione</p>
-                {groupStatus && (
-                  <span className="text-xs font-bold text-primary-400">{groupStatus.current}/{groupStatus.max}</span>
-                )}
-              </div>
-              <div className="h-1.5 bg-surface-4 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary-500 rounded-full transition-all duration-700"
-                  style={{ width: groupStatus ? `${(groupStatus.current / groupStatus.max) * 100}%` : '20%' }}
-                />
-              </div>
-              <p className="text-xs text-ink-muted mt-1.5">
-                {groupStatus
-                  ? (() => { const n = groupStatus.max - groupStatus.current; return `${n} ${n === 1 ? 'posto' : 'posti'} ancora ${n === 1 ? 'disponibile' : 'disponibili'}`; })()
-                  : 'Ricerca compagni di viaggio...'}
-              </p>
-            </div>
-          )}
-
-          {/* Pickup info when active */}
-          {(booking.status === 'CONFIRMED' || booking.status === 'MATCHED') && (
+          {/* Pickup info — solo quando confermato e pagato */}
+          {isPaidWaitingDriver && (
             <div className="bg-primary-500/8 border border-primary-500/15 rounded-xl px-4 py-3 flex items-start gap-2.5">
               <Clock className="w-4 h-4 text-primary-400 shrink-0 mt-0.5" />
               <div>

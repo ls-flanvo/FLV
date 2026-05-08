@@ -17,6 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
                 status: true,
                 currentCapacity: true,
                 maxCapacity: true,
+                paymentWindowExpiresAt: true,
               },
             },
           },
@@ -34,6 +35,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       group: rideGroup
         ? { current: rideGroup.currentCapacity, max: rideGroup.maxCapacity }
         : null,
+      paymentWindowExpiresAt: rideGroup?.paymentWindowExpiresAt?.toISOString() ?? null,
     });
   } catch (error) {
     return authErrorResponse(error);

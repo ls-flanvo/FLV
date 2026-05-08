@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useAuthStore, useBookingStore } from '@/store';
 import { StatCard } from '@/components/ui';
 import BookingCard from '@/components/BookingCard';
-import { Plane, TrendingUp, DollarSign, Plus, Sparkles, ArrowRight } from 'lucide-react';
+import { Plane, TrendingUp, DollarSign, Plus, Sparkles, ArrowRight, Clock, AlertTriangle } from 'lucide-react';
 
 // Skeleton card
 function SkeletonCard() {
@@ -76,9 +76,32 @@ export default function DashboardPage() {
 
   const firstName = user?.name?.split(' ')[0] || 'Utente';
   const hasBookings = bookings.length > 0;
+  const paymentPendingBookings = bookings.filter(b => b.status === 'MATCHED');
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
+      {/* Banner urgente — finestra pagamento aperta */}
+      {paymentPendingBookings.length > 0 && (
+        <div className="mb-6 bg-warning/8 border border-warning/20 rounded-2xl px-5 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
+            <div>
+              <p className="font-bold text-warning text-sm">
+                {paymentPendingBookings.length === 1
+                  ? 'Il tuo gruppo è chiuso — Paga entro 20 minuti'
+                  : `${paymentPendingBookings.length} gruppi chiusi — Paga entro 20 minuti`}
+              </p>
+              <p className="text-xs text-ink-muted mt-0.5">Dopo la scadenza il posto viene liberato automaticamente</p>
+            </div>
+          </div>
+          <Link href={`/checkout/${paymentPendingBookings[0].groupMember?.id ?? ''}`}>
+            <button className="whitespace-nowrap bg-warning text-[#0B0B0B] px-4 py-2 rounded-xl text-sm font-bold hover:bg-warning/90 transition-all flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" /> Paga ora
+            </button>
+          </Link>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8 flex items-start justify-between flex-wrap gap-4">
         <div>
@@ -140,7 +163,7 @@ export default function DashboardPage() {
 
           {/* Mini how-it-works */}
           <div className="flex items-center gap-6 mt-6 text-xs text-ink-muted">
-            {['Codice volo', '→', 'Trova compagni', '→', 'Paghi all\'accettazione'].map((s, i) => (
+            {['Codice volo', '→', 'Trova compagni', '→', 'Gruppo chiuso · Paga'].map((s, i) => (
               <span key={i} className={s === '→' ? 'text-surface-5' : ''}>{s}</span>
             ))}
           </div>
