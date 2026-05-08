@@ -1,10 +1,14 @@
 import { prisma } from '@/lib/prisma';
 import { getPricingRates } from '@/lib/get-pricing-rates';
 import { haversineDistance } from '@/lib/dbscan-clustering';
-import { sendGroupReady, sendNewRideAvailable } from '@/lib/email';
+import { sendNewRideAvailable } from '@/lib/email';
 import { createNotification } from '@/lib/notify';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' });
 
 const bookingSelect = {
+  id: true,
   dropoffLat: true,
   dropoffLng: true,
   pickupLat: true,
@@ -17,13 +21,16 @@ const membersInclude = {
   include: { booking: { select: bookingSelect } },
 } as const;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CHIUSURA GRUPPO — scatta quando il gruppo è pieno (7/7) o alla soglia T-3h
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function checkAndCloseExpiredGroups() {
   try {
     const rates = await getPricingRates();
-    const windowMs = rates.matchingWindowHours * 60 * 60 * 1000; // default 3h
+    const windowMs = rates.matchingWindowHours * 60 * 60 * 1000;
     const thresholdTime = new Date(Date.now() + windowMs);
 
-    // Chiudi se il volo parte entro 3h (flightDepartureTime) oppure, se non noto, se il pickup è entro 3h
     const expiredGroups = await prisma.rideGroup.findMany({
       where: {
         status: 'FORMING',
@@ -43,6 +50,9 @@ export async function checkAndCloseExpiredGroups() {
     for (const group of expiredGroups) {
       await closeGroup(group, rates);
     }
+
+    // Processa anche le finestre di pagamento scadute
+    await processExpiredPaymentWindows();
   } catch (e) {
     console.error('checkAndCloseExpiredGroups error:', e);
   }
@@ -76,6 +86,7 @@ type GroupForClose = {
   members: Array<{
     id: string;
     booking: {
+      id: string;
       dropoffLat: number;
       dropoffLng: number;
       pickupLat: number;
@@ -87,111 +98,335 @@ type GroupForClose = {
 };
 
 async function closeGroup(group: GroupForClose, rates: Awaited<ReturnType<typeof getPricingRates>>) {
-  // Rifetch dei membri freschi dal DB — evita race condition con pgbouncer
-  // dove il membro appena scritto non è visibile sulla connessione pooled iniziale
+  // Rifetch fresco — evita race condition pgbouncer
   const freshMembers = await prisma.groupMember.findMany({
-    where: { rideGroupId: group.id },
+    where: { rideGroupId: group.id, status: { not: 'CANCELLED' } },
     include: { booking: { select: bookingSelect } },
   });
-
   if (freshMembers.length === 0) return;
 
   const pickupLat = freshMembers[0].booking.pickupLat;
   const pickupLng = freshMembers[0].booking.pickupLng;
   const totalPax = group.currentCapacity;
+  const now = new Date();
+  const windowExpiresAt = new Date(now.getTime() + rates.paymentWindowMinutes * 60 * 1000);
 
-  // Prezzo individuale per ogni prenotazione: distanza effettiva × passeggeri della prenotazione
   let totalGroupPrice = 0;
-  const memberPrices: {
+  type MemberPrice = {
     memberId: string;
+    bookingId: string;
     bookingUserId: string;
-    price: number;
+    frozenPrice: number;         // prezzo totale del booking (persona × pax)
+    pricePerPerson: number;      // prezzo per singola persona fisica
+    driverSharePerPerson: number;
+    flanvoFee: number;
+    flanvoRate: number;
+    kmOnboard: number;
     userName: string;
     userEmail: string;
-  }[] = [];
+    bookingPassengers: number;
+  };
+  const memberPrices: MemberPrice[] = [];
 
   for (const member of freshMembers) {
     const kmOnboard = haversineDistance(
       pickupLat, pickupLng,
       member.booking.dropoffLat, member.booking.dropoffLng
     );
-    const driverSharePerPerson = (kmOnboard * rates.driverRatePerKm) / totalPax;
     const flanvoRate = kmOnboard >= 100
       ? rates.flanvoTier3Rate
       : kmOnboard >= 51
         ? rates.flanvoTier2Rate
         : rates.flanvoTier1Rate;
-    const pricePerPerson = driverSharePerPerson + kmOnboard * flanvoRate + rates.protectionFee;
-    const totalPriceForBooking = Math.round(pricePerPerson * member.booking.passengers * 100) / 100;
 
-    totalGroupPrice += totalPriceForBooking;
+    // NUOVO: driver guadagna km-rate/pax + bonus per passeggero fisico
+    const driverSharePerPerson = (kmOnboard * rates.driverRatePerKm) / totalPax + rates.driverBonusPerPax;
+    const flanvoFee = kmOnboard * flanvoRate;
+    const pricePerPerson = driverSharePerPerson + flanvoFee + rates.protectionFee;
+    const frozenPrice = Math.round(pricePerPerson * member.booking.passengers * 100) / 100;
+
+    totalGroupPrice += frozenPrice;
     memberPrices.push({
       memberId: member.id,
+      bookingId: member.booking.id,
       bookingUserId: member.booking.user.id,
-      price: totalPriceForBooking,
+      frozenPrice,
+      pricePerPerson,
+      driverSharePerPerson,
+      flanvoFee,
+      flanvoRate,
+      kmOnboard,
       userName: member.booking.user.name,
       userEmail: member.booking.user.email,
+      bookingPassengers: member.booking.passengers,
     });
   }
 
-  // Gruppo CONFIRMED — in attesa del driver, passeggeri NON ancora invitati a pagare
+  // Apri la finestra di pagamento sul gruppo
   await prisma.rideGroup.update({
     where: { id: group.id },
-    data: { status: 'CONFIRMED', totalPrice: Math.round(totalGroupPrice * 100) / 100 },
+    data: {
+      status: 'PAYMENT_WINDOW',
+      paymentWindowOpenedAt: now,
+      paymentWindowExpiresAt: windowExpiresAt,
+      totalPrice: Math.round(totalGroupPrice * 100) / 100,
+    },
   });
 
-  // Ogni booking → CONFIRMED (non MATCHED), salva driverShare nel GroupMember
-  for (const member of freshMembers) {
-    const mp = memberPrices.find(m => m.memberId === member.id);
-    if (!mp) continue;
-    const kmOnboard = haversineDistance(
-      pickupLat, pickupLng,
-      member.booking.dropoffLat, member.booking.dropoffLng
-    );
-    const flanvoRate = kmOnboard >= 100 ? rates.flanvoTier3Rate : kmOnboard >= 51 ? rates.flanvoTier2Rate : rates.flanvoTier1Rate;
-    const driverSharePerPerson = (kmOnboard * rates.driverRatePerKm) / totalPax;
-    const flanvoFee = kmOnboard * flanvoRate;
-
+  // Salva prezzo congelato e share driver su ogni membro + booking → MATCHED
+  for (const mp of memberPrices) {
     await prisma.groupMember.update({
-      where: { id: member.id },
-      data: { kmOnboard, driverShare: driverSharePerPerson, flanvoFee, flanvoFeeRate: flanvoRate, totalPrice: mp.price },
+      where: { id: mp.memberId },
+      data: {
+        kmOnboard: mp.kmOnboard,
+        driverShare: mp.driverSharePerPerson,
+        flanvoFee: mp.flanvoFee,
+        flanvoFeeRate: mp.flanvoRate,
+        totalPrice: mp.frozenPrice,
+        frozenPrice: mp.frozenPrice,
+      },
     });
-    await prisma.booking.updateMany({
-      where: { groupMember: { id: member.id } },
-      data: { status: 'CONFIRMED', estimatedPrice: mp.price },
+    await prisma.booking.update({
+      where: { id: mp.bookingId },
+      data: { status: 'MATCHED', estimatedPrice: mp.frozenPrice },
     });
   }
 
-  // Notifica passeggeri: gruppo completo, in attesa del driver
-  for (const { bookingUserId, memberId, price } of memberPrices) {
+  // Notifica passeggeri: paga ora entro 20 minuti
+  const deadline = windowExpiresAt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  for (const mp of memberPrices) {
     createNotification({
-      userId: bookingUserId,
+      userId: mp.bookingUserId,
       type: 'GROUP_READY',
-      title: 'Gruppo completo — In attesa del driver',
-      body: `Il tuo gruppo per il volo ${group.flightNumber} è completo (${totalPax} passeggeri). Prezzo stimato: €${price.toFixed(2)}. Ti avvisiamo quando il driver accetta.`,
-      data: { groupMemberId: memberId, flightNumber: group.flightNumber, price },
+      title: `Gruppo chiuso — Paga €${mp.frozenPrice.toFixed(2)} entro le ${deadline}`,
+      body: `Il tuo gruppo per il volo ${group.flightNumber} è pronto. Hai 20 minuti per confermare il pagamento e assicurarti il posto.`,
+      data: {
+        groupMemberId: mp.memberId,
+        bookingId: mp.bookingId,
+        frozenPrice: mp.frozenPrice,
+        paymentWindowExpiresAt: windowExpiresAt.toISOString(),
+        action: 'PAY_NOW',
+      },
+    }).catch(() => {});
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROCESSING FINESTRA SCADUTA — chiamato dal cron ogni 5 minuti
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function processExpiredPaymentWindows() {
+  const now = new Date();
+
+  // Invia reminder a chi non ha ancora pagato (T+10min e T+17min)
+  await sendPaymentReminders(now);
+
+  // Processa finestre scadute
+  const expiredGroups = await prisma.rideGroup.findMany({
+    where: {
+      status: 'PAYMENT_WINDOW',
+      paymentWindowExpiresAt: { lte: now },
+    },
+    include: {
+      members: {
+        where: { status: { not: 'CANCELLED' } },
+        include: {
+          booking: { select: bookingSelect },
+        },
+      },
+    },
+  });
+
+  for (const group of expiredGroups) {
+    await processPaymentWindow(group);
+  }
+}
+
+async function sendPaymentReminders(now: Date) {
+  const min10 = new Date(now.getTime() - 10 * 60 * 1000);
+  const min17 = new Date(now.getTime() - 17 * 60 * 1000);
+  const cronWindow = 5 * 60 * 1000; // finestra di 5 min del cron
+
+  // Gruppi aperti da ~10 minuti fa
+  const groups10 = await prisma.rideGroup.findMany({
+    where: {
+      status: 'PAYMENT_WINDOW',
+      paymentWindowOpenedAt: {
+        gte: new Date(min10.getTime() - cronWindow),
+        lte: min10,
+      },
+    },
+    include: {
+      members: {
+        where: { status: { not: 'CANCELLED' }, paymentStatus: { not: 'CAPTURED' } },
+        include: { booking: { select: bookingSelect } },
+      },
+    },
+  });
+
+  for (const group of groups10) {
+    const deadline = group.paymentWindowExpiresAt?.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    for (const member of group.members) {
+      createNotification({
+        userId: member.booking.user.id,
+        type: 'GROUP_READY',
+        title: 'Ti restano 10 minuti — Completa il pagamento',
+        body: `Non perdere il posto nel gruppo per il volo ${group.flightNumber}. Scadenza: ${deadline ?? '–'}.`,
+        data: { groupMemberId: member.id, bookingId: member.bookingId, action: 'PAY_NOW' },
+      }).catch(() => {});
+    }
+  }
+
+  // Gruppi aperti da ~17 minuti fa
+  const groups17 = await prisma.rideGroup.findMany({
+    where: {
+      status: 'PAYMENT_WINDOW',
+      paymentWindowOpenedAt: {
+        gte: new Date(min17.getTime() - cronWindow),
+        lte: min17,
+      },
+    },
+    include: {
+      members: {
+        where: { status: { not: 'CANCELLED' }, paymentStatus: { not: 'CAPTURED' } },
+        include: { booking: { select: bookingSelect } },
+      },
+    },
+  });
+
+  for (const group of groups17) {
+    for (const member of group.members) {
+      createNotification({
+        userId: member.booking.user.id,
+        type: 'GROUP_READY',
+        title: '⚠️ Ultimi 3 minuti — Stai per perdere il posto',
+        body: `Completa subito il pagamento per il volo ${group.flightNumber}. Il posto verrà liberato automaticamente tra poco.`,
+        data: { groupMemberId: member.id, bookingId: member.bookingId, action: 'PAY_NOW' },
+      }).catch(() => {});
+    }
+  }
+}
+
+type GroupWithMembers = Awaited<ReturnType<typeof prisma.rideGroup.findMany<{
+  include: {
+    members: {
+      where: { status: { not: 'CANCELLED' } };
+      include: { booking: { select: typeof bookingSelect } };
+    };
+  };
+}>>>[number];
+
+async function processPaymentWindow(group: GroupWithMembers & {
+  members: Array<{
+    id: string; bookingId: string; paymentStatus: string;
+    paymentIntentId: string | null; status: string;
+    booking: { id: string; user: { id: string; name: string; email: string }; passengers: number };
+  }>;
+}) {
+  const paidMembers = group.members.filter(m => m.paymentStatus === 'CAPTURED');
+  const unpaidMembers = group.members.filter(m => m.paymentStatus !== 'CAPTURED');
+
+  if (paidMembers.length < 3) {
+    await cancelGroupWithRefunds(group, paidMembers, unpaidMembers);
+    return;
+  }
+
+  // Rimuovi chi non ha pagato
+  for (const member of unpaidMembers) {
+    await prisma.groupMember.update({ where: { id: member.id }, data: { status: 'CANCELLED' } });
+    await prisma.booking.update({ where: { id: member.bookingId }, data: { status: 'CANCELLED' } });
+    createNotification({
+      userId: member.booking.user.id,
+      type: 'BOOKING_CANCELLED',
+      title: 'Posto perso — Tempo scaduto',
+      body: `Non hai completato il pagamento entro i 20 minuti per il volo ${group.flightNumber}. Il tuo posto è stato liberato.`,
+      data: { flightNumber: group.flightNumber },
     }).catch(() => {});
   }
 
-  // Notifica driver immediatamente
+  // Gruppo → CONFIRMED — ora visibile ai driver
+  await prisma.rideGroup.update({
+    where: { id: group.id },
+    data: { status: 'CONFIRMED' },
+  });
+
+  // Notifica passeggeri paganti: posto confermato
+  for (const member of paidMembers) {
+    createNotification({
+      userId: member.booking.user.id,
+      type: 'GROUP_READY',
+      title: 'Posto confermato — In attesa del driver',
+      body: `Il tuo posto per il volo ${group.flightNumber} è confermato. Ti avvisiamo non appena un driver accetta la corsa.`,
+      data: { flightNumber: group.flightNumber },
+    }).catch(() => {});
+  }
+
+  // Notifica driver
   await notifyDriversGroupReady(group.id);
 }
 
-// Chiamata da payments/authorize dopo che TUTTI i passeggeri hanno pagato
+async function cancelGroupWithRefunds(
+  group: { id: string; flightNumber: string },
+  paidMembers: Array<{ id: string; bookingId: string; paymentIntentId: string | null; booking: { user: { id: string } } }>,
+  unpaidMembers: Array<{ id: string; bookingId: string; booking: { user: { id: string } } }>
+) {
+  // Rimborsa chi aveva pagato
+  for (const member of paidMembers) {
+    if (member.paymentIntentId) {
+      try {
+        await stripe.refunds.create({ payment_intent: member.paymentIntentId });
+        await prisma.groupMember.update({ where: { id: member.id }, data: { paymentStatus: 'REFUNDED' } });
+      } catch (e) { console.error('Refund failed for member', member.id, e); }
+    }
+    await prisma.booking.update({ where: { id: member.bookingId }, data: { status: 'CANCELLED' } });
+    createNotification({
+      userId: member.booking.user.id,
+      type: 'BOOKING_CANCELLED',
+      title: 'Corsa annullata — Rimborso in arrivo',
+      body: `Il gruppo per il volo ${group.flightNumber} non ha raggiunto il numero minimo di passeggeri. Riceverai un rimborso completo entro 5 giorni.`,
+      data: { flightNumber: group.flightNumber },
+    }).catch(() => {});
+  }
+
+  // Annulla anche gli unpaid (nessun rimborso — non hanno mai pagato)
+  for (const member of unpaidMembers) {
+    await prisma.groupMember.update({ where: { id: member.id }, data: { status: 'CANCELLED' } });
+    await prisma.booking.update({ where: { id: member.bookingId }, data: { status: 'CANCELLED' } });
+    createNotification({
+      userId: member.booking.user.id,
+      type: 'BOOKING_CANCELLED',
+      title: 'Corsa annullata',
+      body: `Il gruppo per il volo ${group.flightNumber} non ha raggiunto il numero minimo. Nessun addebito è stato effettuato.`,
+      data: { flightNumber: group.flightNumber },
+    }).catch(() => {});
+  }
+
+  await prisma.rideGroup.update({ where: { id: group.id }, data: { status: 'CANCELLED' } });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NOTIFICA DRIVER — chiamata dopo che i pagamenti sono stati acquisiti
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function notifyDriversGroupReady(rideGroupId: string) {
   try {
     const group = await prisma.rideGroup.findUnique({
       where: { id: rideGroupId },
       select: {
-        flightNumber: true, currentCapacity: true, arrivalAirport: true,
-        totalRouteKm: true,
-        members: { select: { driverShare: true } },
+        flightNumber: true, currentCapacity: true, arrivalAirport: true, totalRouteKm: true,
+        members: {
+          where: { paymentStatus: 'CAPTURED', status: { not: 'CANCELLED' } },
+          select: { driverShare: true, booking: { select: { passengers: true } } },
+        },
       },
     });
     if (!group) return;
 
-    // Mostra solo la quota driver, non il totale del gruppo (che include la fee Flanvo)
-    const driverEarnings = group.members.reduce((s, m) => s + (m.driverShare ?? 0), 0);
+    // Guadagno driver = sum(driverShare × passengers fisici del booking)
+    const driverEarnings = group.members.reduce(
+      (s, m) => s + (m.driverShare ?? 0) * (m.booking?.passengers ?? 1), 0
+    );
+    const paidPax = group.members.reduce((s, m) => s + (m.booking?.passengers ?? 1), 0);
     const airportCode = group.arrivalAirport ?? 'CTA';
 
     const drivers = await prisma.driver.findMany({
@@ -203,15 +438,15 @@ export async function notifyDriversGroupReady(rideGroupId: string) {
       createNotification({
         userId: d.userId,
         type: 'GROUP_READY',
-        title: 'Nuova corsa disponibile',
-        body: `Volo ${group.flightNumber} — ${group.currentCapacity} passeggeri${group.totalRouteKm ? ` · ${Math.round(group.totalRouteKm)} km` : ''}. Guadagno: €${driverEarnings.toFixed(2)}. Accetta dalla dashboard.`,
-        data: { rideGroupId, flightNumber: group.flightNumber, totalPax: group.currentCapacity, driverEarnings },
+        title: 'Nuova corsa disponibile — Già pagata',
+        body: `Volo ${group.flightNumber} — ${paidPax} passeggeri${group.totalRouteKm ? ` · ${Math.round(group.totalRouteKm)} km` : ''}. Guadagno garantito: €${driverEarnings.toFixed(2)}.`,
+        data: { rideGroupId, flightNumber: group.flightNumber, totalPax: paidPax, driverEarnings },
       }).catch(() => {});
 
       sendNewRideAvailable(d.user.email, {
         driverName: d.user.name ?? 'Driver',
         flightNumber: group.flightNumber,
-        pax: group.currentCapacity,
+        pax: paidPax,
         airportName: airportCode,
       }).catch(() => {});
     }
