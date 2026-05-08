@@ -93,11 +93,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Prezzo non disponibile' }, { status: 400 });
     }
 
-    // Addebito immediato — il passeggero paga ora, nessuna cattura differita
-    const paymentIntent = await stripe.paymentIntents.create({
+    const breakdown = {
+      driverShare: member.driverShare ?? 0,
+      flanvoFee: member.flanvoFee ?? 0,
+      protectionFee: amount - (member.driverShare ?? 0) - (member.flanvoFee ?? 0),
+      kmOnboard: member.kmOnboard ?? 0,
+    };
+
+    // Controlla se l'utente ha una carta salvata per 1-tap payment
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { defaultPaymentMethodId: true, stripeCustomerId: true },
+    });
+
+    const piBase = {
       amount: Math.round(amount * 100),
-      currency: 'eur',
-      capture_method: 'automatic',
+      currency: 'eur' as const,
+      customer: user?.stripeCustomerId ?? undefined,
       metadata: {
         groupId: member.rideGroupId,
         memberId: member.id,
@@ -107,6 +119,52 @@ export async function POST(req: NextRequest) {
         numPassengers: member.booking.passengers.toString(),
       },
       description: `Flanvo — Volo ${member.rideGroup.flightNumber}`,
+    };
+
+    // Se carta salvata: crea e conferma automaticamente (1-tap)
+    if (user?.defaultPaymentMethodId) {
+      const intent = await stripe.paymentIntents.create({
+        ...piBase,
+        payment_method: user.defaultPaymentMethodId,
+        confirm: true,
+        capture_method: 'automatic',
+      });
+
+      await prisma.groupMember.update({
+        where: { id: memberId },
+        data: { paymentIntentId: intent.id, paymentStatus: intent.status === 'succeeded' ? 'CAPTURED' : 'PENDING' },
+      });
+
+      if (intent.status === 'succeeded') {
+        // Già pagato — aggiorna booking e notifica
+        await prisma.booking.update({ where: { id: member.bookingId }, data: { status: 'CONFIRMED' } });
+        const { createNotification } = await import('@/lib/notify');
+        createNotification({
+          userId: payload.userId,
+          type: 'BOOKING_CONFIRMED',
+          title: 'Posto confermato!',
+          body: `Pagamento €${amount.toFixed(2)} ricevuto per il volo ${member.rideGroup.flightNumber}.`,
+          data: { memberId: member.id },
+        }).catch(() => {});
+      }
+
+      return NextResponse.json({
+        success: true,
+        autoConfirmed: intent.status === 'succeeded',
+        clientSecret: intent.status !== 'succeeded' ? intent.client_secret : null,
+        amount,
+        paymentWindowExpiresAt: windowExpires.toISOString(),
+        flightNumber: member.rideGroup.flightNumber,
+        groupSize: member.rideGroup.members.length,
+        dropoffLocation: member.booking.dropoffLocation,
+        breakdown,
+      });
+    }
+
+    // Nessuna carta salvata — crea PI normale per inserimento manuale
+    const paymentIntent = await stripe.paymentIntents.create({
+      ...piBase,
+      capture_method: 'automatic',
     });
 
     await prisma.groupMember.update({
@@ -116,18 +174,14 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      autoConfirmed: false,
       clientSecret: paymentIntent.client_secret,
       amount,
       paymentWindowExpiresAt: windowExpires.toISOString(),
       flightNumber: member.rideGroup.flightNumber,
       groupSize: member.rideGroup.members.length,
       dropoffLocation: member.booking.dropoffLocation,
-      breakdown: {
-        driverShare: member.driverShare ?? 0,
-        flanvoFee: member.flanvoFee ?? 0,
-        protectionFee: amount - (member.driverShare ?? 0) - (member.flanvoFee ?? 0),
-        kmOnboard: member.kmOnboard ?? 0,
-      },
+      breakdown,
     });
 
   } catch (error: unknown) {

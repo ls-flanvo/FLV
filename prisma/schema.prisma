@@ -137,6 +137,12 @@ model User {
 
   isActive      Boolean   @default(true)
 
+  // Stripe — carta salvata per pagamenti 1-tap
+  stripeCustomerId        String?   // Stripe Customer ID
+  defaultPaymentMethodId  String?   // PaymentMethod ID salvato
+  savedCardLast4          String?   // Ultime 4 cifre (per display)
+  savedCardBrand          String?   // es. "visa", "mastercard"
+
   bookings      Booking[]
   driver        Driver?
   microGroups   MicroGroup[]

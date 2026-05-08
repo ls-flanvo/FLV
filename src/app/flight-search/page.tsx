@@ -4,13 +4,15 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore, useBookingStore } from '@/store';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
+import { StripeProvider } from '@/components/providers/stripe-provider';
+import SaveCardForm from '@/components/SaveCardForm';
 import { Flight } from '@/lib/types';
 import {
   Plane, MapPin, ChevronRight, CheckCircle2,
-  AlertCircle, Loader2, Clock, AlertTriangle, Sparkles
+  AlertCircle, Loader2, Clock, AlertTriangle, Sparkles, CreditCard, Zap
 } from 'lucide-react';
 
-type Step = 'flight' | 'destination' | 'passengers' | 'searching';
+type Step = 'flight' | 'destination' | 'passengers' | 'save-card' | 'searching';
 
 const PAX_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
 const BAG_OPTIONS = [
@@ -100,6 +102,8 @@ export default function FlightSearchPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState('');
 
+  const [savedCard, setSavedCard] = useState<{ last4: string; brand: string } | null>(null);
+
   const { isAuthenticated } = useAuthStore();
   const { setCurrentFlight } = useBookingStore();
   const router = useRouter();
@@ -171,7 +175,7 @@ export default function FlightSearchPage() {
     setStep('passengers');
   };
 
-  const confirmPassengers = () => {
+  const goToSearching = () => {
     if (!flight || !destinationCoords) return;
     setCurrentFlight(flight);
     const destinationObj = {
@@ -186,6 +190,26 @@ export default function FlightSearchPage() {
     setTimeout(() => router.push('/matching'), 1800);
   };
 
+  const confirmPassengers = async () => {
+    if (!flight || !destinationCoords) return;
+    // Controlla se l'utente ha già una carta salvata
+    if (isAuthenticated) {
+      try {
+        const token = localStorage.getItem('flanvo_token');
+        const res = await fetch('/api/payments/save-method', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await res.json();
+        if (data.hasSavedCard) {
+          setSavedCard({ last4: data.last4, brand: data.brand });
+          goToSearching();
+          return;
+        }
+      } catch { /* silent — skip save-card step */ }
+    }
+    setStep('save-card');
+  };
+
   const statusCfg = flight ? STATUS_CONFIG[flight.status] || STATUS_CONFIG.scheduled : null;
 
   return (
@@ -195,7 +219,7 @@ export default function FlightSearchPage() {
         <div
           className="h-full bg-primary-500 transition-all duration-500"
           style={{
-            width: step === 'flight' ? '25%' : step === 'destination' ? '50%' : step === 'passengers' ? '75%' : '100%',
+            width: step === 'flight' ? '20%' : step === 'destination' ? '40%' : step === 'passengers' ? '60%' : step === 'save-card' ? '80%' : '100%',
           }}
         />
       </div>
@@ -499,7 +523,50 @@ export default function FlightSearchPage() {
           </div>
         )}
 
-        {/* ── STEP 4: SEARCHING ─────────────────────── */}
+        {/* ── STEP 4: SALVA CARTA ───────────────────── */}
+        {step === 'save-card' && (
+          <div className="w-full animate-fade-up">
+            <div className="mb-8 text-center">
+              <div className="inline-flex items-center justify-center w-14 h-14 bg-primary-500/10 border border-primary-500/20 rounded-2xl mb-5">
+                <Zap className="w-7 h-7 text-primary-400" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Pagamenti rapidi</h2>
+              <p className="text-ink-secondary text-sm max-w-xs mx-auto">
+                Salva la carta ora. Quando il gruppo si chiude, confermi con <strong className="text-white">un solo tap</strong> — nessun inserimento al momento del pagamento.
+              </p>
+            </div>
+
+            {/* Beneficio visivo */}
+            <div className="bg-surface-2 border border-surface-5 rounded-2xl p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <CreditCard className="w-5 h-5 text-primary-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-white mb-1">Senza carta salvata</p>
+                  <p className="text-xs text-ink-muted">Hai 20 minuti per aprire la notifica, inserire la carta, confermare — sotto pressione del countdown.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 mt-3 pt-3 border-t border-surface-4">
+                <Zap className="w-5 h-5 text-primary-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-white mb-1">Con carta salvata</p>
+                  <p className="text-xs text-ink-muted">Ricevi la notifica → tap "Conferma €X" → fatto. 3 secondi.</p>
+                </div>
+              </div>
+            </div>
+
+            <StripeProvider>
+              <SaveCardForm
+                onSuccess={(last4, brand) => {
+                  setSavedCard({ last4, brand });
+                  goToSearching();
+                }}
+                onSkip={goToSearching}
+              />
+            </StripeProvider>
+          </div>
+        )}
+
+        {/* ── STEP 5: SEARCHING ─────────────────────── */}
         {step === 'searching' && (
           <SearchingStep flight={flight} destination={destination} />
         )}

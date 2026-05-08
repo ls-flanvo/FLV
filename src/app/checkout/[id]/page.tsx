@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store';
 import { StripeProvider } from '@/components/providers/stripe-provider';
 import { PaymentForm } from '@/components/checkout/payment-form';
-import { Check, AlertCircle, Plane, MapPin, Users, ShieldCheck, Loader2, Clock, XCircle } from 'lucide-react';
+import { Check, AlertCircle, Plane, MapPin, Users, ShieldCheck, Loader2, Clock, XCircle, Zap } from 'lucide-react';
 import { Button } from '@/components/ui';
 
 function useCountdown(expiresAt: string | null) {
@@ -41,14 +41,54 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
     flightNumber: string; groupSize: number; dropoffLocation: string;
   } | null>(null);
   const [success, setSuccess] = useState(false);
+  const [savedCard, setSavedCard] = useState<{ last4: string; brand: string } | null>(null);
+  const [oneTapLoading, setOneTapLoading] = useState(false);
+  const [showCardForm, setShowCardForm] = useState(false);
 
   const { token, setToken } = useAuthStore();
   const router = useRouter();
   const countdown = useCountdown(paymentWindowExpiresAt);
 
+  const confirmPayment = async (authToken: string) => {
+    setOneTapLoading(true);
+    try {
+      // Chiama authorize direttamente (il PI è già stato creato e confermato automaticamente)
+      const res = await fetch('/api/payments/authorize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ memberId: params.id }),
+      });
+      if (res.ok) {
+        setSuccess(true);
+        setTimeout(() => router.push('/dashboard'), 3000);
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Errore nel pagamento');
+        setShowCardForm(true);
+      }
+    } catch {
+      setError('Errore di connessione');
+      setShowCardForm(true);
+    } finally {
+      setOneTapLoading(false);
+    }
+  };
+
   const loadPaymentIntent = useCallback(async (authToken: string) => {
     try {
       setLoading(true);
+
+      // Controlla carta salvata
+      const cardRes = await fetch('/api/payments/save-method', {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      if (cardRes.ok) {
+        const cardData = await cardRes.json();
+        if (cardData.hasSavedCard) {
+          setSavedCard({ last4: cardData.last4, brand: cardData.brand });
+        }
+      }
+
       const res = await fetch('/api/payments/create-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
@@ -56,6 +96,12 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
       });
       const data = await res.json();
       if (data.success) {
+        // Carta salvata → già confermato in automatico
+        if (data.autoConfirmed) {
+          setSuccess(true);
+          setTimeout(() => router.push('/dashboard'), 3000);
+          return;
+        }
         setClientSecret(data.clientSecret);
         setPaymentAmount(data.amount);
         setPaymentWindowExpiresAt(data.paymentWindowExpiresAt ?? null);
@@ -207,27 +253,70 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
           <div className="lg:col-span-3">
             <div className="bg-surface-1 border border-surface-4 rounded-2xl p-6 bg-card-gradient">
               <h2 className="text-lg font-bold text-white mb-5">Metodo di pagamento</h2>
-              {clientSecret && (
-                <StripeProvider>
-                  <PaymentForm
-                    clientSecret={clientSecret}
-                    amount={paymentAmount}
-                    onSuccess={async () => {
-                      const authToken = localStorage.getItem('flanvo_token');
-                      await fetch('/api/payments/authorize', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-                        },
-                        body: JSON.stringify({ memberId: params.id }),
-                      }).catch(() => {});
-                      setSuccess(true);
-                      setTimeout(() => router.push('/dashboard'), 3000);
-                    }}
-                    onError={setError}
-                  />
-                </StripeProvider>
+
+              {/* 1-TAP con carta salvata */}
+              {savedCard && !showCardForm ? (
+                <div className="space-y-4">
+                  <div className="bg-surface-2 border border-surface-5 rounded-xl px-4 py-3 flex items-center gap-3">
+                    <div className="w-8 h-8 bg-primary-500/15 rounded-lg flex items-center justify-center shrink-0">
+                      <span className="text-primary-400 text-sm font-bold">
+                        {savedCard.brand === 'visa' ? 'V' : savedCard.brand === 'mastercard' ? 'M' : '💳'}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-white capitalize">{savedCard.brand} •••• {savedCard.last4}</p>
+                      <p className="text-xs text-ink-muted">Carta salvata</p>
+                    </div>
+                    <button onClick={() => setShowCardForm(true)}
+                      className="text-xs text-ink-muted hover:text-ink-secondary transition-colors">
+                      Cambia
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => { const t = localStorage.getItem('flanvo_token'); if (t) confirmPayment(t); }}
+                    disabled={oneTapLoading || countdown?.expired}
+                    className="w-full flex items-center justify-center gap-2 py-4 bg-primary-500 text-[#0B0B0B] font-black text-lg rounded-2xl hover:bg-primary-400 transition-all disabled:opacity-40 shadow-teal"
+                  >
+                    {oneTapLoading
+                      ? <Loader2 className="w-5 h-5 animate-spin" />
+                      : <><Zap className="w-5 h-5" /> Conferma e paga €{paymentAmount.toFixed(2)}</>
+                    }
+                  </button>
+                  <p className="text-center text-xs text-ink-muted">Addebito immediato · nessun inserimento richiesto</p>
+                </div>
+              ) : (
+                /* Form carta normale */
+                clientSecret && (
+                  <>
+                    {showCardForm && savedCard && (
+                      <button onClick={() => setShowCardForm(false)}
+                        className="text-xs text-ink-muted hover:text-ink-secondary mb-4 transition-colors">
+                        ← Usa carta salvata •••• {savedCard.last4}
+                      </button>
+                    )}
+                    <StripeProvider>
+                      <PaymentForm
+                        clientSecret={clientSecret}
+                        amount={paymentAmount}
+                        onSuccess={async () => {
+                          const authToken = localStorage.getItem('flanvo_token');
+                          await fetch('/api/payments/authorize', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+                            },
+                            body: JSON.stringify({ memberId: params.id }),
+                          }).catch(() => {});
+                          setSuccess(true);
+                          setTimeout(() => router.push('/dashboard'), 3000);
+                        }}
+                        onError={setError}
+                      />
+                    </StripeProvider>
+                  </>
+                )
               )}
             </div>
           </div>
