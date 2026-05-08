@@ -305,8 +305,8 @@ export default function BookingCard({ booking }: { booking: Booking }) {
                 const dLng = toRad(booking.dropoffLng - booking.pickupLng);
                 const a = Math.sin(dLat/2)**2 + Math.cos(toRad(booking.pickupLat)) * Math.cos(toRad(booking.dropoffLat)) * Math.sin(dLng/2)**2;
                 const km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                // Tariffe aeroportuali: minimo fisso €20 + tachimetro ~€2.5/km oltre
-                const taxiEstimate = Math.max(20, Math.round(km * 2.5 + 8));
+                // Tariffe aeroportuali: €20 uscita aeroporto + tachimetro ~€1.80/km
+                const taxiEstimate = 20 + Math.round(km * 1.8);
                 const price = booking.estimatedPrice / passengers;
                 if (taxiEstimate <= price) return null;
                 return (
