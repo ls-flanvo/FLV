@@ -62,7 +62,7 @@ export default function Post() {
 
           <h2 className="text-xl font-bold text-white mt-10 mb-3">Cosa succede se il ritardo è molto lungo</h2>
           <p>
-            Se il ritardo supera molte ore e il volo viene cancellato dalla compagnia, Flanvo ti notifica e annulla la prenotazione automaticamente. Non avendo ancora pagato — il pagamento avviene solo quando il driver accetta, non al momento della registrazione — nessun addebito viene applicato.
+            Se il ritardo supera molte ore e il volo viene cancellato dalla compagnia, Flanvo ti notifica e annulla la prenotazione automaticamente. Se non hai ancora pagato nessun addebito viene applicato. Se hai già pagato (dopo la chiusura del gruppo) ricevi un rimborso automatico completo entro 5–7 giorni lavorativi.
           </p>
           <p>
             In questo caso sei libero di prenotare un nuovo gruppo per il nuovo orario di atterraggio, oppure di organizzarti diversamente. Non ci sono penali e non viene addebitato nulla.

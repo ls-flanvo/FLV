@@ -14,8 +14,10 @@ const comparison = [
 ];
 
 const cancellation = [
-  { when: 'Prima che il driver accetti',                               refund: 'Rimborso completo',              color: 'text-primary-400' },
-  { when: 'Dopo che il driver accetta',                                refund: 'Nessun rimborso',                color: 'text-red-400' },
+  { when: 'Prima della chiusura del gruppo',                           refund: 'Rimborso completo',              color: 'text-primary-400' },
+  { when: 'Non paghi entro 20 minuti dalla chiusura',                 refund: 'Nessun addebito — posto liberato', color: 'text-ink-secondary' },
+  { when: 'Dopo aver pagato — se il driver non accetta entro T-1h',   refund: 'Rimborso completo automatico',   color: 'text-primary-400' },
+  { when: 'Dopo aver pagato — driver già assegnato',                  refund: 'Nessun rimborso',                color: 'text-red-400' },
   { when: 'Forza maggiore al pickup (disputa entro 24h)',              refund: 'Flanvo rimborsa propria quota',  color: 'text-warning' },
   { when: 'Volo cancellato o dirottato dalla compagnia aerea',        refund: 'Assistenza EU 261/2004 →',       color: 'text-blue-400' },
 ];
@@ -87,7 +89,7 @@ export default function PrezziPage() {
               'Monitoraggio del tuo volo in tempo reale',
               'Chat diretta con il driver',
               'Copertura in caso di ritardo volo',
-              'Pagamento sicuro via Stripe — addebito al momento dell\'accettazione del driver',
+              'Pagamento sicuro via Stripe — addebitato quando il gruppo si chiude e confermi',
             ].map((item) => (
               <li key={item} className="flex items-center gap-3 text-sm text-ink-secondary">
                 <CheckCircle className="w-4 h-4 text-primary-400 shrink-0" />
@@ -134,8 +136,8 @@ export default function PrezziPage() {
         <div className="bg-surface-1 border border-surface-4 rounded-2xl p-6 md:p-8 mb-14">
           <h2 className="text-xl font-bold text-white mb-5">Politica di cancellazione</h2>
           <p className="text-sm text-ink-secondary mb-5 leading-relaxed">
-            Il pagamento viene addebitato immediatamente quando il driver accetta la corsa. Prima di quel momento puoi cancellare gratuitamente senza nessun addebito.
-            Dopo aver pagato, puoi comunque cancellare ma il pagamento non viene rimborsato automaticamente: il driver ha già rinunciato ad altri impegni.
+            Quando il gruppo si chiude ricevi il prezzo definitivo e hai <strong className="text-white">20 minuti</strong> per confermare e pagare. Se non paghi entro il termine il posto viene liberato automaticamente senza nessun addebito.
+            Dopo aver pagato, puoi cancellare gratuitamente finché nessun driver ha accettato. Una volta che il driver accetta, il pagamento non è rimborsabile.
             In caso di <strong className="text-white">forza maggiore al pickup</strong> (bagagli smarriti dall&apos;airline, emergenza medica, ritardo involontario) puoi aprire una disputa entro 24 ore: Flanvo rimborsa la propria quota e il driver trattiene la sua compensazione per la presenza. Per voli cancellati o dirottati si applica la procedura EU 261/2004.
           </p>
           <div className="space-y-3">

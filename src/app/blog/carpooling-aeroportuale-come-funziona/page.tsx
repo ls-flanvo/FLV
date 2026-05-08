@@ -55,7 +55,7 @@ export default function Post() {
 
           <h2 className="text-xl font-bold text-white mt-10 mb-3">Il pagamento: quando e come avviene</h2>
           <p>
-            Registrare la richiesta è gratuito — non inserisci nessun dato di pagamento finché il gruppo non è pronto e un driver non accetta la corsa. In quel momento ricevi una notifica e puoi procedere al pagamento tramite Stripe, che viene addebitato immediatamente. Se nessun driver accetta entro 2 ore dalla partenza del volo, la prenotazione si annulla automaticamente senza nessun costo.
+            Registrare la richiesta è gratuito — non inserisci nessun dato di pagamento finché il gruppo non si chiude. Quando il gruppo raggiunge la capacità massima o mancano 3 ore al volo, ricevi una notifica con il prezzo definitivo e hai 20 minuti per confermare e pagare tramite Stripe. Solo dopo il driver viene notificato. Se non confermi entro il termine il posto viene liberato senza nessun addebito. Se nessun driver è disponibile entro 1 ora dal volo, rimborso automatico completo.
           </p>
 
           <h2 className="text-xl font-bold text-white mt-10 mb-3">Cosa succede se il volo è in ritardo?</h2>
