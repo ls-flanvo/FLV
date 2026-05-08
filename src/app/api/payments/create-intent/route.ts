@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Pre-auth ammessa da FORMING (prenotazione) a ASSIGNED (driver assegnato)
-    const allowedStatuses = ['FORMING', 'READY', 'CONFIRMED', 'ASSIGNED'];
+    const allowedStatuses = ['FORMING', 'PAYMENT_WINDOW', 'CONFIRMED', 'ASSIGNED'];
     if (!allowedStatuses.includes(member.rideGroup.status)) {
       return NextResponse.json(
         { error: `Pagamento non disponibile per gruppi in stato: ${member.rideGroup.status}` },

@@ -41,10 +41,10 @@ enum UserRole {
 }
 
 enum BookingStatus {
-  PENDING           // Appena creato
-  CONFIRMED         // Pagamento confermato
+  PENDING           // Appena creato, gruppo in formazione
   IN_MATCHING       // In fase di matching DBSCAN
-  MATCHED           // Gruppo trovato
+  MATCHED           // Gruppo chiuso — finestra pagamento aperta (20 min per pagare)
+  CONFIRMED         // Pagato — posto confermato, in attesa driver
   NO_MATCH          // Nessun match possibile
   IN_PROGRESS       // Ride in corso
   COMPLETED         // Completato
@@ -63,10 +63,10 @@ enum RideStatus {
 }
 
 enum GroupStatus {
-  FORMING           // Gruppo in formazione (T-60 a T-40)
-  READY             // Matching completato (T-40)
-  CONFIRMED         // Supply check passato (T-40)
-  ASSIGNED          // Driver assegnato (T-30)
+  FORMING           // Gruppo in formazione
+  PAYMENT_WINDOW    // Gruppo chiuso — finestra 20 min per raccogliere pagamenti
+  CONFIRMED         // Pagamenti raccolti — visibile ai driver
+  ASSIGNED          // Driver assegnato
   ACTIVE            // Ride in corso
   COMPLETED         // Tutti i drop-off completati
   CANCELLED         // Cancellato
@@ -376,6 +376,10 @@ model RideGroup {
   meetingPoint        String?     // Punto di incontro fisico (luogo, non orario)
   isExtraSchengen     Boolean     @default(false)       // auto-rilevato: true = dogana + passaporti
 
+  // Payment Window
+  paymentWindowExpiresAt  DateTime?   // Scadenza finestra 20 min per pagamenti
+  paymentWindowOpenedAt   DateTime?   // Quando il gruppo si è chiuso e la finestra è partita
+
   // Pricing
   basePrice         Float
   totalPrice        Float?        // Somma di tutti i finalPrice dei membri
@@ -421,10 +425,11 @@ model GroupMember {
   
   // Pricing Breakdown (per questo passeggero)
   baseFare        Float?        // Tariffa base (tiered per km)
-  driverShare     Float?        // Quota driver (2.00€/km * kmOnboard)
-  flanvoFeeRate   Float?        // % fee Flanvo (es. 15%)
+  driverShare     Float?        // Quota driver: (km × driverRate / N_pax) + bonusPerPax
+  flanvoFeeRate   Float?        // Rate fee Flanvo applicato (tier 1/2/3)
   flanvoFee       Float?        // Fee Flanvo in €
   totalPrice      Float?        // Prezzo finale per questo passeggero
+  frozenPrice     Float?        // Prezzo congelato alla chiusura del gruppo (immutabile)
   pennyAdjustment Float?        @default(0) // Aggiustamento centesimi per pareggio
   
   // Payment (captured at drop-off)

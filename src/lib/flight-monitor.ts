@@ -42,7 +42,7 @@ export async function monitorActiveFlights() {
   // ── 1. Fallback gruppi senza driver nelle prossime 60 min ──────────────────
   const noDriverGroups = await prisma.rideGroup.findMany({
     where: {
-      status: { in: ['CONFIRMED', 'READY'] },
+      status: { in: ['CONFIRMED', 'PAYMENT_WINDOW'] },
       targetPickupTime: { gte: now, lte: new Date(Date.now() + 60 * 60_000) },
       ride: { is: null },
     },

@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       booking: { id: booking.id, status: booking.status, flightNumber: booking.flightNumber, estimatedPrice: estimatedPriceNow },
-      rideGroup: { id: rideGroup.id, status: updatedGroup?.currentCapacity ?? 0 >= (updatedGroup?.maxCapacity ?? 7) ? 'READY' : 'FORMING', currentCapacity: updatedGroup?.currentCapacity },
+      rideGroup: { id: rideGroup.id, status: 'FORMING', currentCapacity: updatedGroup?.currentCapacity },
       groupMember: { id: groupMember.id, status: groupMember.status },
       message: 'Richiesta registrata con successo',
     }, { status: 201 });

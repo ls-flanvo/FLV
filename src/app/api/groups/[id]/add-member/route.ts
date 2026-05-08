@@ -69,9 +69,9 @@ export async function POST(
     }
     
     // Valida che il gruppo non sia già in fase di pagamento o confermato
-    if (group.status === 'READY') {
+    if (group.status === 'PAYMENT_WINDOW') {
       return NextResponse.json(
-        { error: 'Cannot add members: group is in payment phase (READY status). Payment intents already created.' },
+        { error: 'Cannot add members: group is in payment phase.' },
         { status: 400 }
       );
     }
