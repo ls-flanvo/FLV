@@ -161,7 +161,8 @@ export async function POST(request: NextRequest) {
           parseFloat(body.dropoffLat), parseFloat(body.dropoffLng)
         );
         const totalPax = updatedGroup.currentCapacity;
-        const driverShare = (estimatedKm * rates.driverRatePerKm) / totalPax;
+        // Formula identica a group-ready.ts — stima allineata al prezzo finale
+        const driverShare = (estimatedKm * rates.driverRatePerKm) / totalPax + rates.driverBonusPerPax;
         const flanvoRate = estimatedKm >= 100 ? rates.flanvoTier3Rate : estimatedKm >= 51 ? rates.flanvoTier2Rate : rates.flanvoTier1Rate;
         const pricePerPerson = driverShare + estimatedKm * flanvoRate + rates.protectionFee;
         estimatedPriceNow = Math.round(pricePerPerson * booking.passengers * 100) / 100;
