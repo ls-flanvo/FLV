@@ -19,7 +19,7 @@ const DEFAULTS: PricingRates = {
   flanvoTier3Rate: 0.20,       // >100km
   protectionFee: 1.00,         // Ridotta da €2.50 — €1.50 spostati nel bonus driver
   matchingWindowHours: 3,
-  paymentWindowMinutes: 20,
+  paymentWindowMinutes: 30,
 };
 
 export async function getPricingRates(): Promise<PricingRates> {

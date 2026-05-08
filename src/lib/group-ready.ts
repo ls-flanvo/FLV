@@ -51,8 +51,11 @@ export async function checkAndCloseExpiredGroups() {
       await closeGroup(group, rates);
     }
 
-    // Processa anche le finestre di pagamento scadute
+    // Processa finestre di pagamento scadute
     await processExpiredPaymentWindows();
+
+    // Rimborsa gruppi CONFIRMED senza driver a T-1h dal volo
+    await processNoDriverTimeout();
   } catch (e) {
     console.error('checkAndCloseExpiredGroups error:', e);
   }
@@ -402,6 +405,57 @@ async function cancelGroupWithRefunds(
   }
 
   await prisma.rideGroup.update({ where: { id: group.id }, data: { status: 'CANCELLED' } });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TIMEOUT DRIVER — rimborso automatico se nessun driver accetta entro T-1h
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function processNoDriverTimeout() {
+  const cutoff = new Date(Date.now() + 60 * 60 * 1000); // T-1h dal pickup
+
+  // Gruppi CONFIRMED (pagati) senza driver, con pickup imminente
+  const timedOutGroups = await prisma.rideGroup.findMany({
+    where: {
+      status: 'CONFIRMED',
+      ride: { is: null },           // nessun driver assegnato
+      OR: [
+        { flightDepartureTime: { lte: cutoff } },
+        { flightDepartureTime: null, targetPickupTime: { lte: cutoff } },
+      ],
+    },
+    include: {
+      members: {
+        where: { status: { not: 'CANCELLED' } },
+        include: { booking: { select: { id: true, user: { select: { id: true } } } } },
+      },
+    },
+  });
+
+  for (const group of timedOutGroups) {
+    // Rimborsa tutti i paganti
+    for (const member of group.members) {
+      if (member.paymentIntentId && member.paymentStatus === 'CAPTURED') {
+        try {
+          await stripe.refunds.create({ payment_intent: member.paymentIntentId });
+          await prisma.groupMember.update({ where: { id: member.id }, data: { paymentStatus: 'REFUNDED' } });
+        } catch (e) { console.error('Refund failed', member.id, e); }
+      }
+      await prisma.booking.update({ where: { id: member.booking.id }, data: { status: 'CANCELLED' } });
+      await prisma.groupMember.update({ where: { id: member.id }, data: { status: 'CANCELLED' } });
+
+      createNotification({
+        userId: member.booking.user.id,
+        type: 'BOOKING_CANCELLED',
+        title: 'Nessun driver disponibile — Rimborso in arrivo',
+        body: `Nessun driver ha accettato la corsa per il volo ${group.flightNumber} in tempo. Riceverai un rimborso completo entro 5 giorni.`,
+        data: { flightNumber: group.flightNumber },
+      }).catch(() => {});
+    }
+
+    await prisma.rideGroup.update({ where: { id: group.id }, data: { status: 'CANCELLED' } });
+    console.log(`[NoDriverTimeout] Gruppo ${group.id} (${group.flightNumber}) annullato e rimborsato`);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

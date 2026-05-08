@@ -30,7 +30,7 @@ const faqs = [
   },
   {
     q: 'Come mi trovo con il driver in aeroporto?',
-    a: 'Ricevi il punto di incontro esatto (solitamente all\'uscita Arrivi del terminal). Il driver ha un cartello con il nome Flanvo e i tuoi dettagli. Puoi comunicare via chat direttamente dall\'app.',
+    a: 'Ricevi il punto di incontro esatto (solitamente all\'uscita Arrivi del terminal). Premi "Sono qui" nell\'app quando sei all\'uscita. Il driver parte quando il numero minimo di passeggeri del gruppo è presente — di solito bastano pochi minuti dall\'atterraggio. Chat diretta disponibile dal momento dell\'atterraggio.',
   },
 ];
 
